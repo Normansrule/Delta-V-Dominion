@@ -1,0 +1,231 @@
+#include "Core/DVGameMode.h"
+#include "Core/DVRosterSubsystem.h"
+#include "Core/DVPlayerController.h"
+#include "Characters/DVSoldierCharacter.h"
+#include "Characters/DVSquadAIController.h"
+#include "Characters/DVCommandComponent.h"
+#include "Combat/DVAttributeSet.h"
+#include "DeltaVDominion.h"
+
+#include "Engine/GameInstance.h"
+#include "NavigationSystem.h"
+#include "TimerManager.h"
+
+ADVGameMode::ADVGameMode()
+{
+	DefaultPawnClass = ADVSoldierCharacter::StaticClass();
+	PlayerControllerClass = ADVPlayerController::StaticClass();
+	SquadmateClass = ADVSoldierCharacter::StaticClass();
+
+	SuccessReward.Manpower = 4;
+	SuccessReward.Materiel = 40;
+	SuccessReward.Fuel = 25;
+}
+
+UDVRosterSubsystem* ADVGameMode::GetRoster() const
+{
+	const UGameInstance* GI = GetGameInstance();
+	return GI ? GI->GetSubsystem<UDVRosterSubsystem>() : nullptr;
+}
+
+void ADVGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
+{
+	// Co-op: later players take over a named squadmate instead of spawning a new body.
+	if (bCoopPlayersTakeOverSquadmates && SquadLeader.IsValid() && NewPlayer != LeaderController.Get())
+	{
+		if (ADVSoldierCharacter* Free = FindFreeSquadmate())
+		{
+			AController* OldAI = Free->GetController();
+			NewPlayer->Possess(Free);
+			if (OldAI)
+			{
+				OldAI->Destroy();
+			}
+			UE_LOG(LogDV, Log, TEXT("%s takes over %s"), *GetNameSafe(NewPlayer), *Free->GetSoldierName());
+			return;
+		}
+	}
+
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
+
+	if (!SquadLeader.IsValid())
+	{
+		if (ADVSoldierCharacter* Leader = Cast<ADVSoldierCharacter>(NewPlayer->GetPawn()))
+		{
+			SquadLeader = Leader;
+			LeaderController = NewPlayer;
+			SpawnSquadFor(Leader);
+		}
+	}
+}
+
+void ADVGameMode::SpawnSquadFor(ADVSoldierCharacter* Leader)
+{
+	UDVRosterSubsystem* Roster = GetRoster();
+	if (!Leader || !Roster || !SquadmateClass)
+	{
+		return;
+	}
+
+	const TArray<FGuid> Picked = Roster->SelectSquad(SquadSize);
+	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent<UNavigationSystemV1>(GetWorld());
+
+	for (int32 i = 0; i < Picked.Num(); ++i)
+	{
+		FDVSoldierRecord Record;
+		if (!Roster->GetSoldier(Picked[i], Record))
+		{
+			continue;
+		}
+
+		FVector Location = Leader->GetActorLocation() + Leader->GetActorRotation().RotateVector(FVector(-200.f - 150.f * i, (i % 2 ? 200.f : -200.f), 0.f));
+		FNavLocation NavLoc;
+		if (Nav && Nav->ProjectPointToNavigation(Location, NavLoc, FVector(300.f, 300.f, 300.f)))
+		{
+			Location = NavLoc.Location + FVector(0.f, 0.f, 100.f);
+		}
+
+		const FTransform SpawnTransform(Leader->GetActorRotation(), Location);
+		ADVSoldierCharacter* Mate = GetWorld()->SpawnActorDeferred<ADVSoldierCharacter>(SquadmateClass, SpawnTransform,
+			nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+		if (!Mate)
+		{
+			continue;
+		}
+		Mate->TeamId = Leader->TeamId;
+		Mate->FinishSpawning(SpawnTransform);
+		if (!Mate->GetController())
+		{
+			Mate->SpawnDefaultController();
+		}
+		Mate->ApplyRosterRecord(Record);
+
+		if (ADVSquadAIController* AI = Cast<ADVSquadAIController>(Mate->GetController()))
+		{
+			AI->SetLeader(Leader, i);
+		}
+		Leader->GetCommandComponent()->RegisterSquadMember(Mate);
+		DeployedSquad.Add(Mate);
+		DeployedIds.Add(Record.Id);
+
+		UE_LOG(LogDV, Log, TEXT("Deployed %s"), *Mate->GetSoldierName());
+	}
+}
+
+ADVSoldierCharacter* ADVGameMode::FindFreeSquadmate() const
+{
+	for (const TWeakObjectPtr<ADVSoldierCharacter>& Weak : DeployedSquad)
+	{
+		ADVSoldierCharacter* Mate = Weak.Get();
+		if (Mate && !Mate->IsDead() && Cast<ADVSquadAIController>(Mate->GetController()))
+		{
+			return Mate;
+		}
+	}
+	return nullptr;
+}
+
+void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCharacter* Killer, AController* KillerController)
+{
+	if (!Victim)
+	{
+		return;
+	}
+
+	UDVRosterSubsystem* Roster = GetRoster();
+	if (Roster && !bMissionEnded)
+	{
+		if (Victim->GetRosterId().IsValid())
+		{
+			const FString Cause = Killer ? FString::Printf(TEXT("Killed in action by %s"),
+				Killer->GetSoldierName().IsEmpty() ? TEXT("enemy fire") : *Killer->GetSoldierName()) : TEXT("Killed in action");
+			Roster->ReportKIA(Victim->GetRosterId(), Cause, MissionName);
+		}
+		if (Killer && Killer->GetRosterId().IsValid())
+		{
+			Roster->ReportKill(Killer->GetRosterId());
+		}
+	}
+
+	if (APlayerController* PC = Cast<APlayerController>(Victim->GetController()))
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateUObject(this, &ADVGameMode::RespawnPlayer,
+			TWeakObjectPtr<APlayerController>(PC)), PlayerRespawnDelay, false);
+	}
+}
+
+void ADVGameMode::RespawnPlayer(TWeakObjectPtr<APlayerController> WeakPC)
+{
+	APlayerController* PC = WeakPC.Get();
+	if (!PC || bMissionEnded)
+	{
+		return;
+	}
+	PC->UnPossess();
+	RestartPlayer(PC);
+
+	if (PC == LeaderController.Get())
+	{
+		if (ADVSoldierCharacter* NewLeader = Cast<ADVSoldierCharacter>(PC->GetPawn()))
+		{
+			RelinkSquadTo(NewLeader);
+		}
+	}
+}
+
+void ADVGameMode::RelinkSquadTo(ADVSoldierCharacter* NewLeader)
+{
+	SquadLeader = NewLeader;
+	int32 Slot = 0;
+	for (const TWeakObjectPtr<ADVSoldierCharacter>& Weak : DeployedSquad)
+	{
+		ADVSoldierCharacter* Mate = Weak.Get();
+		if (!Mate || Mate->IsDead())
+		{
+			continue;
+		}
+		NewLeader->GetCommandComponent()->RegisterSquadMember(Mate);
+		if (ADVSquadAIController* AI = Cast<ADVSquadAIController>(Mate->GetController()))
+		{
+			AI->SetLeader(NewLeader, Slot);
+		}
+		++Slot;
+	}
+}
+
+void ADVGameMode::EndMission(bool bSuccess)
+{
+	UDVRosterSubsystem* Roster = GetRoster();
+	if (bMissionEnded || !Roster)
+	{
+		return;
+	}
+	bMissionEnded = true;
+
+	FDVMissionReport Report;
+	Report.MissionName = MissionName;
+	Report.bSuccess = bSuccess;
+	if (bSuccess)
+	{
+		Report.Reward = SuccessReward;
+	}
+
+	for (const TWeakObjectPtr<ADVSoldierCharacter>& Weak : DeployedSquad)
+	{
+		const ADVSoldierCharacter* Mate = Weak.Get();
+		if (!Mate || Mate->IsDead())
+		{
+			continue;
+		}
+		Report.Survivors.Add(Mate->GetRosterId());
+		if (const UDVAttributeSet* Attr = Mate->GetAttributeSet(); Attr && Attr->DamageTakenFraction >= WoundedThreshold)
+		{
+			Report.Wounded.Add(Mate->GetRosterId());
+		}
+	}
+
+	Roster->CompleteMission(Report);
+	UE_LOG(LogDV, Log, TEXT("Mission %s ended (%s): %d survivors, %d wounded"), *MissionName,
+		bSuccess ? TEXT("success") : TEXT("failure"), Report.Survivors.Num(), Report.Wounded.Num());
+}
