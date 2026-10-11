@@ -143,6 +143,8 @@ flowchart TD
 
 ## Build from source
 
+Publishing to GitHub from Ubuntu: see [Docs/PUBLISH.md](Docs/PUBLISH.md).
+
 You need **Unreal Engine 5.8** (Epic Games Launcher) and **Visual Studio 2022 Build Tools** with
 *Desktop development with C++* and the *.NET Framework 4.8 SDK* component.
 
