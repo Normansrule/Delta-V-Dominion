@@ -41,7 +41,7 @@ case "${1:-help}" in
     "$editor_exe" "$(win "$UPROJECT")" /Game/Maps/BootCamp -game -windowed -ResX=1600 -ResY=900 "-ExecCmds=DVShowcase 0" >/dev/null 2>&1 &
     echo "Spectator view starting. Type ~ then 'DVShowcase 1' or 'DVShowcase 2' for other cameras, 'DVShowcase -1' to take control." ;;
   build)
-    cmd.exe /c "\"$build_bat\" DeltaVDominionEditor Win64 Development -Project=\"$(win "$UPROJECT")\" -WaitMutex" ;;
+    ps -Command "& '$build_bat' DeltaVDominionEditor Win64 Development '-Project=$(win "$UPROJECT")' -WaitMutex; exit \$LASTEXITCODE" ;;
   map)
     tmp="/mnt/c/Users/Public/build_bootcamp_map.py"   # Unreal's -ExecutePythonScript can't take paths with spaces
     cp "$SCRIPT_DIR/build_bootcamp_map.py" "$tmp"
@@ -54,11 +54,12 @@ case "${1:-help}" in
   log)
     tail -F "$(ls -t "$PROJECT_DIR"/Saved/Logs/*.log | head -1)" ;;
   status)
+    command -v git-lfs >/dev/null || { echo "Install Git LFS first: sudo apt install -y git-lfs && git lfs install"; exit 1; }
     git -C "$PROJECT_DIR" status --short --branch
     git -C "$PROJECT_DIR" log --oneline -8
     echo
     ls -la "$PROJECT_DIR/Binaries/Win64/"*.dll 2>/dev/null | awk '{print "built:", $6, $7, $8, $9}' || echo "Editor not built yet: bash dv.sh build"
     ls -la "$PROJECT_DIR/Build/Release/"*.zip 2>/dev/null | awk '{print "package:", $5, "bytes", $9}' || echo "No package yet: bash dv.sh package" ;;
   *)
-    sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+    awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}" ;;
 esac

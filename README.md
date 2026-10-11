@@ -19,8 +19,11 @@ Single player and co-op: lead a named squad from a persistent roster where every
 | **Reverse angle** from behind the Hearthbound positions | **First person**, the player's own view downrange |
 
 <p align="center">
-  <img src="Docs/media/firefight.gif" width="720" alt="Firefight across the crates">
+  <img src="Docs/media/firefight.gif" width="720" alt="Squad advancing into the Hearthbound guns, reverse angle">
 </p>
+
+![Tracers from the packaged build](Docs/media/tracers.png)
+*Captured from the packaged Windows build: tracers crossing the range as the squad pushes the Hearthbound line.*
 
 ---
 
