@@ -43,7 +43,8 @@ ADVSoldierCharacter::ADVSoldierCharacter(const FObjectInitializer& ObjectInitial
 
 	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
-	FirstPersonCamera->SetRelativeLocation(FVector(-5.f, 0.f, 64.f));
+	// Eye height of the mannequin body, slightly forward so the hidden head never clips the view.
+	FirstPersonCamera->SetRelativeLocation(FVector(14.f, 0.f, 70.f));
 	FirstPersonCamera->bUsePawnControlRotation = true;
 	FirstPersonCamera->SetFieldOfView(DefaultFOV);
 
@@ -57,6 +58,22 @@ ADVSoldierCharacter::ADVSoldierCharacter(const FObjectInitializer& ObjectInitial
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->SetCollisionResponseToChannel(DV_TRACE_WEAPON, ECR_Block);
+
+	// Default soldier body: the UE5 mannequin with rifle locomotion and aim offset. Blueprints can swap in real art.
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MannyMesh(TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple"));
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> QuinnMesh(TEXT("/Game/Characters/Mannequins/Meshes/SKM_Quinn_Simple.SKM_Quinn_Simple"));
+	static ConstructorHelpers::FClassFinder<UAnimInstance> RifleAnim(TEXT("/Game/Variant_Shooter/Anims/ABP_TP_Rifle"));
+	if (MannyMesh.Succeeded())
+	{
+		GetMesh()->SetSkeletalMeshAsset(MannyMesh.Object);
+		GetMesh()->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -92.f), FRotator(0.f, -90.f, 0.f));
+	}
+	if (RifleAnim.Succeeded())
+	{
+		GetMesh()->SetAnimInstanceClass(RifleAnim.Class);
+	}
+	HostileBodyMesh = QuinnMesh.Object;
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
 
 	// Grey-box stand-in so the game is playable before character art exists. Hidden in BeginPlay once a Mesh is set.
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
@@ -129,10 +146,57 @@ void ADVSoldierCharacter::BeginPlay()
 	}
 }
 
+void ADVSoldierCharacter::ApplyTeamAppearance()
+{
+	if (TeamId != 1 && HostileBodyMesh && GetMesh()->GetSkeletalMeshAsset() != HostileBodyMesh)
+	{
+		GetMesh()->SetSkeletalMeshAsset(HostileBodyMesh);
+	}
+	const bool bFriendly = TeamId == 1;
+	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
+	{
+		if (UMaterialInstanceDynamic* Mat = GetMesh()->CreateAndSetMaterialInstanceDynamic(i))
+		{
+			// Accord marines: matte olive armour, cyan unit markings.
+			// Hearthbound war-frames: black chrome chassis, hot red optics and seams.
+			Mat->SetVectorParameterValue(TEXT("Paint Tint"), bFriendly ? FriendlyPaint : HostilePaint);
+			Mat->SetVectorParameterValue(TEXT("LogoTint"), bFriendly ? FLinearColor(0.2f, 0.7f, 1.f) : FLinearColor(1.f, 0.08f, 0.02f));
+			Mat->SetScalarParameterValue(TEXT("MetalPaintMetallic"), bFriendly ? 0.2f : 1.f);
+			Mat->SetScalarParameterValue(TEXT("MetalPaintRoughness"), bFriendly ? 0.6f : 0.22f);
+			Mat->SetScalarParameterValue(TEXT("EmissivePower"), bFriendly ? 4.f : 40.f);
+		}
+	}
+	if (!bFriendly && HasAuthority() && SoldierName.IsEmpty())
+	{
+		SoldierName = FString::Printf(TEXT("Warden-%03d"), FMath::RandRange(100, 999));
+	}
+}
+
+void ADVSoldierCharacter::UpdateFirstPersonBody()
+{
+	const bool bFirstPerson = IsLocallyControlled() && IsPlayerControlled() && !bIsDead;
+	if (!GetMesh()->GetSkeletalMeshAsset())
+	{
+		return;
+	}
+	GetMesh()->SetOwnerNoSee(false);
+	FirstPersonMesh->SetVisibility(false);
+	if (bFirstPerson)
+	{
+		GetMesh()->HideBoneByName(TEXT("neck_01"), EPhysBodyOp::PBO_None);
+	}
+	else
+	{
+		GetMesh()->UnHideBoneByName(TEXT("neck_01"));
+	}
+}
+
 void ADVSoldierCharacter::SetupPlaceholderBody()
 {
 	if (GetMesh()->GetSkeletalMeshAsset())
 	{
+		ApplyTeamAppearance();
+		UpdateFirstPersonBody();
 		PlaceholderBody->DestroyComponent();
 		PlaceholderVisor->DestroyComponent();
 		PlaceholderBody = nullptr;
@@ -251,6 +315,7 @@ void ADVSoldierCharacter::OnRep_PlayerState()
 void ADVSoldierCharacter::NotifyControllerChanged()
 {
 	Super::NotifyControllerChanged();
+	UpdateFirstPersonBody();
 
 	if (const APlayerController* PC = Cast<APlayerController>(Controller))
 	{
@@ -434,7 +499,8 @@ void ADVSoldierCharacter::PlayWeaponMontage(UAnimMontage* Montage)
 	{
 		return;
 	}
-	USkeletalMeshComponent* TargetMesh = (IsLocallyControlled() && IsPlayerControlled()) ? FirstPersonMesh.Get() : GetMesh();
+	// The first-person view is the real body (see UpdateFirstPersonBody), so montages always play on it.
+	USkeletalMeshComponent* TargetMesh = GetMesh()->GetSkeletalMeshAsset() ? GetMesh() : FirstPersonMesh.Get();
 	if (UAnimInstance* Anim = TargetMesh ? TargetMesh->GetAnimInstance() : nullptr)
 	{
 		Anim->Montage_Play(Montage);
@@ -549,6 +615,7 @@ void ADVSoldierCharacter::EnterRagdoll()
 
 	USkeletalMeshComponent* Body = GetMesh();
 	Body->SetOwnerNoSee(false);
+	Body->UnHideBoneByName(TEXT("neck_01"));
 	Body->SetCollisionProfileName(TEXT("Ragdoll"));
 	Body->SetAllBodiesSimulatePhysics(true);
 	Body->WakeAllRigidBodies();

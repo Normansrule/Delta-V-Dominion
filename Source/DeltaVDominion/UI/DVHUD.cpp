@@ -77,6 +77,9 @@ void ADVHUD::DrawHUD()
 	DrawSquad(Soldier);
 	DrawObjective(GS);
 	DrawKillFeed(GS);
+	DrawOrbital(GS);
+	DrawRadio(GS);
+	DrawTitleCard(GS);
 }
 
 // ---------------------------------------------------------------------------
@@ -412,4 +415,90 @@ void ADVHUD::DrawAfterAction(const ADVGameState* GS)
 
 	const float Pulse = 0.6f + 0.4f * FMath::Sin(GetWorld()->GetRealTimeSeconds() * 3.f);
 	Text(TEXT("Press ENTER to redeploy"), CX, H * 0.86f, FLinearColor(1.f, 1.f, 1.f, Pulse), GEngine->GetMediumFont(), 1.2f, true);
+}
+
+void ADVHUD::DrawTitleCard(const ADVGameState* GS)
+{
+	if (!GS || GS->MissionLocation.IsEmpty())
+	{
+		return;
+	}
+	const float Age = GetWorld()->GetTimeSeconds() - GS->MissionStartTime;
+	if (Age > 8.f)
+	{
+		return;
+	}
+	// Fade in, hold, fade out; letterboxed like a mission intro.
+	const float Alpha = FMath::Clamp(Age / 0.8f, 0.f, 1.f) * FMath::Clamp((8.f - Age) / 1.2f, 0.f, 1.f);
+	const float W = Canvas->ClipX;
+	const float H = Canvas->ClipY;
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.85f * Alpha), 0.f, 0.f, W, H * 0.1f);
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.85f * Alpha), 0.f, H * 0.9f, W, H * 0.1f);
+
+	const float X = S(90.f);
+	const float Y = H * 0.62f;
+	DrawRect(FLinearColor(1.f, 0.45f, 0.15f, Alpha), X - S(18.f), Y + S(4.f), FMath::Max(2.f, S(4.f)), S(118.f));
+	Text(GS->MissionName.ToUpper(), X, Y, FLinearColor(1.f, 1.f, 1.f, Alpha), GEngine->GetLargeFont(), 2.4f);
+	Text(GS->MissionLocation, X, Y + S(70.f), FLinearColor(1.f, 0.62f, 0.3f, Alpha), GEngine->GetMediumFont(), 1.25f);
+	Text(GS->MissionSubtitle, X, Y + S(104.f), FLinearColor(0.75f, 0.8f, 0.85f, Alpha), GEngine->GetSmallFont(), 1.2f);
+}
+
+void ADVHUD::DrawRadio(const ADVGameState* GS)
+{
+	if (!GS || GS->GetRadio().Num() == 0)
+	{
+		return;
+	}
+	const FDVRadioLine& Line = GS->GetRadio().Last();
+	const double Age = GetWorld()->GetTimeSeconds() - Line.Time;
+	const double Hold = 3.0 + Line.Text.Len() * 0.045;
+	if (Age > Hold + 0.5)
+	{
+		return;
+	}
+	const float Alpha = Age > Hold ? 1.f - static_cast<float>((Age - Hold) / 0.5) : 1.f;
+	const bool bCinder = Line.Speaker == TEXT("CINDER");
+	const FLinearColor SpeakerColor = bCinder ? FLinearColor(1.f, 0.2f, 0.12f, Alpha) : FLinearColor(0.45f, 0.8f, 1.f, Alpha);
+	const float CX = Canvas->ClipX * 0.5f;
+	const float Y = Canvas->ClipY * 0.8f;
+
+	float TW = 0.f, TH = 0.f;
+	GetTextSize(Line.Text, TW, TH, GEngine->GetMediumFont(), 1.3f * UIScale);
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.45f * Alpha), CX - TW * 0.5f - S(20.f), Y - S(30.f), TW + S(40.f), S(70.f));
+	Text(Line.Speaker.ToUpper(), CX, Y - S(24.f), SpeakerColor, GEngine->GetSmallFont(), 1.05f, true);
+	Text(Line.Text, CX, Y, FLinearColor(1.f, 1.f, 1.f, Alpha), GEngine->GetMediumFont(), 1.f, true);
+}
+
+void ADVHUD::DrawOrbital(const ADVGameState* GS)
+{
+	if (!GS || GS->Phase != EDVMissionPhase::InProgress)
+	{
+		return;
+	}
+	const float Now = GetWorld()->GetTimeSeconds();
+	const float Remaining = GS->OrbitalReadyTime - Now;
+	const float CX = Canvas->ClipX * 0.5f;
+	const float Y = Canvas->ClipY - S(70.f);
+	if (Remaining <= 0.f)
+	{
+		const float Pulse = 0.7f + 0.3f * FMath::Sin(GetWorld()->GetRealTimeSeconds() * 4.f);
+		Text(TEXT("ORBITAL STRIKE READY  [B]"), CX, Y, FLinearColor(1.f, 0.5f, 0.2f, Pulse), GEngine->GetMediumFont(), 1.f, true);
+	}
+	else
+	{
+		Text(FString::Printf(TEXT("ORBITAL STRIKE  %ds"), FMath::CeilToInt(Remaining)), CX, Y, DVHudColors::Dim, GEngine->GetSmallFont(), 1.2f, true);
+	}
+
+	// Countdown over the painted target.
+	FVector Target;
+	double ImpactTime = 0.0;
+	if (GS->GetPendingStrike(Target, ImpactTime))
+	{
+		const FVector Screen = Project(Target + FVector(0.f, 0.f, 150.f));
+		if (Screen.Z > 0.f)
+		{
+			const float T = FMath::Max(0.0, ImpactTime - Now);
+			Text(FString::Printf(TEXT("IMPACT %.1f"), T), Screen.X, Screen.Y, FLinearColor(1.f, 0.2f, 0.1f, 1.f), GEngine->GetMediumFont(), 1.1f, true);
+		}
+	}
 }

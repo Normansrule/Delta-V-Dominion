@@ -4,11 +4,11 @@
 #
 #   bash dv.sh <command>
 #
-#   editor     Open the project in the Unreal Editor (BootCamp map)
-#   play       Launch the game standalone in a window
-#   watch      Launch the game on the overwatch camera with the squad flanking (spectator view)
+#   editor     Open the project in the Unreal Editor (Outpost map)
+#   play       Launch the game in a window (Outpost mission; add /Game/Maps/BootCamp for training)
+#   watch      Spectator view of the Outpost fight with an orbital strike
 #   build      Compile the editor target (run after pulling C++ changes)
-#   map        Regenerate the BootCamp grey-box map from Scripts/build_bootcamp_map.py
+#   map        Regenerate the Outpost and BootCamp maps from their Python scripts
 #   capture    Re-render README screenshots and GIFs into Docs/media
 #   package    Build the downloadable Windows game into Build/Release/DeltaVDominion-Win64.zip
 #   log        Follow the newest game/editor log
@@ -35,18 +35,20 @@ case "${1:-help}" in
     "$editor_exe" "$(win "$UPROJECT")" >/dev/null 2>&1 &
     echo "Unreal Editor is starting (first launch compiles shaders and can take a few minutes)." ;;
   play)
-    "$editor_exe" "$(win "$UPROJECT")" /Game/Maps/BootCamp -game -windowed -ResX=1600 -ResY=900 >/dev/null 2>&1 &
-    echo "Game is starting in a window. Controls: WASD, mouse, LMB fire, RMB aim, F/G/V/T/X squad orders." ;;
+    "$editor_exe" "$(win "$UPROJECT")" "${2:-/Game/Maps/Outpost}" -game -windowed -ResX=1600 -ResY=900 >/dev/null 2>&1 &
+    echo "Game is starting in a window (pass /Game/Maps/BootCamp for training). WASD, mouse, LMB fire, RMB aim, F/G/V/T/X squad orders, B orbital strike." ;;
   watch)
-    "$editor_exe" "$(win "$UPROJECT")" /Game/Maps/BootCamp -game -windowed -ResX=1600 -ResY=900 "-ExecCmds=DVShowcase 0" >/dev/null 2>&1 &
-    echo "Spectator view starting. Type ~ then 'DVShowcase 1' or 'DVShowcase 2' for other cameras, 'DVShowcase -1' to take control." ;;
+    "$editor_exe" "$(win "$UPROJECT")" /Game/Maps/Outpost -game -windowed -ResX=1600 -ResY=900 "-ExecCmds=DVShowcase 1, DVOrbitalStrike 13" >/dev/null 2>&1 &
+    echo "Spectator view starting (orbital strike at 13s). Type ~ then 'DVShowcase 0'..'3' for other cameras, 'DVShowcase -1' to take control." ;;
   build)
     ps -Command "& '$build_bat' DeltaVDominionEditor Win64 Development '-Project=$(win "$UPROJECT")' -WaitMutex; exit \$LASTEXITCODE" ;;
   map)
-    tmp="/mnt/c/Users/Public/build_bootcamp_map.py"   # Unreal's -ExecutePythonScript can't take paths with spaces
-    cp "$SCRIPT_DIR/build_bootcamp_map.py" "$tmp"
-    "$editor_cmd" "$(win "$UPROJECT")" "-ExecutePythonScript=$(win "$tmp" | tr '\\' '/') -quit" -nullrhi -unattended -nosplash -stdout \
-      | grep -E "BOOTCAMP|LogPython: (Error|Warning)" || true ;;
+    for script in build_outpost_map.py build_bootcamp_map.py; do
+      tmp="/mnt/c/Users/Public/$script"   # Unreal's -ExecutePythonScript can't take paths with spaces
+      cp "$SCRIPT_DIR/$script" "$tmp"
+      "$editor_cmd" "$(win "$UPROJECT")" "-ExecutePythonScript=$(win "$tmp" | tr '\\' '/') -quit" -nullrhi -unattended -nosplash -stdout \
+        | grep -E "OUTPOST|BOOTCAMP|LogPython: Error" || true
+    done ;;
   capture)
     ps -File "$(win "$SCRIPT_DIR/capture_media.ps1")" ;;
   package)

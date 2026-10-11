@@ -11,7 +11,8 @@ param(
     [int]$Width = 1280,
     [int]$Height = 720,
     [switch]$GifsOnly,
-    [switch]$FirefightOnly
+    [switch]$FirefightOnly,
+    [string]$Map = "/Game/Maps/Outpost"
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,7 +30,7 @@ function Invoke-Capture([string]$ExecCmds, [string]$LastFrame, [string]$Extra = 
     Remove-Item -LiteralPath $LastFrame -ErrorAction SilentlyContinue
     # Every capture starts from a fresh campaign so the shots are consistent (your save is restored at the end).
     Remove-Item -LiteralPath $Save -ErrorAction SilentlyContinue
-    $argList = "`"$Project`" /Game/Maps/BootCamp -game -RenderOffScreen -windowed -ResX=$Width -ResY=$Height -nosound -unattended -DVQuitAfterCapture $Extra `"-ExecCmds=$ExecCmds`""
+    $argList = "`"$Project`" $Map -game -RenderOffScreen -windowed -ResX=$Width -ResY=$Height -nosound -unattended -DVQuitAfterCapture $Extra `"-ExecCmds=$ExecCmds`""
     $proc = Start-Process -FilePath $Editor -ArgumentList $argList -PassThru
     # The game quits itself after capturing, but engine shutdown can be slow; stop it once the last frame is on disk.
     for ($i = 0; $i -lt 600 -and -not (Test-Path -LiteralPath $LastFrame) -and -not $proc.HasExited; $i++) { Start-Sleep 1 }
@@ -44,27 +45,27 @@ function Save-Still([string]$Name, [int]$Camera, [float]$Delay, [int]$ShowUI = 0
     Copy-Item (Join-Path $Frames "${Name}_0000.png") (Join-Path $Out "$Name.png") -Force
 }
 
-function Save-Gif([string]$Name, [int]$Camera, [float]$Delay, [int]$Seconds, [int]$Fps = 15, [int]$GifWidth = 640) {
+function Save-Gif([string]$Name, [int]$Camera, [float]$Delay, [int]$Seconds, [string]$Before = "", [int]$Fps = 15, [int]$GifWidth = 640) {
     # Fixed-step simulation: every frame is exactly 1/Fps of game time, however slow the capture.
     $count = $Seconds * $Fps
     Get-ChildItem $Frames -Filter "${Name}_*.png" | Remove-Item
     $last = Join-Path $Frames ("{0}_{1:D4}.png" -f $Name, ($count - 1))
-    Invoke-Capture "DVShowcase $Camera, DVCapture $Name $count 0 $Delay 1" $last "-BENCHMARK -FPS=$Fps"
+    Invoke-Capture "DVShowcase $Camera, ${Before}DVCapture $Name $count 0 $Delay 1" $last "-BENCHMARK -FPS=$Fps"
     $filter = "scale=${GifWidth}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     ffmpeg -y -loglevel error -framerate $Fps -i (Join-Path $Frames "${Name}_%04d.png") -vf $filter -loop 0 (Join-Path $Out "$Name.gif")
 }
 
 try {
 if (-not $GifsOnly -and -not $FirefightOnly) {
-    Save-Still "overview" 0 8
-    Save-Still "cover_line" 1 14
-    Save-Still "enemy_line" 2 16
-    Save-Still "first_person" -1 6 1
-    # After-action report: let the squad fight from the reverse camera, then end the mission.
+    Save-Still "title_card" -1 3 1                    # mission intro: title card + Captain Vance on the radio
+    Save-Still "outpost" 0 6                          # clean plate over the approach at dusk
+    Save-Still "war_frames" 3 5                       # Hearthbound war-frames holding the bunker
+    Save-Still "ridge" 1 6                            # low angle from the boulders
+    Save-Still "first_person" -1 14 1                 # combat HUD after the intro
     Save-Still "after_action" 2 18 1 "DVEndMission 0 15, "
 }
-if (-not $FirefightOnly) { Save-Gif "overwatch_flank" 0 3 12 }
-Save-Gif "firefight" 2 3 10   # reverse angle: squad advancing into the Hearthbound guns
+if (-not $FirefightOnly) { Save-Gif "orbital_strike" 1 11 7 "DVOrbitalStrike 12, " }
+Save-Gif "firefight" 3 4 8                            # tracers across the bunker doorway
 }
 finally {
     Remove-Item -LiteralPath $Save -ErrorAction SilentlyContinue

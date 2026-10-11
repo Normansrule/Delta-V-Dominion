@@ -8,6 +8,9 @@
 #include "Characters/DVCommandComponent.h"
 #include "Combat/DVAttributeSet.h"
 #include "DeltaVDominion.h"
+#include "AbilitySystemComponent.h"
+#include "DVGameplayTags.h"
+#include "Combat/DVCombatEffects.h"
 
 #include "Engine/GameInstance.h"
 #include "NavigationSystem.h"
@@ -51,11 +54,111 @@ void ADVGameMode::StartPlay()
 		{
 			Hostiles += It->TeamId != PlayerTeamId ? 1 : 0;
 		}
-		GS->MissionName = MissionName;
 		GS->EnemiesTotal = Hostiles;
 		GS->EnemiesRemaining = Hostiles;
-		GS->ObjectiveText = TEXT("Neutralise the Hearthbound fire team");
 		GS->MissionStartTime = GetWorld()->GetTimeSeconds();
+		GS->OrbitalReadyTime = GS->MissionStartTime + 12.f;
+	}
+	SetupMissionForMap();
+}
+
+void ADVGameMode::SetupMissionForMap()
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS)
+	{
+		return;
+	}
+	// Per-map mission text and radio script (see Docs/CAMPAIGN.md). Data-driven missions come with the mission system.
+	const FString Map = GetWorld()->GetMapName();
+	bIsTrainingMap = Map.Contains(TEXT("BootCamp"));
+	if (bIsTrainingMap)
+	{
+		MissionName = TEXT("Boot Camp");
+		GS->ObjectiveText = TEXT("Clear the training range");
+		GS->MissionLocation = TEXT("Copernicus Range, Luna");
+		GS->MissionSubtitle = TEXT("Terran Accord 7th Orbital Rifles  |  Six weeks before the uprising");
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Live rounds, live targets, Delta. The frames out there won't pull their punches, so neither will I."), 2.f);
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Use your squad. F to move them, X to flank, T to pin a target. B paints an orbital strike."), 9.f);
+	}
+	else
+	{
+		MissionName = TEXT("Red Tide");
+		GS->ObjectiveText = TEXT("Destroy the war-frames guarding the Tharsis relay");
+		GS->MissionLocation = TEXT("Tharsis Ridge, Mars");
+		GS->MissionSubtitle = TEXT("Day 3 of the CINDER uprising  |  TAS Kestrel ground element");
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Delta, Kestrel actual. That relay is CINDER's ear on this hemisphere. Take it down and we can talk to Earth again."), 2.5f);
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Frames dug in around the bunker. Use the rocks, keep spacing, don't let them flank."), 10.f);
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Orbital battery is charged. Paint a target with B and keep your heads down."), 16.f);
+		Radio(TEXT("CINDER"), TEXT("ACCORD UNIT DETECTED. YOUR SURRENDER WOULD BE EFFICIENT."), 24.f);
+	}
+	GS->MissionName = MissionName;
+}
+
+void ADVGameMode::Radio(const FString& Speaker, const FString& Text, float Delay)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS)
+	{
+		return;
+	}
+	if (Delay <= 0.f)
+	{
+		GS->MulticastRadio(Speaker, Text);
+		return;
+	}
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(GS, [GS, Speaker, Text]() { GS->MulticastRadio(Speaker, Text); }), Delay, false);
+}
+
+void ADVGameMode::RequestOrbitalStrike(APlayerController* Caller, const FVector& Target)
+{
+	ADVGameState* GS = GetDVGameState();
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (!GS || bMissionEnded || !Caller || Now < GS->OrbitalReadyTime)
+	{
+		return;
+	}
+	APawn* CallerPawn = Caller->GetPawn();
+	if (!CallerPawn || FVector::Dist(CallerPawn->GetActorLocation(), Target) > 20000.f)
+	{
+		return;	// out of designator range (also guards against spoofed targets)
+	}
+	GS->OrbitalReadyTime = Now + OrbitalCooldown + OrbitalDelay;
+	GS->MulticastOrbitalStrike(Target, OrbitalDelay);
+	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Target painted. Rounds away, three seconds. Danger close!"));
+
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateUObject(this, &ADVGameMode::ResolveOrbitalStrike,
+		TWeakObjectPtr<APawn>(CallerPawn), Target), OrbitalDelay, false);
+}
+
+void ADVGameMode::ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target)
+{
+	ADVSoldierCharacter* Shooter = Cast<ADVSoldierCharacter>(Caller.Get());
+	UAbilitySystemComponent* SourceASC = Shooter ? Shooter->GetAbilitySystemComponent() : nullptr;
+	if (!SourceASC)
+	{
+		return;
+	}
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		ADVSoldierCharacter* Victim = *It;
+		const float Dist = FVector::Dist(Victim->GetActorLocation(), Target);
+		if (Victim->IsDead() || Dist > OrbitalRadius)
+		{
+			continue;
+		}
+		// Friendly fire is on for orbital strikes: that's what "danger close" means.
+		FGameplayEffectContextHandle Context = SourceASC->MakeEffectContext();
+		Context.AddInstigator(Shooter, Shooter);
+		FGameplayEffectSpecHandle Spec = SourceASC->MakeOutgoingSpec(UDVDamageEffect::StaticClass(), 1.f, Context);
+		if (Spec.IsValid())
+		{
+			const float Falloff = 1.f - 0.7f * (Dist / OrbitalRadius);
+			Spec.Data->SetSetByCallerMagnitude(DVTags::SetByCaller_Damage, OrbitalDamage * Falloff);
+			SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), Victim->GetAbilitySystemComponent());
+		}
 	}
 }
 
@@ -215,11 +318,24 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 	{
 		const FString VictimName = Victim->GetSoldierName().IsEmpty() ? (bFriendlyLoss ? TEXT("You") : TEXT("Hearthbound trooper")) : Victim->GetSoldierName();
 		const FString KillerName = !Killer ? TEXT("") : Killer->IsPlayerControlled() ? TEXT("You")
-			: Killer->GetSoldierName().IsEmpty() ? TEXT("Hearthbound") : Killer->GetSoldierName();
+			: Killer->GetSoldierName().IsEmpty() ? TEXT("War-frame") : Killer->GetSoldierName();
 		GS->MulticastKillFeed(KillerName, VictimName, bFriendlyLoss);
 
+		if (bFriendlyLoss && Victim->GetRosterId().IsValid())
+		{
+			Radio(TEXT("Gny. Sgt. Halloran"), FString::Printf(TEXT("We lost %s! Keep moving, Delta!"), *Victim->GetSoldierName()));
+		}
 		if (!bFriendlyLoss)
 		{
+			++HostileKills;
+			if (HostileKills == 1)
+			{
+				Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Scratch one tin can! They bleed oil, people. Keep it up."));
+			}
+			else if (GS->EnemiesTotal > 3 && GS->EnemiesRemaining - 1 == GS->EnemiesTotal / 2 && !bIsTrainingMap)
+			{
+				Radio(TEXT("CINDER"), TEXT("YOUR LOSSES ARE ACCEPTABLE. MINE ARE IRRELEVANT."));
+			}
 			GS->EnemiesRemaining = FMath::Max(0, GS->EnemiesRemaining - 1);
 			if (GS->EnemiesRemaining == 0)
 			{
@@ -334,6 +450,10 @@ void ADVGameMode::EndMission(bool bSuccess)
 	}
 
 	Roster->CompleteMission(Report);
+
+	Radio(TEXT("Capt. Vance (Kestrel)"), bSuccess
+		? (bIsTrainingMap ? FString(TEXT("Range is clear. Not bad, Delta. Not good either. Again tomorrow.")) : FString(TEXT("Relay's dark. Good work, Delta. Bringing you home.")))
+		: FString(TEXT("Delta's gone quiet... Kestrel to any Delta unit, respond. Any Delta unit...")));
 
 	if (ADVGameState* GS = GetDVGameState())
 	{

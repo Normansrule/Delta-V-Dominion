@@ -27,6 +27,8 @@ class DELTAVDOMINION_API UDVWeaponData : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	UDVWeaponData();
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity") FText DisplayName;
 
 	// --- Fire ---

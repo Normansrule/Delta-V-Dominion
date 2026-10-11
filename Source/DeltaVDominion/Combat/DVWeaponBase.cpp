@@ -9,6 +9,7 @@
 #include "Materials/MaterialInterface.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
+#include "Components/PointLightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -79,7 +80,9 @@ void ADVWeaponBase::AttachToSoldier(ADVSoldierCharacter* Soldier)
 		return;
 	}
 
-	const bool bFirstPerson = Soldier->IsLocallyControlled() && Soldier->IsPlayerControlled();
+	// With a real body the local player sees that body too (true first person), so everyone attaches to it.
+	const bool bHasBody = Soldier->GetMesh() && Soldier->GetMesh()->GetSkeletalMeshAsset();
+	const bool bFirstPerson = !bHasBody && Soldier->IsLocallyControlled() && Soldier->IsPlayerControlled();
 	USkeletalMeshComponent* Parent = bFirstPerson ? Soldier->GetFirstPersonMesh() : Soldier->GetMesh();
 	const FName Socket = bFirstPerson ? GetData()->FirstPersonAttachSocket : GetData()->ThirdPersonAttachSocket;
 	if (Parent && Parent->DoesSocketExist(Socket))
@@ -279,6 +282,10 @@ void ADVWeaponBase::SpawnShotEffects(const TArray<FVector>& ImpactPoints) const
 		UNiagaraFunctionLibrary::SpawnSystemAttached(GetData()->MuzzleFlash, Mesh, GetData()->MuzzleSocket, FVector::ZeroVector,
 			FRotator::ZeroRotator, EAttachLocation::SnapToTarget, /*bAutoDestroy*/ true);
 	}
+	else if (GetNetMode() != NM_DedicatedServer)
+	{
+		SpawnMuzzleFlashLight(Muzzle);
+	}
 	if (GetData()->FireSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, GetData()->FireSound, Muzzle);
@@ -309,6 +316,64 @@ bool ADVWeaponBase::HasRealMesh() const
 	return GetData() && GetData()->Mesh;
 }
 
+void ADVWeaponBase::SpawnMuzzleFlashLight(const FVector& Muzzle) const
+{
+	// A brief, hot point light: lights the shooter, nearby walls and smoke the way a real muzzle flash does.
+	ADVWeaponBase* MutableThis = const_cast<ADVWeaponBase*>(this);
+	UPointLightComponent* Flash = NewObject<UPointLightComponent>(MutableThis);
+	Flash->SetUsingAbsoluteLocation(true);
+	Flash->RegisterComponent();
+	Flash->SetWorldLocation(Muzzle);
+	Flash->SetIntensityUnits(ELightUnits::Candelas);
+	Flash->SetIntensity(FMath::FRandRange(900.f, 1400.f));
+	Flash->SetLightColor(FLinearColor(1.f, 0.62f, 0.28f));
+	Flash->SetAttenuationRadius(650.f);
+	Flash->SetCastShadows(false);
+
+	if (PlaceholderTracerMesh)
+	{
+		// Star-shaped flare: two crossed, stretched emissive discs.
+		for (int32 i = 0; i < 2; ++i)
+		{
+			UStaticMeshComponent* Flare = NewObject<UStaticMeshComponent>(MutableThis);
+			Flare->SetStaticMesh(PlaceholderTracerMesh);
+			Flare->SetMaterial(0, PlaceholderMaterial);
+			Flare->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Flare->CastShadow = false;
+			Flare->SetUsingAbsoluteLocation(true);
+			Flare->SetUsingAbsoluteRotation(true);
+			Flare->SetUsingAbsoluteScale(true);
+			Flare->RegisterComponent();
+			const FRotator Facing = (GetMuzzleDirection()).Rotation();
+			Flare->SetWorldLocationAndRotation(Muzzle + GetMuzzleDirection() * 12.f, FRotator(Facing.Pitch + 90.f, Facing.Yaw, i * 90.f + FMath::FRandRange(0.f, 45.f)));
+			Flare->SetWorldScale3D(FVector(0.09f, FMath::FRandRange(0.18f, 0.3f), 0.25f));
+			if (UMaterialInstanceDynamic* Mat = Flare->CreateAndSetMaterialInstanceDynamic(0))
+			{
+				Mat->SetVectorParameterValue(TEXT("Color"), FLinearColor(1.f, 0.8f, 0.4f));
+				Mat->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(60.f, 30.f, 8.f));
+			}
+			FTimerHandle FlareHandle;
+			GetWorldTimerManager().SetTimer(FlareHandle, FTimerDelegate::CreateWeakLambda(Flare, [Flare]() { Flare->DestroyComponent(); }), 0.035f, false);
+		}
+	}
+
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(Flash, [Flash]() { Flash->DestroyComponent(); }), 0.05f, false);
+}
+
+FVector ADVWeaponBase::GetMuzzleDirection() const
+{
+	if (GetData() && Mesh->DoesSocketExist(GetData()->MuzzleSocket))
+	{
+		return Mesh->GetSocketRotation(GetData()->MuzzleSocket).Vector();
+	}
+	if (const APawn* PawnOwner = Cast<APawn>(GetOwner()))
+	{
+		return PawnOwner->GetBaseAimRotation().Vector();
+	}
+	return GetActorForwardVector();
+}
+
 void ADVWeaponBase::SpawnPlaceholderTracer(const FVector& From, const FVector& To) const
 {
 	const FVector Delta = To - From;
@@ -330,11 +395,11 @@ void ADVWeaponBase::SpawnPlaceholderTracer(const FVector& From, const FVector& T
 	Beam->SetUsingAbsoluteScale(true);
 	Beam->RegisterComponent();
 	Beam->SetWorldLocationAndRotation((From + To) * 0.5f, FRotationMatrix::MakeFromZ(Delta).Rotator());
-	Beam->SetWorldScale3D(FVector(0.025f, 0.025f, Length / 100.f));
+	Beam->SetWorldScale3D(FVector(0.012f, 0.012f, Length / 100.f));
 	if (UMaterialInstanceDynamic* Mat = Beam->CreateAndSetMaterialInstanceDynamic(0))
 	{
 		Mat->SetVectorParameterValue(TEXT("Color"), FLinearColor(1.f, 0.7f, 0.15f));
-		Mat->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(20.f, 9.f, 1.5f));
+		Mat->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(80.f, 32.f, 6.f));
 	}
 
 	FTimerHandle Handle;

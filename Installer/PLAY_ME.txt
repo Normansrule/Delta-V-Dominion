@@ -1,4 +1,4 @@
-DELTA-V: DOMINION  -  Boot Camp build
+DELTA-V: DOMINION  -  "Red Tide" build
 
 Run DeltaVDominion.exe.
 If Windows says a DLL (VCRUNTIME / XINPUT / D3D) is missing, run
@@ -13,11 +13,13 @@ Controls
   Shift          sprint               T   squad: suppress target
   C              crouch               X   squad: flank target
   Q / E          lean left / right    Space  jump
+  B              call the TAS Kestrel's orbital strike on your crosshair (danger close!)
   Enter          redeploy after the after-action report
 
-Objective: neutralise the Hearthbound fire team. If you go down you reinforce on your squad;
+Mission "Red Tide", Tharsis Ridge, Mars: destroy the Hearthbound war-frames guarding the relay. If you go down you reinforce on your squad;
 if you and the whole squad fall, the mission is lost. Dead soldiers stay dead.
 
 Console (press ~)
-  DVShowcase 0 / 1 / 2   spectator cameras, squad flanks the enemy
+  DVShowcase 0 / 1 / 2 / 3   spectator cameras, squad flanks the enemy
+  open BootCamp              training range on Luna
   DVShowcase -1          back to your soldier

@@ -92,6 +92,8 @@ protected:
 private:
 	void SpawnShotEffects(const TArray<FVector>& ImpactPoints) const;
 	void SpawnPlaceholderTracer(const FVector& From, const FVector& To) const;
+	void SpawnMuzzleFlashLight(const FVector& Muzzle) const;
+	FVector GetMuzzleDirection() const;
 	bool HasRealMesh() const;
 
 	double LastShotTime = -1000.0;		// local / predicted

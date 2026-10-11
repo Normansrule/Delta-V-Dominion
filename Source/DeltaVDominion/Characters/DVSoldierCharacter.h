@@ -9,6 +9,7 @@
 
 class UCameraComponent;
 class USkeletalMeshComponent;
+class USkeletalMesh;
 class UStaticMeshComponent;
 class UAbilitySystemComponent;
 class UGameplayAbility;
@@ -102,6 +103,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Weapon") TSubclassOf<ADVWeaponBase> WeaponClass;
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Abilities") TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
 	UPROPERTY(EditAnywhere, Replicated, Category = "Soldier|Team") uint8 TeamId = 1;
+	/** Body used for non-player teams (the Hearthbound). Falls back to Mesh when unset. */
+	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Appearance") TObjectPtr<USkeletalMesh> HostileBodyMesh;
+	/** Armour paint and visor glow per team (mannequin "Paint Tint" / emissive). */
+	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Appearance") FLinearColor FriendlyPaint = FLinearColor(0.16f, 0.2f, 0.13f);
+	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Appearance") FLinearColor HostilePaint = FLinearColor(0.03f, 0.03f, 0.035f);
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Camera") float DefaultFOV = 90.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Camera") float LookSensitivity = 0.4f;
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Camera") float LeanAngle = 12.f;
@@ -156,6 +162,9 @@ private:
 	void HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser);
 	void EnterRagdoll();
 	void SetupPlaceholderBody();
+	void ApplyTeamAppearance();
+	/** Local player sees their own body (head hidden) instead of floating arms. */
+	void UpdateFirstPersonBody();
 	void CreateFallbackInput();
 	UDVCharacterMovementComponent* GetDVMovement() const;
 

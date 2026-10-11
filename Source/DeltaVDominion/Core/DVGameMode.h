@@ -39,6 +39,14 @@ public:
 	/** After the mission ends: reload the level with the updated roster (Enter on the after-action screen). */
 	void RequestRedeploy();
 
+	/** Kestrel orbital strike on Target, called in by a player. Shared cooldown for the whole squad. */
+	void RequestOrbitalStrike(APlayerController* Caller, const FVector& Target);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|Orbital") float OrbitalCooldown = 40.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|Orbital") float OrbitalDelay = 3.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|Orbital") float OrbitalRadius = 900.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|Orbital") float OrbitalDamage = 400.f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") TSubclassOf<ADVSoldierCharacter> SquadmateClass;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") int32 SquadSize = 3;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") FString MissionName = TEXT("Training");
@@ -56,6 +64,11 @@ private:
 	void RespawnPlayer(TWeakObjectPtr<APlayerController> WeakPC);
 	void RelinkSquadTo(ADVSoldierCharacter* NewLeader);
 	bool AnySquadmateAlive() const;
+	void SetupMissionForMap();
+	void Radio(const FString& Speaker, const FString& Text, float Delay = 0.f);
+	void ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target);
+	int32 HostileKills = 0;
+	bool bIsTrainingMap = false;
 	class ADVGameState* GetDVGameState() const;
 
 	TWeakObjectPtr<ADVSoldierCharacter> SquadLeader;

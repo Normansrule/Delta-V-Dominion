@@ -42,6 +42,9 @@ private:
 	void DrawOrderToast();
 	void DrawDeathScreen();
 	void DrawAfterAction(const ADVGameState* GS);
+	void DrawTitleCard(const ADVGameState* GS);
+	void DrawRadio(const ADVGameState* GS);
+	void DrawOrbital(const ADVGameState* GS);
 	void BindOrders(ADVSoldierCharacter* Soldier);
 
 	// Helpers (all positions in 1080p reference units, scaled to the viewport).

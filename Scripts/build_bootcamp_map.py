@@ -75,7 +75,7 @@ def make_greybox_materials():
 
 def block(label, centre, size, material=GRID, folder="Geometry"):
     """Box of `size` (cm) whose centre is at `centre`."""
-    actor = actors.spawn_actor_from_object(CUBE, unreal.Vector(*centre), unreal.Rotator(0, 0, 0))
+    actor = actors.spawn_actor_from_object(CUBE, unreal.Vector(*centre), unreal.Rotator())
     actor.set_actor_label(label)
     actor.set_folder_path(folder)
     actor.set_actor_scale3d(unreal.Vector(size[0] / 100.0, size[1] / 100.0, size[2] / 100.0))
@@ -84,7 +84,7 @@ def block(label, centre, size, material=GRID, folder="Geometry"):
 
 
 def spawn(cls, label, location, rotation=(0, 0, 0), folder="Gameplay"):
-    actor = actors.spawn_actor_from_class(cls, unreal.Vector(*location), unreal.Rotator(*rotation))
+    actor = actors.spawn_actor_from_class(cls, unreal.Vector(*location), unreal.Rotator(roll=rotation[2], pitch=rotation[0], yaw=rotation[1]))
     actor.set_actor_label(label)
     actor.set_folder_path(folder)
     return actor

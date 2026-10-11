@@ -34,6 +34,10 @@ public:
 	UFUNCTION(Exec)
 	void DVEndMission(bool bSuccess, float Delay = 0.f);
 
+	/** Console: "DVOrbitalStrike [Delay]" calls the Kestrel's strike on whatever the current view is aimed at (same as B). */
+	UFUNCTION(Exec)
+	void DVOrbitalStrike(float Delay = 0.f);
+
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void SetupInputComponent() override;
 
@@ -52,8 +56,12 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerEndMission(bool bSuccess);
 
+	UFUNCTION(Server, Reliable)
+	void ServerCallOrbitalStrike(FVector_NetQuantize Target);
+
 private:
 	void OnRedeployPressed();
+	void OnOrbitalPressed();
 	void ShowcaseOrderFlank();
 	void CaptureTick();
 	void StartCapture();

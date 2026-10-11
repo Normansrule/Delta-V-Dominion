@@ -5,6 +5,8 @@
 #include "Core/DVGameState.h"
 
 #include "Camera/CameraActor.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/HUD.h"
 #include "Components/InputComponent.h"
 #include "InputCoreTypes.h"
 #include "HighResScreenshot.h"
@@ -72,6 +74,10 @@ void ADVPlayerController::ShowcaseOrderFlank()
 void ADVPlayerController::DVCapture(const FString& Name, int32 Frames, float Interval, float Delay, bool bShowUI)
 {
 	bCaptureShowUI = bShowUI;
+	if (MyHUD)
+	{
+		MyHUD->bShowHUD = bShowUI;	// clean plates for trailers and README shots
+	}
 	CaptureName = Name.IsEmpty() ? TEXT("capture") : Name;
 	CaptureFramesLeft = FMath::Max(1, Frames);
 	CaptureIndex = 0;
@@ -131,6 +137,7 @@ void ADVPlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 	// Plain key binding so it works with no pawn (dead, or on the after-action screen).
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
+	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
 }
 
 void ADVPlayerController::OnRedeployPressed()
@@ -174,4 +181,36 @@ void ADVPlayerController::ServerEndMission_Implementation(bool bSuccess)
 		GM->EndMission(bSuccess);
 	}
 #endif
+}
+
+void ADVPlayerController::DVOrbitalStrike(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { OnOrbitalPressed(); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::OnOrbitalPressed()
+{
+	const APawn* MyPawn = GetPawn();
+	if (!MyPawn || !PlayerCameraManager)
+	{
+		return;
+	}
+	// Designate whatever is under the crosshair (ground or target).
+	const FVector Start = PlayerCameraManager->GetCameraLocation();
+	const FVector End = Start + PlayerCameraManager->GetActorForwardVector() * 20000.f;
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(DVOrbitalDesignate), false, MyPawn);
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		ServerCallOrbitalStrike(Hit.ImpactPoint);
+	}
+}
+
+void ADVPlayerController::ServerCallOrbitalStrike_Implementation(FVector_NetQuantize Target)
+{
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->RequestOrbitalStrike(this, Target);
+	}
 }

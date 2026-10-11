@@ -26,6 +26,14 @@ struct FDVAfterActionLine
 	UPROPERTY(BlueprintReadOnly) bool bPromoted = false;
 };
 
+/** Local-only radio subtitle (filled by a multicast). */
+struct FDVRadioLine
+{
+	FString Speaker;
+	FString Text;
+	double Time = 0.0;
+};
+
 /** Local-only kill feed entry (filled by a multicast, never replicated as state). */
 struct FDVKillFeedEntry
 {
@@ -45,11 +53,17 @@ class DELTAVDOMINION_API ADVGameState : public AGameStateBase
 	GENERATED_BODY()
 
 public:
+	ADVGameState();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") EDVMissionPhase Phase = EDVMissionPhase::InProgress;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionName;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString ObjectiveText;
+	/** Title card lines, e.g. "Tharsis Ridge, Mars" / "Day 3 of the Uprising". */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionLocation;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionSubtitle;
+	/** Server time when the Kestrel's orbital strike is charged again. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float OrbitalReadyTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 EnemiesTotal = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 EnemiesRemaining = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") TArray<FDVAfterActionLine> AfterAction;
@@ -60,8 +74,28 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastKillFeed(const FString& Killer, const FString& Victim, bool bFriendlyLoss);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRadio(const FString& Speaker, const FString& Text);
+
+	/** Cosmetics for an incoming orbital strike: target beam now, impact after Delay. */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastOrbitalStrike(FVector_NetQuantize Location, float Delay);
+
 	const TArray<FDVKillFeedEntry>& GetKillFeed() const { return KillFeed; }
+	const TArray<FDVRadioLine>& GetRadio() const { return Radio; }
+	bool GetPendingStrike(FVector& OutLocation, double& OutImpactTime) const;
 
 private:
+	void PlayOrbitalImpact(FVector Location);
+
+	// Hard references so the packaged game cooks these.
+	UPROPERTY() TObjectPtr<class UStaticMesh> BeamMesh;
+	UPROPERTY() TObjectPtr<class UStaticMesh> SphereMesh;
+	UPROPERTY() TObjectPtr<class UMaterialInterface> BeamMaterial;
+	UPROPERTY() TObjectPtr<class UNiagaraSystem> ExplosionFX;
+
 	TArray<FDVKillFeedEntry> KillFeed;
+	TArray<FDVRadioLine> Radio;
+	FVector PendingStrikeLocation = FVector::ZeroVector;
+	double PendingStrikeImpactTime = -1.0;
 };
