@@ -5,10 +5,10 @@
 #   bash dv.sh <command>
 #
 #   editor     Open the project in the Unreal Editor (Outpost map)
-#   play       Launch the game in a window (Outpost mission; add /Game/Maps/BootCamp for training)
+#   play       Launch the game in a window (galaxy start screen; or pass /Game/Maps/Outpost)
 #   watch      Spectator view of the Outpost fight with an orbital strike
 #   build      Compile the editor target (run after pulling C++ changes)
-#   map        Regenerate the Outpost and BootCamp maps from their Python scripts
+#   map        Regenerate the Galaxy, Outpost and BootCamp maps from their Python scripts
 #   capture    Re-render README screenshots and GIFs into Docs/media
 #   package    Build the downloadable Windows game into Build/Release/DeltaVDominion-Win64.zip
 #   log        Follow the newest game/editor log
@@ -35,7 +35,7 @@ case "${1:-help}" in
     "$editor_exe" "$(win "$UPROJECT")" >/dev/null 2>&1 &
     echo "Unreal Editor is starting (first launch compiles shaders and can take a few minutes)." ;;
   play)
-    "$editor_exe" "$(win "$UPROJECT")" "${2:-/Game/Maps/Outpost}" -game -windowed -ResX=1600 -ResY=900 >/dev/null 2>&1 &
+    "$editor_exe" "$(win "$UPROJECT")" "${2:-/Game/Maps/Galaxy}" -game -windowed -ResX=1600 -ResY=900 >/dev/null 2>&1 &
     echo "Game is starting in a window (pass /Game/Maps/BootCamp for training). WASD, mouse, LMB fire, RMB aim, F/G/V/T/X squad orders, B orbital strike." ;;
   watch)
     "$editor_exe" "$(win "$UPROJECT")" /Game/Maps/Outpost -game -windowed -ResX=1600 -ResY=900 "-ExecCmds=DVShowcase 1, DVOrbitalStrike 13" >/dev/null 2>&1 &
@@ -43,11 +43,11 @@ case "${1:-help}" in
   build)
     ps -Command "& '$build_bat' DeltaVDominionEditor Win64 Development '-Project=$(win "$UPROJECT")' -WaitMutex; exit \$LASTEXITCODE" ;;
   map)
-    for script in build_outpost_map.py build_bootcamp_map.py; do
+    for script in build_galaxy_map.py build_outpost_map.py build_bootcamp_map.py; do
       tmp="/mnt/c/Users/Public/$script"   # Unreal's -ExecutePythonScript can't take paths with spaces
       cp "$SCRIPT_DIR/$script" "$tmp"
       "$editor_cmd" "$(win "$UPROJECT")" "-ExecutePythonScript=$(win "$tmp" | tr '\\' '/') -quit" -nullrhi -unattended -nosplash -stdout \
-        | grep -E "OUTPOST|BOOTCAMP|LogPython: Error" || true
+        | grep -E "GALAXY|OUTPOST|BOOTCAMP|LogPython: Error" || true
     done ;;
   capture)
     ps -File "$(win "$SCRIPT_DIR/capture_media.ps1")" ;;

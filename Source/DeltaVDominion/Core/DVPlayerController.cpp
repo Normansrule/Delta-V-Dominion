@@ -11,6 +11,7 @@
 #include "InputCoreTypes.h"
 #include "HighResScreenshot.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
@@ -138,6 +139,7 @@ void ADVPlayerController::SetupInputComponent()
 	// Plain key binding so it works with no pawn (dead, or on the after-action screen).
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
+	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
 }
 
 void ADVPlayerController::OnRedeployPressed()
@@ -212,5 +214,14 @@ void ADVPlayerController::ServerCallOrbitalStrike_Implementation(FVector_NetQuan
 	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
 	{
 		GM->RequestOrbitalStrike(this, Target);
+	}
+}
+
+void ADVPlayerController::OnMapPressed()
+{
+	const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
+	if (GS && GS->Phase != EDVMissionPhase::InProgress && IsLocalController())
+	{
+		UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Galaxy")));	// back to the Kestrel's strategic map
 	}
 }

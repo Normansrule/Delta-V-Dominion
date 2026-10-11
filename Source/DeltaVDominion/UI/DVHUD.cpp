@@ -414,7 +414,7 @@ void ADVHUD::DrawAfterAction(const ADVGameState* GS)
 	}
 
 	const float Pulse = 0.6f + 0.4f * FMath::Sin(GetWorld()->GetRealTimeSeconds() * 3.f);
-	Text(TEXT("Press ENTER to redeploy"), CX, H * 0.86f, FLinearColor(1.f, 1.f, 1.f, Pulse), GEngine->GetMediumFont(), 1.2f, true);
+	Text(TEXT("ENTER  redeploy        M  strategic map"), CX, H * 0.86f, FLinearColor(1.f, 1.f, 1.f, Pulse), GEngine->GetMediumFont(), 1.2f, true);
 }
 
 void ADVHUD::DrawTitleCard(const ADVGameState* GS)

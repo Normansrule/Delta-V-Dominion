@@ -26,11 +26,12 @@ $Save = Join-Path $Root "Saved\SaveGames\Campaign0.sav"
 $SaveBackup = "$Save.capture-backup"
 if (Test-Path -LiteralPath $Save) { Copy-Item -LiteralPath $Save $SaveBackup -Force }
 
-function Invoke-Capture([string]$ExecCmds, [string]$LastFrame, [string]$Extra = "") {
+function Invoke-Capture([string]$ExecCmds, [string]$LastFrame, [string]$Extra = "", [string]$ShotMap = "") {
+    if (-not $ShotMap) { $ShotMap = $Map }
     Remove-Item -LiteralPath $LastFrame -ErrorAction SilentlyContinue
     # Every capture starts from a fresh campaign so the shots are consistent (your save is restored at the end).
     Remove-Item -LiteralPath $Save -ErrorAction SilentlyContinue
-    $argList = "`"$Project`" $Map -game -RenderOffScreen -windowed -ResX=$Width -ResY=$Height -nosound -unattended -DVQuitAfterCapture $Extra `"-ExecCmds=$ExecCmds`""
+    $argList = "`"$Project`" $ShotMap -game -RenderOffScreen -windowed -ResX=$Width -ResY=$Height -nosound -unattended -DVQuitAfterCapture $Extra `"-ExecCmds=$ExecCmds`""
     $proc = Start-Process -FilePath $Editor -ArgumentList $argList -PassThru
     # The game quits itself after capturing, but engine shutdown can be slow; stop it once the last frame is on disk.
     for ($i = 0; $i -lt 600 -and -not (Test-Path -LiteralPath $LastFrame) -and -not $proc.HasExited; $i++) { Start-Sleep 1 }
@@ -55,8 +56,16 @@ function Save-Gif([string]$Name, [int]$Camera, [float]$Delay, [int]$Seconds, [st
     ffmpeg -y -loglevel error -framerate $Fps -i (Join-Path $Frames "${Name}_%04d.png") -vf $filter -loop 0 (Join-Path $Out "$Name.gif")
 }
 
+function Save-GalaxyStill([string]$Name, [string]$Cmds, [float]$Delay) {
+    Invoke-Capture "${Cmds}DVCapture $Name 1 0 $Delay 1" (Join-Path $Frames "${Name}_0000.png") "" "/Game/Maps/Galaxy"
+    Copy-Item (Join-Path $Frames "${Name}_0000.png") (Join-Path $Out "$Name.png") -Force
+}
+
 try {
 if (-not $GifsOnly -and -not $FirefightOnly) {
+    Save-GalaxyStill "galaxy" "" 9                                        # start screen: the Milky Way
+    Save-GalaxyStill "galaxy_sol" "DVGalaxyView 1, " 5                    # Sol, Gaia and the local bubble
+    Save-GalaxyStill "galaxy_arm" "DVGalaxyView 3, DVSelectSystem Eagle, " 6
     Save-Still "title_card" -1 3 1                    # mission intro: title card + Captain Vance on the radio
     Save-Still "outpost" 0 6                          # clean plate over the approach at dusk
     Save-Still "war_frames" 3 5                       # Hearthbound war-frames holding the bunker

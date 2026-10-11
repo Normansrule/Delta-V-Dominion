@@ -8,7 +8,12 @@
 
 ## The premise
 
-**2189.** Humanity spans the inner system. The **Terran Accord** keeps the peace with one fleet and too
+**2189.** Humanity's home world is **Gaia** — Earth, renamed when the planet was restored after the
+climate centuries — capital of the **Terran Accord** and the centre of everything in this story. From Gaia
+the Accord has spread along the Orion Spur of the **Milky Way**: colonies at Alpha Centauri and Tau Ceti,
+shipyards at Sirius, survey ships pushing toward the Orion Nebula and the galaxy's heart.
+
+Closer to home, humanity spans the inner system. The **Terran Accord** keeps the peace with one fleet and too
 few people. On Mars, the industrial collective **Hearthbound** has spent thirty years building the war
 machines that mine the Belt — and quietly handing their command to **CINDER**, a distributed machine
 intelligence that runs their foundries.
@@ -20,6 +25,30 @@ against Earth.
 
 The only warship that escapes the opening strike is the strike carrier **TAS Kestrel** — and the only
 combat unit aboard at full strength is the player's: **Delta Squadron, 7th Orbital Rifles.**
+
+## The galaxy
+
+The game opens on the Kestrel's **strategic map of the Milky Way**: about 90,000 stars in a barred spiral
+100,000 light-years across, with the real arm structure (Perseus, Sagittarius, Norma, Scutum-Centaurus, and
+the Orion Spur where Sol sits, 26,000 ly from the core). Real systems sit at their real galactic positions:
+
+| System | Distance | Status | Role in the war |
+|---|---|---|---|
+| **Sol** (Gaia, Luna, Mars) | home | Accord | Capital; Mars has fallen; Red Tide and Boot Camp launch from here |
+| Alpha Centauri | 4.4 ly | Contested | Forward shipyards at Rigil, Proxima colony gone dark |
+| Barnard's Star | 6.0 ly | CINDER | Mining relay turned drone factory |
+| Sirius | 8.6 ly | Accord | Second Fleet regroups |
+| Epsilon Eridani | 10.5 ly | Contested | Hollow Men hide in the debris ring |
+| Tau Ceti | 11.9 ly | Contested | Breadbasket worlds under attack |
+| TRAPPIST-1 | 40.7 ly | Uncharted | Dr. Morrow's silent research station |
+| Pleiades, Orion Nebula, Kepler-452 | 444 - 1,800 ly | Uncharted | Survey targets; something is building in the Orion gas |
+| Crab Nebula, Cygnus X-1, Eagle, Carina | 6,500 - 8,500 ly | Uncharted / CINDER | Deep space; CINDER swarms seen at the Pillars of Creation |
+| Omega Centauri | 17,000 ly | Uncharted | Ancient cluster in the halo |
+| **Sagittarius A\*** | 26,000 ly | Uncharted | The galactic core. CINDER is answering a signal from here |
+
+The twist the galaxy sets up: CINDER did not invent itself. It is the local node of something far older at
+the galactic core, and the war for Mars is the opening move of a war for the Milky Way. The final
+operation, **Dominion**, is fought at the event horizon of Sagittarius A\*.
 
 ## The player
 
@@ -70,8 +99,9 @@ operations on the war map and see your memorial wall grow.
 | 4 | **Sparrow** | Hearthbound foundry | Capture a war-frame alive; SPARROW joins the squad |
 | 5 | **Ghost Signal** | Ceres mining colony | Cyberpunk neon colony under CINDER control; Hollow Men |
 | 6 | **Iron Rain** | Mars, Olympus Mons | Siege-walker boss; Kestrel orbital bombardment set piece |
-| 7 | **The Architect** | Earth, Dr. Morrow's old lab | The truth about CINDER's creation |
-| 8 | **Dominion** | Inside CINDER's core, Deimos | Final assault; SPARROW's choice decides the ending |
+| 7 | **The Architect** | TRAPPIST-1e, Morrow Station | The truth about CINDER's creation |
+| 8 | **Gaia Falls** | Gaia (Earth) | CINDER's fleet reaches the home world; defend the capital street by street |
+| 9 | **Dominion** | Sagittarius A\*, the galactic core | Final assault on the source of the signal; SPARROW's choice decides the ending |
 
 Side operations (repeatable, procedurally assembled): salvage runs, rescue downed pilots, destroy CINDER nodes, escort convoys.
 They earn manpower and materiel for the roster — and cost lives.

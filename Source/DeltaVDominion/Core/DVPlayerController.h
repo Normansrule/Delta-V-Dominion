@@ -62,6 +62,7 @@ protected:
 private:
 	void OnRedeployPressed();
 	void OnOrbitalPressed();
+	void OnMapPressed();
 	void ShowcaseOrderFlank();
 	void CaptureTick();
 	void StartCapture();
