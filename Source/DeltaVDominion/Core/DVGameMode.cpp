@@ -68,7 +68,7 @@ void ADVGameMode::SpawnSquadFor(ADVSoldierCharacter* Leader)
 	}
 
 	const TArray<FGuid> Picked = Roster->SelectSquad(SquadSize);
-	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent<UNavigationSystemV1>(GetWorld());
+	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
 
 	for (int32 i = 0; i < Picked.Num(); ++i)
 	{

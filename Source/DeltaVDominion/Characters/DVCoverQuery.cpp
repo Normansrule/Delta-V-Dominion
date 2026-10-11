@@ -43,7 +43,7 @@ namespace DVCover
 	bool FindCover(UWorld* World, const APawn* Querier, const FVector& Anchor, float Radius,
 		const FVector& ThreatEyes, const TArray<FVector>& ClaimedPoints, FResult& OutResult)
 	{
-		UNavigationSystemV1* NavSys = World ? UNavigationSystemV1::GetCurrent<UNavigationSystemV1>(World) : nullptr;
+		UNavigationSystemV1* NavSys = World ? UNavigationSystemV1::GetCurrent(World) : nullptr;
 		if (!NavSys || !Querier)
 		{
 			return false;

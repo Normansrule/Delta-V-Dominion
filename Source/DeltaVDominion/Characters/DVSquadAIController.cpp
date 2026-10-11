@@ -116,7 +116,7 @@ void ADVSquadAIController::ReceiveOrder(const FDVSquadOrderData& Order)
 		const FVector Perp = FVector::CrossProduct(FVector::UpVector, Dir) * ((FormationSlot % 2) ? 1.f : -1.f);
 		FlankPoint = TargetLoc + Perp * FlankDistance - Dir * 300.f;
 
-		if (UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent<UNavigationSystemV1>(GetWorld()))
+		if (UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld()))
 		{
 			FNavLocation Projected;
 			if (Nav->ProjectPointToNavigation(FlankPoint, Projected, FVector(400.f, 400.f, 400.f)))
