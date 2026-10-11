@@ -13,6 +13,10 @@ Controls
   Shift          sprint               T   squad: suppress target
   C              crouch               X   squad: flank target
   Q / E          lean left / right    Space  jump
+  Enter          redeploy after the after-action report
+
+Objective: neutralise the Hearthbound fire team. If you go down you reinforce on your squad;
+if you and the whole squad fall, the mission is lost. Dead soldiers stay dead.
 
 Console (press ~)
   DVShowcase 0 / 1 / 2   spectator cameras, squad flanks the enemy

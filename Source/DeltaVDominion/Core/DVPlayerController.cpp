@@ -1,8 +1,12 @@
 #include "Core/DVPlayerController.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCommandComponent.h"
+#include "Core/DVGameMode.h"
+#include "Core/DVGameState.h"
 
 #include "Camera/CameraActor.h"
+#include "Components/InputComponent.h"
+#include "InputCoreTypes.h"
 #include "HighResScreenshot.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/CommandLine.h"
@@ -65,8 +69,9 @@ void ADVPlayerController::ShowcaseOrderFlank()
 	}
 }
 
-void ADVPlayerController::DVCapture(const FString& Name, int32 Frames, float Interval, float Delay)
+void ADVPlayerController::DVCapture(const FString& Name, int32 Frames, float Interval, float Delay, bool bShowUI)
 {
+	bCaptureShowUI = bShowUI;
 	CaptureName = Name.IsEmpty() ? TEXT("capture") : Name;
 	CaptureFramesLeft = FMath::Max(1, Frames);
 	CaptureIndex = 0;
@@ -117,6 +122,56 @@ void ADVPlayerController::CaptureTick()
 	}
 
 	const FString File = FPaths::ProjectSavedDir() / TEXT("Screenshots/DVCapture") / FString::Printf(TEXT("%s_%04d.png"), *CaptureName, CaptureIndex++);
-	FScreenshotRequest::RequestScreenshot(File, /*bShowUI*/ false, /*bAddFilenameSuffix*/ false);
+	FScreenshotRequest::RequestScreenshot(File, bCaptureShowUI, /*bAddFilenameSuffix*/ false);
 	--CaptureFramesLeft;
+}
+
+void ADVPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	// Plain key binding so it works with no pawn (dead, or on the after-action screen).
+	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
+}
+
+void ADVPlayerController::OnRedeployPressed()
+{
+	const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
+	if (GS && GS->Phase != EDVMissionPhase::InProgress)
+	{
+		ServerRequestRedeploy();
+	}
+}
+
+void ADVPlayerController::ServerRequestRedeploy_Implementation()
+{
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->RequestRedeploy();
+	}
+}
+
+void ADVPlayerController::ClientHitConfirmed_Implementation(bool bKill, bool bHeadshot)
+{
+	LastHitTime = GetWorld()->GetTimeSeconds();
+	bLastHitKill = bKill;
+	bLastHitHeadshot = bHeadshot;
+}
+
+void ADVPlayerController::DVEndMission(bool bSuccess, float Delay)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, bSuccess]() { ServerEndMission(bSuccess); }),
+		FMath::Max(Delay, 0.001f), false);
+#endif
+}
+
+void ADVPlayerController::ServerEndMission_Implementation(bool bSuccess)
+{
+#if !UE_BUILD_SHIPPING
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->EndMission(bSuccess);
+	}
+#endif
 }

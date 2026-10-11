@@ -1,4 +1,7 @@
 #include "Combat/DVAttributeSet.h"
+#include "Core/DVPlayerController.h"
+#include "DVGameplayTags.h"
+#include "GameFramework/Pawn.h"
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
 
@@ -64,10 +67,21 @@ void UDVAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 		SetHealth(FMath::Clamp(GetHealth() - Damage, 0.f, GetMaxHealth()));
 		DamageTakenFraction += Damage / FMath::Max(1.f, GetMaxHealth());
 
-		if (GetHealth() <= 0.f)
+		const FGameplayEffectContextHandle& Context = Data.EffectSpec.GetEffectContext();
+		const bool bKilled = GetHealth() <= 0.f;
+
+		// Hit marker for the shooter, if a player fired it.
+		if (const APawn* ShooterPawn = Cast<APawn>(Context.GetOriginalInstigator()))
+		{
+			if (ADVPlayerController* ShooterPC = Cast<ADVPlayerController>(ShooterPawn->GetController()))
+			{
+				ShooterPC->ClientHitConfirmed(bKilled, Data.EffectSpec.GetDynamicAssetTags().HasTag(DVTags::Damage_Headshot));
+			}
+		}
+
+		if (bKilled)
 		{
 			bOutOfHealth = true;
-			const FGameplayEffectContextHandle& Context = Data.EffectSpec.GetEffectContext();
 			OnOutOfHealth.Broadcast(Context.GetOriginalInstigator(), Context.GetEffectCauser());
 		}
 	}

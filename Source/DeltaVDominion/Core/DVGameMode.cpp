@@ -1,6 +1,8 @@
 #include "Core/DVGameMode.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Core/DVPlayerController.h"
+#include "Core/DVGameState.h"
+#include "UI/DVHUD.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVSquadAIController.h"
 #include "Characters/DVCommandComponent.h"
@@ -9,12 +11,15 @@
 
 #include "Engine/GameInstance.h"
 #include "NavigationSystem.h"
+#include "EngineUtils.h"
 #include "TimerManager.h"
 
 ADVGameMode::ADVGameMode()
 {
 	DefaultPawnClass = ADVSoldierCharacter::StaticClass();
 	PlayerControllerClass = ADVPlayerController::StaticClass();
+	GameStateClass = ADVGameState::StaticClass();
+	HUDClass = ADVHUD::StaticClass();
 	SquadmateClass = ADVSoldierCharacter::StaticClass();
 
 	SuccessReward.Manpower = 4;
@@ -37,6 +42,46 @@ void ADVGameMode::StartPlay()
 		Nav->Build();
 	}
 	Super::StartPlay();
+
+	// Objective: neutralise every hostile placed in the level.
+	if (ADVGameState* GS = GetDVGameState())
+	{
+		int32 Hostiles = 0;
+		for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+		{
+			Hostiles += It->TeamId != PlayerTeamId ? 1 : 0;
+		}
+		GS->MissionName = MissionName;
+		GS->EnemiesTotal = Hostiles;
+		GS->EnemiesRemaining = Hostiles;
+		GS->ObjectiveText = TEXT("Neutralise the Hearthbound fire team");
+		GS->MissionStartTime = GetWorld()->GetTimeSeconds();
+	}
+}
+
+ADVGameState* ADVGameMode::GetDVGameState() const
+{
+	return GetGameState<ADVGameState>();
+}
+
+bool ADVGameMode::AnySquadmateAlive() const
+{
+	for (const TWeakObjectPtr<ADVSoldierCharacter>& Weak : DeployedSquad)
+	{
+		if (Weak.IsValid() && !Weak->IsDead())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ADVGameMode::RequestRedeploy()
+{
+	if (bMissionEnded)
+	{
+		GetWorld()->ServerTravel(TEXT("?Restart"), /*bAbsolute*/ false);	// co-op clients come along
+	}
 }
 
 void ADVGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
@@ -78,6 +123,8 @@ void ADVGameMode::SpawnSquadFor(ADVSoldierCharacter* Leader)
 		return;
 	}
 
+	// Losses from an abandoned mission still count, so top the roster up before choosing who deploys.
+	Roster->Reinforce(SquadSize);
 	const TArray<FGuid> Picked = Roster->SelectSquad(SquadSize);
 	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
 
@@ -158,11 +205,51 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 		}
 	}
 
+	if (bMissionEnded)
+	{
+		return;
+	}
+
+	const bool bFriendlyLoss = Victim->TeamId == PlayerTeamId;
+	if (ADVGameState* GS = GetDVGameState())
+	{
+		const FString VictimName = Victim->GetSoldierName().IsEmpty() ? (bFriendlyLoss ? TEXT("You") : TEXT("Hearthbound trooper")) : Victim->GetSoldierName();
+		const FString KillerName = !Killer ? TEXT("") : Killer->IsPlayerControlled() ? TEXT("You")
+			: Killer->GetSoldierName().IsEmpty() ? TEXT("Hearthbound") : Killer->GetSoldierName();
+		GS->MulticastKillFeed(KillerName, VictimName, bFriendlyLoss);
+
+		if (!bFriendlyLoss)
+		{
+			GS->EnemiesRemaining = FMath::Max(0, GS->EnemiesRemaining - 1);
+			if (GS->EnemiesRemaining == 0)
+			{
+				// Let the last kill land before the after-action screen.
+				FTimerHandle Handle;
+				GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateUObject(this, &ADVGameMode::EndMission, true), 2.f, false);
+				return;
+			}
+		}
+	}
+
 	if (APlayerController* PC = Cast<APlayerController>(Victim->GetController()))
 	{
+		// The leader reinforces onto the field as long as someone from the squad is still fighting.
+		if (!AnySquadmateAlive())
+		{
+			EndMission(false);
+			return;
+		}
 		FTimerHandle Handle;
 		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateUObject(this, &ADVGameMode::RespawnPlayer,
 			TWeakObjectPtr<APlayerController>(PC)), PlayerRespawnDelay, false);
+	}
+	else if (bFriendlyLoss && !AnySquadmateAlive())
+	{
+		const ADVSoldierCharacter* Leader = SquadLeader.Get();
+		if (!Leader || Leader->IsDead())
+		{
+			EndMission(false);
+		}
 	}
 }
 
@@ -236,7 +323,39 @@ void ADVGameMode::EndMission(bool bSuccess)
 		}
 	}
 
+	TMap<FGuid, EDVRank> RanksBefore;
+	for (const FGuid& Id : DeployedIds)
+	{
+		FDVSoldierRecord Before;
+		if (Roster->GetSoldier(Id, Before))
+		{
+			RanksBefore.Add(Id, Before.Rank);
+		}
+	}
+
 	Roster->CompleteMission(Report);
+
+	if (ADVGameState* GS = GetDVGameState())
+	{
+		GS->Phase = bSuccess ? EDVMissionPhase::Success : EDVMissionPhase::Failure;
+		GS->MissionEndTime = GetWorld()->GetTimeSeconds();
+		GS->AfterAction.Reset();
+		for (const FGuid& Id : DeployedIds)
+		{
+			FDVSoldierRecord After;
+			if (!Roster->GetSoldier(Id, After))
+			{
+				continue;
+			}
+			FDVAfterActionLine& Line = GS->AfterAction.AddDefaulted_GetRef();
+			Line.Name = After.GetDisplayName();
+			Line.Rank = UDVRosterSubsystem::RankToString(After.Rank);
+			Line.Kills = After.Kills;
+			Line.bKIA = After.Status == EDVSoldierStatus::KIA;
+			Line.bWounded = After.Status == EDVSoldierStatus::Wounded;
+			Line.bPromoted = RanksBefore.Contains(Id) && After.Rank > RanksBefore[Id];
+		}
+	}
 	UE_LOG(LogDV, Log, TEXT("Mission %s ended (%s): %d survivors, %d wounded"), *MissionName,
 		bSuccess ? TEXT("success") : TEXT("failure"), Report.Survivors.Num(), Report.Wounded.Num());
 }

@@ -36,12 +36,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Mission")
 	void EndMission(bool bSuccess);
 
+	/** After the mission ends: reload the level with the updated roster (Enter on the after-action screen). */
+	void RequestRedeploy();
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") TSubclassOf<ADVSoldierCharacter> SquadmateClass;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") int32 SquadSize = 3;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") FString MissionName = TEXT("Training");
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") FDVWarResources SuccessReward;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") float PlayerRespawnDelay = 6.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") bool bCoopPlayersTakeOverSquadmates = true;
+	/** Team of the players and their squad; every other team counts toward the objective. */
+	UPROPERTY(EditDefaultsOnly, Category = "Mission") uint8 PlayerTeamId = 1;
 	/** Fraction of max health lost in a mission that sends a survivor to the medbay. */
 	UPROPERTY(EditDefaultsOnly, Category = "Mission") float WoundedThreshold = 0.5f;
 
@@ -50,6 +55,8 @@ private:
 	ADVSoldierCharacter* FindFreeSquadmate() const;
 	void RespawnPlayer(TWeakObjectPtr<APlayerController> WeakPC);
 	void RelinkSquadTo(ADVSoldierCharacter* NewLeader);
+	bool AnySquadmateAlive() const;
+	class ADVGameState* GetDVGameState() const;
 
 	TWeakObjectPtr<ADVSoldierCharacter> SquadLeader;
 	TWeakObjectPtr<APlayerController> LeaderController;
