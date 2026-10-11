@@ -154,7 +154,7 @@ void ADVGunship::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (HasAuthority())
+	if (HasAuthority() && !bScriptedFlight)
 	{
 		// Arcade VTOL: accelerate toward the commanded velocity in the heading frame; hover when idle.
 		const FRotator Heading(0.f, GetActorRotation().Yaw, 0.f);

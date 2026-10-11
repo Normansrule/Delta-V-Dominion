@@ -32,6 +32,9 @@ public:
 	float GetAltitude() const;
 	float GetRocketReadyFraction() const;
 
+	/** Moved by script (strafing runs): skips its own flight model. */
+	void SetScriptedFlight(bool bOn) { bScriptedFlight = bOn; }
+
 	/** Scripted input for trailers and tests: local move (fwd, right, up), yaw rate deg/s, fire cannon/rockets. */
 	void SetAutopilot(const FVector& Move, float YawRate, bool bCannon, bool bRockets) { AutoMove = Move; AutoYawRate = YawRate; bAutoCannon = bCannon; bAutoRockets = bRockets; }
 
@@ -62,4 +65,5 @@ protected:
 	float AutoYawRate = 0.f;
 	bool bAutoCannon = false;
 	bool bAutoRockets = false;
+	bool bScriptedFlight = false;
 };

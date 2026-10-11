@@ -64,6 +64,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionSubtitle;
 	/** Server time when the Kestrel's orbital strike is charged again. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float OrbitalReadyTime = 0.f;
+	/** Server times when the supply drop and the Raven strafing run can be called again. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float SupplyReadyTime = 0.f;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float StrafeReadyTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 EnemiesTotal = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 EnemiesRemaining = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") TArray<FDVAfterActionLine> AfterAction;

@@ -10,6 +10,7 @@
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
 #include "Core/DVGameState.h"
+#include "Characters/DVBulwark.h"
 
 #include "Camera/CameraActor.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -147,6 +148,8 @@ void ADVPlayerController::SetupInputComponent()
 	// Plain key binding so it works with no pawn (dead, or on the after-action screen).
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
+	InputComponent->BindKey(EKeys::N, IE_Pressed, this, &ADVPlayerController::OnSupplyPressed);
+	InputComponent->BindKey(EKeys::H, IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
 }
@@ -215,6 +218,143 @@ void ADVPlayerController::OnOrbitalPressed()
 	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
 	{
 		ServerCallOrbitalStrike(Hit.ImpactPoint);
+	}
+}
+
+bool ADVPlayerController::DesignateTarget(FVector& OutTarget) const
+{
+	const APawn* MyPawn = GetPawn();
+	if (!MyPawn || !PlayerCameraManager)
+	{
+		return false;
+	}
+	const FVector Start = PlayerCameraManager->GetCameraLocation();
+	const FVector End = Start + PlayerCameraManager->GetActorForwardVector() * 20000.f;
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(DVCallInDesignate), false, MyPawn);
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		OutTarget = Hit.ImpactPoint;
+		return true;
+	}
+	return false;
+}
+
+void ADVPlayerController::OnSupplyPressed()
+{
+	FVector Target;
+	if (DesignateTarget(Target))
+	{
+		ServerCallIn(0, Target);
+	}
+}
+
+void ADVPlayerController::OnStrafePressed()
+{
+	FVector Target;
+	if (DesignateTarget(Target))
+	{
+		ServerCallIn(1, Target);
+	}
+}
+
+void ADVPlayerController::DVSupplyDrop(float Delay, float Ahead)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Ahead]()
+	{
+		const APawn* MyPawn = GetPawn();
+		if (Ahead <= 0.f || !MyPawn)
+		{
+			OnSupplyPressed();
+			return;
+		}
+		// Drop a fixed distance in front of the soldier, onto the ground.
+		const FVector Spot = MyPawn->GetActorLocation() + MyPawn->GetActorForwardVector().GetSafeNormal2D() * Ahead;
+		FHitResult Hit;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(DVSupplyAhead), false, MyPawn);
+		if (GetWorld()->LineTraceSingleByChannel(Hit, Spot + FVector(0.f, 0.f, 2000.f), Spot - FVector(0.f, 0.f, 4000.f), ECC_Visibility, Params))
+		{
+			ServerCallIn(0, Hit.ImpactPoint);
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::DVStrafeRun(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { OnStrafePressed(); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::ServerCallIn_Implementation(uint8 Kind, FVector_NetQuantize Target)
+{
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		if (Kind == 0)
+		{
+			GM->RequestSupplyDrop(this, Target);
+		}
+		else
+		{
+			GM->RequestStrafeRun(this, Target);
+		}
+	}
+}
+
+void ADVPlayerController::DVReadyCallIns()
+{
+#if !UE_BUILD_SHIPPING
+	ServerReadyCallIns();
+#endif
+}
+
+void ADVPlayerController::ServerReadyCallIns_Implementation()
+{
+#if !UE_BUILD_SHIPPING
+	if (ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>())
+	{
+		const float Now = GetWorld()->GetTimeSeconds();
+		GS->OrbitalReadyTime = FMath::Min(GS->OrbitalReadyTime, Now);
+		GS->SupplyReadyTime = FMath::Min(GS->SupplyReadyTime, Now);
+		GS->StrafeReadyTime = FMath::Min(GS->StrafeReadyTime, Now);
+	}
+#endif
+}
+
+void ADVPlayerController::DVViewBulwark(float Distance)
+{
+	const APawn* MyPawn = GetPawn();
+	ADVBulwark* Best = nullptr;
+	for (TActorIterator<ADVBulwark> It(GetWorld()); It; ++It)
+	{
+		if (!Best || (MyPawn && FVector::DistSquared(It->GetActorLocation(), MyPawn->GetActorLocation()) < FVector::DistSquared(Best->GetActorLocation(), MyPawn->GetActorLocation())))
+		{
+			Best = *It;
+		}
+	}
+	if (!Best)
+	{
+		return;
+	}
+	const FVector Focus = Best->GetActorLocation() + FVector(0.f, 0.f, 40.f);
+	// In front of it, slightly off-axis; swing around until nothing blocks the view.
+	const FVector Forward = Best->GetActorForwardVector().GetSafeNormal2D();
+	FVector Eye = Focus + Forward.RotateAngleAxis(25.f, FVector::UpVector) * Distance + FVector(0.f, 0.f, 70.f);
+	FCollisionQueryParams Q(SCENE_QUERY_STAT(DVViewBulwark), false, Best);
+	for (int32 Step = 0; Step < 24; ++Step)
+	{
+		const float Angle = 25.f + (Step % 2 ? 1.f : -1.f) * 15.f * ((Step + 1) / 2);
+		const FVector Try = Focus + Forward.RotateAngleAxis(Angle, FVector::UpVector) * Distance + FVector(0.f, 0.f, 70.f);
+		if (!GetWorld()->LineTraceTestByChannel(Focus, Try, ECC_Visibility, Q))
+		{
+			Eye = Try;
+			break;
+		}
+	}
+	FActorSpawnParameters Params;
+	if (ACameraActor* Cam = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), Eye, (Focus - Eye).Rotation(), Params))
+	{
+		SetViewTarget(Cam);
 	}
 }
 

@@ -1,4 +1,4 @@
-# Captures README screenshots and GIFs from the game.
+﻿# Captures README screenshots and GIFs from the game.
 # Needs ffmpeg on PATH (winget install Gyan.FFmpeg) and a built editor (Build.bat DeltaVDominionEditor).
 #
 #   powershell -ExecutionPolicy Bypass -File Scripts\capture_media.ps1
@@ -87,6 +87,8 @@ if (-not $GifsOnly -and -not $FirefightOnly) {
     Save-MapStill "landing_zone" "/Game/Maps/Outpost" "DVShowcase 4, " 3
     Save-MapStill "tank_kestrel" "/Game/Maps/Outpost" "DVBoard tank 1, DVAutopilot 2 0.6 0.1 0 1, " 7 1
     Save-MapStill "vehicle_gunship" "/Game/Maps/Outpost" "DVBoard gunship 1, DVAutopilot 1.5 0.6 0.2 0.6 3, " 7 1
+    Save-MapStill "bulwark" "/Game/Maps/Outpost" "DVViewBulwark 520, " 6
+    Save-MapStill "supply_drop" "/Game/Maps/Outpost" "DVReadyCallIns, DVSupplyDrop 1 1100, " 4 1
     Save-GalaxyStill "galaxy" "" 9                                        # start screen: the Milky Way
     Save-GalaxyStill "galaxy_sol" "DVGalaxyView 1, " 5                    # Sol, Gaia and the local bubble
     Save-GalaxyStill "galaxy_arm" "DVGalaxyView 3, DVSelectSystem Eagle, " 6
@@ -97,6 +99,7 @@ if (-not $GifsOnly -and -not $FirefightOnly) {
     Save-Still "first_person" -1 14 1                 # combat HUD after the intro
     Save-Still "after_action" 2 18 1 "DVEndMission 0 15, "
 }
+if (-not $FirefightOnly) { Save-Gif "strafing_run" 0 4.3 4 "DVReadyCallIns, DVStrafeRun 4, " }
 if (-not $FirefightOnly) { Save-Gif "orbital_strike" 1 11 7 "DVOrbitalStrike 12, " }
 Save-Gif "firefight" 3 4 8                            # tracers across the bunker doorway
 }

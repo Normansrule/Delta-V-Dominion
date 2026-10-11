@@ -52,6 +52,9 @@ public:
 	/** Server: rejects shots arriving faster than the weapon can cycle (with jitter tolerance). */
 	bool ServerValidateShotTiming(double Now);
 
+	/** Server: refill the reserve (and vent heat). Returns false if nothing was needed. */
+	bool ServerResupply();
+
 	/** Server: moves rounds from reserve into the magazine. */
 	void ServerFinishReload();
 

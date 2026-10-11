@@ -1,4 +1,4 @@
-#include "Core/DVGameMode.h"
+﻿#include "Core/DVGameMode.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Core/DVPlayerController.h"
 #include "Core/DVGameState.h"
@@ -9,6 +9,8 @@
 #include "Combat/DVAttributeSet.h"
 #include "DeltaVDominion.h"
 #include "Core/DVFx.h"
+#include "Core/DVCallIns.h"
+#include "Characters/DVBulwark.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "AbilitySystemComponent.h"
 #include "DVGameplayTags.h"
@@ -47,6 +49,7 @@ void ADVGameMode::StartPlay()
 		Nav->Build();
 	}
 	Super::StartPlay();
+	SpawnBulwarks();
 
 	// Objective: neutralise every hostile placed in the level.
 	if (ADVGameState* GS = GetDVGameState())
@@ -60,6 +63,8 @@ void ADVGameMode::StartPlay()
 		GS->EnemiesRemaining = Hostiles;
 		GS->MissionStartTime = GetWorld()->GetTimeSeconds();
 		GS->OrbitalReadyTime = GS->MissionStartTime + 12.f;
+		GS->SupplyReadyTime = GS->MissionStartTime + 15.f;
+		GS->StrafeReadyTime = GS->MissionStartTime + 20.f;
 	}
 	SetupMissionForMap();
 }
@@ -151,6 +156,8 @@ void ADVGameMode::SetupMissionForMap()
 	if (bIsHub)
 	{
 		GS->OrbitalReadyTime = 1.e9f;	// no fire missions inside our own hangar
+		GS->SupplyReadyTime = 1.e9f;
+		GS->StrafeReadyTime = 1.e9f;
 	}
 	const float Times[4] = { 2.5f, 10.f, 17.f, 25.f };
 	for (int32 i = 0; i < Lines.Num() && i < 4; ++i)
@@ -213,6 +220,103 @@ void ADVGameMode::ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Tar
 		}
 	}
 	DVCombat::RadialDamage(Shooter, Target, OrbitalRadius, OrbitalDamage, true);
+}
+
+void ADVGameMode::SpawnBulwarks()
+{
+	const FString Map = GetWorld()->GetMapName();
+	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("BootCamp")))
+	{
+		return;
+	}
+	// One Bulwark anchors the enemy's centre of mass; big garrisons get a second on their flank.
+	TArray<ADVSoldierCharacter*> Hostiles;
+	FVector Centre = FVector::ZeroVector;
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		if (It->TeamId != PlayerTeamId && !It->IsA<ADVBulwark>())
+		{
+			Hostiles.Add(*It);
+			Centre += It->GetActorLocation();
+		}
+	}
+	if (Hostiles.Num() < 3)
+	{
+		return;
+	}
+	Centre /= Hostiles.Num();
+	Hostiles.Sort([&Centre](const ADVSoldierCharacter& A, const ADVSoldierCharacter& B)
+	{
+		return FVector::DistSquared(A.GetActorLocation(), Centre) < FVector::DistSquared(B.GetActorLocation(), Centre);
+	});
+	const int32 Count = Hostiles.Num() >= 10 ? 2 : 1;
+	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
+	for (int32 i = 0; i < Count; ++i)
+	{
+		const ADVSoldierCharacter* Anchor = Hostiles[i == 0 ? 0 : Hostiles.Num() / 2];
+		FVector Loc = Anchor->GetActorLocation() + Anchor->GetActorRotation().RotateVector(FVector(420.f, i == 0 ? 160.f : -160.f, 0.f));	// out in front, where it can be seen coming
+		FNavLocation OnNav;
+		if (Nav && Nav->ProjectPointToNavigation(Loc, OnNav, FVector(300.f, 300.f, 120.f)))
+		{
+			Loc = OnNav.Location;
+		}
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		ADVBulwark* Heavy = GetWorld()->SpawnActor<ADVBulwark>(ADVBulwark::StaticClass(), Loc + FVector(0.f, 0.f, 140.f), Anchor->GetActorRotation(), Params);
+		UE_LOG(LogTemp, Log, TEXT("Bulwark spawned: %s at %s"), Heavy ? *Heavy->GetName() : TEXT("FAILED"), *Loc.ToString());
+	}
+}
+
+bool ADVGameMode::CanCallIn(APlayerController* Caller, const FVector& Target, float ReadyTime) const
+{
+	const ADVGameState* GS = GetDVGameState();
+	const APawn* CallerPawn = Caller ? Caller->GetPawn() : nullptr;
+	return GS && !bMissionEnded && !bIsHub && CallerPawn && GetWorld()->GetTimeSeconds() >= ReadyTime
+		&& FVector::Dist(CallerPawn->GetActorLocation(), Target) <= 20000.f;	// designator range (also guards against spoofed targets)
+}
+
+void ADVGameMode::RequestSupplyDrop(APlayerController* Caller, const FVector& Target)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || !CanCallIn(Caller, Target, GS->SupplyReadyTime))
+	{
+		return;
+	}
+	GS->SupplyReadyTime = GetWorld()->GetTimeSeconds() + SupplyCooldown;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	if (ADVSupplyPod* Pod = GetWorld()->SpawnActor<ADVSupplyPod>(ADVSupplyPod::StaticClass(), Target + FVector(0.f, 0.f, 9000.f), FRotator::ZeroRotator, Params))
+	{
+		Pod->Launch(Target);
+	}
+	Radio(TEXT("Deck Chief Ruiz"), TEXT("Supply pod away! Ammo, med-gel and plates. Don't stand under it."));
+}
+
+void ADVGameMode::RequestStrafeRun(APlayerController* Caller, const FVector& Target)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || !CanCallIn(Caller, Target, GS->StrafeReadyTime))
+	{
+		return;
+	}
+	GS->StrafeReadyTime = GetWorld()->GetTimeSeconds() + StrafeCooldown;
+	APawn* CallerPawn = Caller->GetPawn();
+	ADVSoldierCharacter* Shooter = Cast<ADVSoldierCharacter>(CallerPawn);
+	if (!Shooter)
+	{
+		if (const UDVSeatComponent* Seat = CallerPawn->FindComponentByClass<UDVSeatComponent>())
+		{
+			Shooter = Seat->Driver;
+		}
+	}
+	// Run in along the caller's line of sight so the fire walks away from friendlies.
+	FVector Dir = Target - CallerPawn->GetActorLocation();
+	Dir.Z = 0.f;
+	if (ADVStrafeRun* Run = GetWorld()->SpawnActor<ADVStrafeRun>(ADVStrafeRun::StaticClass(), Target, FRotator::ZeroRotator))
+	{
+		Run->Begin(Shooter, Target, Dir.GetSafeNormal());
+	}
+	Radio(TEXT("Raven Two-One"), TEXT("Two-One rolling in hot on your mark. Heads down!"));
 }
 
 ADVGameState* ADVGameMode::GetDVGameState() const

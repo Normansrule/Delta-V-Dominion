@@ -12,6 +12,8 @@ namespace DVLoadouts
 {
 	int32 Num();
 	UDVWeaponData* Get(int32 Index);
+	/** Enemy-only: the Bulwark's "Hammerfall" rotary cannon (not on the armoury racks). */
+	UDVWeaponData* BulwarkCannon();
 	/** One line of stats for the armoury readout. */
 	FString Describe(const UDVWeaponData* Data);
 }

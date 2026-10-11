@@ -35,6 +35,20 @@ Launch any of them from the galaxy map.
 | ![Ceres](Docs/media/planet_ceres.png) | ![Gaia](Docs/media/planet_gaia.png) | ![Mars](Docs/media/outpost.png) |
 | **Ghost Signal**: a night mining town on Ceres under sodium and neon | **Gaia Falls**: the hills outside the capital on Earth | **Red Tide**: Tharsis Ridge on Mars at dusk |
 
+## Call in the Kestrel, and the Bulwark
+
+<p align="center">
+  <img src="Docs/media/strafing_run.gif" width="720" alt="A Raven gunship strafing the Hearthbound bunker on Mars">
+</p>
+
+| | |
+|---|---|
+| ![Supply drop](Docs/media/supply_drop.png) | ![Bulwark](Docs/media/bulwark.png) |
+| **Supply drop (N)**: a pod falls from orbit onto your crosshair; stand next to it to refill ammo, health and armour (8 refills) | **The Bulwark**: a heavy war-frame with 700 HP, 60% armour and a rotary cannon that pins your squad. Flank it, focus fire or paint it for the Kestrel |
+
+Three call-ins, each on its own recharge: **orbital strike (B)**, **supply drop (N)** and **Raven strafing run (H)**,
+which walks 30 mm cannon fire through the painted spot along your line of sight (no friendly fire).
+
 ## The Kestrel: home base, tanks, gunships
 
 | | |
@@ -109,7 +123,7 @@ Unreal games are Windows-native; on Linux use Steam Proton, on macOS a Windows V
 | Shift | Sprint | T | Squad: suppress target |
 | C | Crouch | X | Squad: flank target |
 | Q / E | Lean left / right | Space | Jump |
-| B | Orbital strike on the crosshair (40 s recharge, danger close) | Enter / M | Redeploy / back to the galaxy map (after a mission) |
+| B / N / H | Orbital strike (danger close) / supply drop / strafing run on the crosshair | Enter / M | Redeploy / back to the galaxy map (after a mission) |
 | **Galaxy map** | Left-drag orbit, right-drag or WASD pan, wheel zoom, click a system, **1-3** launch, H home, G galaxy | | |
 | Z | Board / exit vehicles; use the war table, memorial, armoury | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
 | **Driving** | W/S throttle, A/D steer, mouse aims, LMB fires, Space handbrake | **Flying** | W/S/A/D move, Space up, C down, LMB cannon, RMB rockets |
@@ -292,5 +306,6 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] First story mission: briefing, dialogue, multi-stage objectives, extraction
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
-- [ ] Kestrel hub ship between missions, more call-ins (supply drop, smoke, strafing run), Bulwark and Skitter enemies
+- [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
+- [ ] Smoke call-in, Skitter drones, destructible vehicles
 - [ ] Vehicles, space segments, campaign map and story missions

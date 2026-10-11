@@ -193,6 +193,21 @@ bool ADVWeaponBase::ServerValidateShotTiming(double Now)
 	return true;
 }
 
+bool ADVWeaponBase::ServerResupply()
+{
+	if (!HasAuthority())
+	{
+		return false;
+	}
+	const int32 Full = GetData()->StartingReserve;
+	const bool bNeeded = ReserveAmmo < Full || Heat > 0.f || AmmoInMag < GetData()->MagazineSize;
+	ReserveAmmo = FMath::Max(ReserveAmmo, Full);
+	AmmoInMag = GetData()->MagazineSize;
+	Heat = 0.f;
+	bOverheated = false;
+	return bNeeded;
+}
+
 void ADVWeaponBase::ServerFinishReload()
 {
 	if (!HasAuthority() || !CanReload())

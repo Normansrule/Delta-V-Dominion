@@ -38,6 +38,22 @@ public:
 	UFUNCTION(Exec)
 	void DVOrbitalStrike(float Delay = 0.f);
 
+	/** Console / capture: "DVSupplyDrop [Delay] [Ahead]" / "DVStrafeRun [Delay]" call in on the crosshair (same as N / H), or Ahead cm in front. */
+	UFUNCTION(Exec)
+	void DVSupplyDrop(float Delay = 0.f, float Ahead = 0.f);
+	UFUNCTION(Exec)
+	void DVStrafeRun(float Delay = 0.f);
+
+	/** Console (dev builds): "DVReadyCallIns" recharges the orbital strike, supply drop and strafing run. */
+	UFUNCTION(Exec)
+	void DVReadyCallIns();
+	UFUNCTION(Server, Reliable)
+	void ServerReadyCallIns();
+
+	/** Console / capture: "DVViewBulwark [Distance]" frames the nearest Bulwark from a camera in front of it. */
+	UFUNCTION(Exec)
+	void DVViewBulwark(float Distance = 650.f);
+
 	/** Console (dev): "DVDebugPawns" logs every pawn's class, location and visibility. */
 	UFUNCTION(Exec)
 	void DVDebugPawns();
@@ -83,9 +99,15 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerCallOrbitalStrike(FVector_NetQuantize Target);
 
+	UFUNCTION(Server, Reliable)
+	void ServerCallIn(uint8 Kind, FVector_NetQuantize Target);
+
 private:
 	void OnRedeployPressed();
 	void OnOrbitalPressed();
+	void OnSupplyPressed();
+	void OnStrafePressed();
+	bool DesignateTarget(FVector& OutTarget) const;
 	void OnMapPressed();
 	void OnInteractPressed();
 

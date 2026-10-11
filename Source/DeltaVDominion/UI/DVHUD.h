@@ -46,6 +46,8 @@ private:
 	void DrawVehicle(APawn* Vehicle);
 	void DrawVehiclePrompt(const ADVSoldierCharacter* Soldier);
 	void DrawMemorial();
+	void DrawCallIns(const class ADVGameState* GS);
+	void DrawHeavies();
 	void DrawRadio(const ADVGameState* GS);
 	void DrawOrbital(const ADVGameState* GS);
 	void BindOrders(ADVSoldierCharacter* Soldier);

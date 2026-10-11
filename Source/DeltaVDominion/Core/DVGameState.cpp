@@ -40,6 +40,8 @@ void ADVGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ADVGameState, MissionLocation);
 	DOREPLIFETIME(ADVGameState, MissionSubtitle);
 	DOREPLIFETIME(ADVGameState, OrbitalReadyTime);
+	DOREPLIFETIME(ADVGameState, SupplyReadyTime);
+	DOREPLIFETIME(ADVGameState, StrafeReadyTime);
 }
 
 void ADVGameState::MulticastKillFeed_Implementation(const FString& Killer, const FString& Victim, bool bFriendlyLoss)

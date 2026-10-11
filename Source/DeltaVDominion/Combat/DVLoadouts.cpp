@@ -93,6 +93,34 @@ UDVWeaponData* DVLoadouts::Get(int32 Index)
 	return List.IsValidIndex(Index) ? List[Index] : nullptr;
 }
 
+UDVWeaponData* DVLoadouts::BulwarkCannon()
+{
+	static UDVWeaponData* Cannon = nullptr;
+	if (!Cannon)
+	{
+		Cannon = NewObject<UDVWeaponData>(GetTransientPackage(), TEXT("DV_Hammerfall"));
+		Cannon->AddToRoot();
+		Cannon->DisplayName = FText::FromString(TEXT("Hammerfall Rotary"));
+		Cannon->RoundsPerMinute = 720.f;
+		Cannon->Damage = 8.f;
+		Cannon->MaxRange = 9000.f;
+		Cannon->HipSpread = 3.8f;
+		Cannon->AdsSpread = 3.f;
+		Cannon->SpreadPerShot = 0.05f;
+		Cannon->MagazineSize = 150;
+		Cannon->StartingReserve = 1500;
+		Cannon->ReloadTime = 4.f;
+		Cannon->SuppressionRadius = 450.f;
+		Cannon->SuppressionPerShot = 14.f;
+		Cannon->RecoilPattern = { {0.1f, 0.05f}, {0.1f, -0.05f} };
+		if (USkeletalMesh* Launcher = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/Weapons/GrenadeLauncher/Meshes/SKM_GrenadeLauncher.SKM_GrenadeLauncher")))
+		{
+			Cannon->Mesh = Launcher;
+		}
+	}
+	return Cannon;
+}
+
 FString DVLoadouts::Describe(const UDVWeaponData* Data)
 {
 	if (!Data)

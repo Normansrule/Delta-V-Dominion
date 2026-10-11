@@ -8,6 +8,8 @@
 #include "Core/DVPlayerController.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
+#include "Characters/DVBulwark.h"
+#include "Core/DVCallIns.h"
 #include "Combat/DVLoadouts.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -510,6 +512,9 @@ void ADVHUD::DrawOrbital(const ADVGameState* GS)
 		Text(FString::Printf(TEXT("ORBITAL STRIKE  %ds"), FMath::CeilToInt(Remaining)), CX, Y, DVHudColors::Dim, GEngine->GetSmallFont(), 1.2f, true);
 	}
 
+	DrawCallIns(GS);
+	DrawHeavies();
+
 	// Countdown over the painted target.
 	FVector Target;
 	double ImpactTime = 0.0;
@@ -641,4 +646,59 @@ void ADVHUD::DrawMemorial()
 		RY += S(54.f);
 	}
 	Text(TEXT("[Z] close"), W * 0.5f, H * 0.84f, DVHudColors::Dim, GEngine->GetMediumFont(), 1.f, true);
+}
+
+void ADVHUD::DrawCallIns(const ADVGameState* GS)
+{
+	const float Now = GetWorld()->GetTimeSeconds();
+	const float Y = Canvas->ClipY - S(44.f);
+	struct FCallIn { const TCHAR* Name; const TCHAR* Key; float Ready; };
+	const FCallIn Items[] = { { TEXT("SUPPLY DROP"), TEXT("N"), GS->SupplyReadyTime }, { TEXT("STRAFING RUN"), TEXT("H"), GS->StrafeReadyTime } };
+	for (int32 i = 0; i < 2; ++i)
+	{
+		const float X = Canvas->ClipX * 0.5f + (i == 0 ? -S(150.f) : S(150.f));
+		const float Remaining = Items[i].Ready - Now;
+		if (Remaining <= 0.f)
+		{
+			Text(FString::Printf(TEXT("%s READY  [%s]"), Items[i].Name, Items[i].Key), X, Y, i == 0 ? FLinearColor(0.4f, 1.f, 0.5f, 1.f) : FLinearColor(1.f, 0.75f, 0.3f, 1.f), GEngine->GetSmallFont(), 1.1f, true);
+		}
+		else
+		{
+			Text(FString::Printf(TEXT("%s  %ds"), Items[i].Name, FMath::CeilToInt(Remaining)), X, Y, DVHudColors::Dim, GEngine->GetSmallFont(), 1.1f, true);
+		}
+	}
+	// Supply pods on the ground: how many refills are left.
+	for (TActorIterator<ADVSupplyPod> It(GetWorld()); It; ++It)
+	{
+		if (!It->HasLanded())
+		{
+			continue;
+		}
+		const FVector Screen = Project(It->GetActorLocation() + FVector(0.f, 0.f, 330.f));
+		if (Screen.Z > 0.f)
+		{
+			Text(It->GetChargesLeft() > 0 ? FString::Printf(TEXT("RESUPPLY x%d"), It->GetChargesLeft()) : FString(TEXT("EMPTY")), Screen.X, Screen.Y,
+				FLinearColor(0.4f, 1.f, 0.5f, 1.f), GEngine->GetSmallFont(), 1.f, true);
+		}
+	}
+}
+
+void ADVHUD::DrawHeavies()
+{
+	const APawn* Viewer = GetOwningPawn();
+	for (TActorIterator<ADVBulwark> It(GetWorld()); It; ++It)
+	{
+		if (It->IsDead() || It->IsHidden() || (Viewer && FVector::Dist(Viewer->GetActorLocation(), It->GetActorLocation()) > 7000.f))
+		{
+			continue;
+		}
+		const FVector Screen = Project(It->GetActorLocation() + FVector(0.f, 0.f, 190.f));
+		if (Screen.Z <= 0.f)
+		{
+			continue;
+		}
+		const float W = S(160.f);
+		Text(TEXT("BULWARK"), Screen.X, Screen.Y - S(26.f), DVHudColors::Hostile, GEngine->GetSmallFont(), 1.1f, true);
+		Bar(Screen.X - W * 0.5f, Screen.Y, W, S(6.f), FMath::Clamp(It->GetHealth() / ADVBulwark::BulwarkHealth, 0.f, 1.f), DVHudColors::Hostile);
+	}
 }

@@ -41,6 +41,11 @@ public:
 
 	/** Kestrel orbital strike on Target, called in by a player. Shared cooldown for the whole squad. */
 	void RequestOrbitalStrike(APlayerController* Caller, const FVector& Target);
+	void RequestSupplyDrop(APlayerController* Caller, const FVector& Target);
+	void RequestStrafeRun(APlayerController* Caller, const FVector& Target);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|CallIns") float SupplyCooldown = 45.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|CallIns") float StrafeCooldown = 60.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Orbital") float OrbitalCooldown = 40.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Orbital") float OrbitalDelay = 3.f;
@@ -65,6 +70,8 @@ private:
 	void RelinkSquadTo(ADVSoldierCharacter* NewLeader);
 	bool AnySquadmateAlive() const;
 	void SetupMissionForMap();
+	void SpawnBulwarks();
+	bool CanCallIn(APlayerController* Caller, const FVector& Target, float ReadyTime) const;
 	void Radio(const FString& Speaker, const FString& Text, float Delay = 0.f);
 	void ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target);
 	int32 HostileKills = 0;
