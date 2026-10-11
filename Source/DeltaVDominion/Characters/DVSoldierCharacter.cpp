@@ -270,6 +270,22 @@ void ADVSoldierCharacter::SpawnDefaultWeapon()
 	}
 }
 
+void ADVSoldierCharacter::EquipWeaponData(UDVWeaponData* Data)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	if (!CurrentWeapon)
+	{
+		SpawnDefaultWeapon();
+	}
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->InitializeWeapon(Data);
+	}
+}
+
 void ADVSoldierCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);

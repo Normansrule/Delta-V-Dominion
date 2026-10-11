@@ -4,6 +4,9 @@
 #include "Core/DVGameMode.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
+#include "Core/DVRosterSubsystem.h"
+#include "Combat/DVLoadouts.h"
+#include "Engine/GameInstance.h"
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
 #include "Core/DVGameState.h"
@@ -253,6 +256,12 @@ void ADVPlayerController::OnInteractPressed()
 		case EDVInteraction::Memorial:
 			bShowMemorial = !bShowMemorial;
 			break;
+		case EDVInteraction::Armoury:
+			if (const UDVRosterSubsystem* Roster = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVRosterSubsystem>() : nullptr)
+			{
+				DVLoadout((Roster->PlayerLoadout + 1) % DVLoadouts::Num());	// each press takes the next weapon off the rack
+			}
+			break;
 		default:
 			break;
 		}
@@ -260,6 +269,41 @@ void ADVPlayerController::OnInteractPressed()
 	else if (UDVSeatComponent* Seat = UDVSeatComponent::FindNear(Cast<ADVSoldierCharacter>(MyPawn)))
 	{
 		ServerEnterVehicle(Cast<APawn>(Seat->GetOwner()));
+	}
+}
+
+void ADVPlayerController::DVLoadout(int32 Index)
+{
+	if (Index < 0 || Index >= DVLoadouts::Num())
+	{
+		return;
+	}
+	if (UDVRosterSubsystem* Roster = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVRosterSubsystem>() : nullptr)
+	{
+		Roster->PlayerLoadout = Index;
+	}
+	ArmouryTime = GetWorld()->GetTimeSeconds();
+	ServerEquipLoadout(Index);
+}
+
+void ADVPlayerController::ServerEquipLoadout_Implementation(int32 Index)
+{
+	ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn());
+	UDVWeaponData* Data = DVLoadouts::Get(Index);
+	if (Soldier && Data)
+	{
+		Soldier->EquipWeaponData(Data);
+	}
+}
+
+void ADVPlayerController::AcknowledgePossession(APawn* P)
+{
+	Super::AcknowledgePossession(P);
+	// Carry the armoury pick into every mission (and onto a redeployed soldier).
+	const UDVRosterSubsystem* Roster = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVRosterSubsystem>() : nullptr;
+	if (Roster && Roster->PlayerLoadout > 0 && Cast<ADVSoldierCharacter>(P))
+	{
+		ServerEquipLoadout(Roster->PlayerLoadout);
 	}
 }
 

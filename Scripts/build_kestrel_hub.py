@@ -1,4 +1,4 @@
-"""Builds /Game/Maps/Kestrel: the hangar deck of the TAS Kestrel, Delta Squadron's home base.
+﻿"""Builds /Game/Maps/Kestrel: the hangar deck of the TAS Kestrel, Delta Squadron's home base.
 
 Walk the deck with your squad, look out of the open hangar mouth at Mars below, use the war table (Z) to
 open the galaxy map and pick the next operation, and visit the memorial wall. The gunships, tank and LTV
@@ -21,6 +21,8 @@ SHARED = "/Game/Environment/Outpost/Materials/"
 actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 levels = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 lib = unreal.EditorAssetLibrary
+mel = unreal.MaterialEditingLibrary
+tools = unreal.AssetToolsHelpers.get_asset_tools()
 random.seed(11)
 
 CHAMFER = None
@@ -68,6 +70,83 @@ def block(label, centre, size, material, yaw=0.0, folder="Hangar", mesh=None):
     loc = a.get_actor_location()
     a.set_actor_location(unreal.Vector(centre[0] + loc.x - origin.x, centre[1] + loc.y - origin.y, centre[2] + loc.z - origin.z), False, False)
     return a
+
+
+def expr(m, cls, x, y, **props):
+    e = mel.create_material_expression(m, cls, x, y)
+    for k, v in props.items():
+        e.set_editor_property(k, v)
+    return e
+
+
+def const3(m, rgb, x, y):
+    return expr(m, unreal.MaterialExpressionConstant3Vector, x, y, constant=unreal.LinearColor(rgb[0], rgb[1], rgb[2], 1.0))
+
+
+def lerp(m, a, b, alpha, x, y, alpha_pin=""):
+    l = expr(m, unreal.MaterialExpressionLinearInterpolate, x, y)
+    mel.connect_material_expressions(a, "", l, "A")
+    mel.connect_material_expressions(b, "", l, "B")
+    mel.connect_material_expressions(alpha, alpha_pin, l, "Alpha")
+    return l
+
+
+def import_texture(png, dest, name):
+    """Imports Art/Planets/<png> (made by Scripts/make_planet_textures.py) as a texture asset."""
+    import os
+    src = os.path.join(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()), "Art", "Planets", png)
+    if not os.path.exists(src):
+        log("missing %s (run: python Scripts/make_planet_textures.py)" % src)
+        return None
+    task = unreal.AssetImportTask()
+    task.set_editor_property("filename", src)
+    task.set_editor_property("destination_path", dest)
+    task.set_editor_property("destination_name", name)
+    task.set_editor_property("automated", True)
+    task.set_editor_property("replace_existing", True)
+    task.set_editor_property("save", True)
+    tools.import_asset_tasks([task])
+    return lib.load_asset(dest + "/" + name)
+
+
+def make_mars_material():
+    """Mars from orbit: a generated equirectangular albedo (plains, dark basalt provinces, a great canyon,
+    craters and polar caps) wrapped on a lat-long sphere, plus a thin dusty limb glow."""
+    path = "/Game/Environment/Kestrel/M_PlanetMars"
+    if lib.does_asset_exist(path):
+        lib.delete_asset(path)
+    albedo = import_texture("T_Mars.png", "/Game/Environment/Kestrel", "T_Mars")
+    m = tools.create_asset("M_PlanetMars", "/Game/Environment/Kestrel", unreal.Material, unreal.MaterialFactoryNew())
+    if albedo:
+        t = expr(m, unreal.MaterialExpressionTextureSample, -900, 0, texture=albedo)
+        mel.connect_material_property(t, "RGB", unreal.MaterialProperty.MP_BASE_COLOR)
+    rough = expr(m, unreal.MaterialExpressionConstant, -700, 250, r=0.95)
+    mel.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS)
+    fres = expr(m, unreal.MaterialExpressionFresnel, -1000, 500, exponent=5.0, base_reflect_fraction=0.0)
+    limb = const3(m, (1.2, 0.55, 0.3), -1000, 650)
+    glow = expr(m, unreal.MaterialExpressionMultiply, -800, 550)
+    mel.connect_material_expressions(fres, "", glow, "A")
+    mel.connect_material_expressions(limb, "", glow, "B")
+    mel.connect_material_property(glow, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    mel.recompile_material(m)
+    lib.save_loaded_asset(m)
+    return m
+
+
+def smooth_sphere():
+    """A dense UV sphere (radius 50, like /Engine/BasicShapes/Sphere) so the planet's limb is round, not faceted."""
+    path = "/Game/Environment/Kestrel/SM_PlanetSphere"
+    if lib.does_asset_exist(path):
+        return lib.load_asset(path)
+    gs = unreal
+    dm = unreal.DynamicMesh()
+    gs.GeometryScript_Primitives.append_sphere_lat_long(dm, unreal.GeometryScriptPrimitiveOptions(), unreal.Transform(), 50.0, 128, 192)
+    opts = unreal.GeometryScriptCreateNewStaticMeshAssetOptions()
+    opts.set_editor_property("enable_nanite", False)
+    opts.set_editor_property("enable_collision", False)
+    mesh, _ = gs.GeometryScript_NewAssetUtils.create_new_static_mesh_asset_from_mesh(dm, path, opts)
+    lib.save_loaded_asset(mesh)
+    return mesh
 
 
 def light(label, loc, color, candelas, radius, spot=False, pitch=-90.0):
@@ -147,12 +226,18 @@ def build():
 
     # Mars below and the sun beyond, seen through the mouth.
     r = 3000000.0
-    planet = actors.spawn_actor_from_object(sphere, unreal.Vector(-3600000.0, 400000.0, -2400000.0), rot())
+    planet = actors.spawn_actor_from_object(smooth_sphere(), unreal.Vector(-9000000.0, 1000000.0, -2600000.0), rot(pitch=25))
     planet.set_actor_label("Mars")
     planet.set_folder_path("Space")
     planet.set_actor_scale3d(unreal.Vector(r / 50.0, r / 50.0, r / 50.0))
-    planet.static_mesh_component.set_material(0, lib.load_asset("/Game/Environment/Outpost/Materials/M_MoonGround"))   # same rust dust as the Tharsis map
-    sun = spawn(unreal.DirectionalLight, "Sun", (0, 0, 4000), rot(pitch=-28, yaw=170), "Lighting")   # from behind the deck onto Mars
+    planet.static_mesh_component.set_material(0, make_mars_material())
+    # Phobos, a lumpy little moon hanging off Mars' limb.
+    phobos = actors.spawn_actor_from_object(sphere, unreal.Vector(-2500000.0, -1100000.0, -250000.0), rot(pitch=20, yaw=40))
+    phobos.set_actor_label("Phobos")
+    phobos.set_folder_path("Space")
+    phobos.set_actor_scale3d(unreal.Vector(1100.0, 800.0, 700.0))
+    phobos.static_mesh_component.set_material(0, mat("MI_Concrete_Dark"))
+    sun = spawn(unreal.DirectionalLight, "Sun", (0, 0, 4000), rot(pitch=-28, yaw=130), "Lighting")   # from behind and to one side: Mars shows a terminator
     setp(sun.light_component, "intensity", 4.0)
     setp(sun.light_component, "light_color", unreal.Color(r=255, g=240, b=220, a=255))
     sun.root_component.set_mobility(unreal.ComponentMobility.MOVABLE)
@@ -203,10 +288,21 @@ def build():
     memorial.set_editor_property("prompt", "Memorial wall and roster")
     armoury = spawn(inter, "Armoury", (-1000, W / 2 - 600, 0), folder="Stations")
     armoury.set_editor_property("interaction", unreal.DVInteraction.ARMOURY)
-    armoury.set_editor_property("prompt", "Armoury (loadouts coming soon)")
+    armoury.set_editor_property("prompt", "Armoury: take the next weapon off the rack")
+    guns = [lib.load_asset("/Game/Weapons/Rifle/Meshes/SM_Rifle"), lib.load_asset("/Game/Weapons/Pistol/Meshes/SM_Pistol"),
+            lib.load_asset("/Game/Weapons/GrenadeLauncher/Meshes/SM_GrenadeLauncher")]
     for i in range(6):
-        block("WeaponRack_%d" % i, (-1900 + i * 360, W / 2 - 200, 140), (300, 40, 280), steel, folder="Stations")
-        block("RackGlow_%d" % i, (-1900 + i * 360, W / 2 - 225, 250), (260, 6, 20), mat("MI_Strip_Cyan"), folder="Stations")
+        x = -1900 + i * 360
+        block("WeaponRack_%d" % i, (x, W / 2 - 200, 140), (300, 40, 280), steel, folder="Stations")
+        block("RackGlow_%d" % i, (x, W / 2 - 225, 250), (260, 6, 20), mat("MI_Strip_Cyan"), folder="Stations")
+        for k in range(2):
+            gun = guns[(i + k) % len(guns)]
+            if gun:
+                g = actors.spawn_actor_from_object(gun, unreal.Vector(x - 60 + k * 120, W / 2 - 240, 120 + k * 80), rot(pitch=80, yaw=90))
+                g.set_actor_label("RackGun_%d_%d" % (i, k))
+                g.set_folder_path("Stations")
+                g.set_actor_scale3d(unreal.Vector(2.0, 2.0, 2.0))
+    light("ArmouryLight", (-1000, W / 2 - 700, 900), (190, 255, 210), 2500.0, 2200.0, spot=True, pitch=-60.0)
 
     # --- Gameplay -------------------------------------------------------------------------------------
     spawn(unreal.PlayerStart, "PlayerStart", (1600, 0, 110), rot(yaw=180), "Gameplay")
@@ -219,7 +315,8 @@ def build():
     shots = [((4800, 1800, 1300), (-6000, -400, 600)),    # 0: down the deck toward the mouth and Mars
              ((900, 700, 260), (0, 0, 150)),               # 1: the war table
              ((-5600, -1800, 300), (2000, 600, 500)),      # 2: from the mouth looking aboard
-             ((-7800, 0, 1300), (-30000, 0, -6000))]       # 3: out of the mouth at Mars
+             ((-7800, 0, 1300), (-90000, 10000, -26000)),  # 3: out of the mouth at Mars
+             ((-2500, W / 2 - 1300, 330), (-1200, W / 2 - 150, 170))]   # 4: the armoury racks
     for i, (eye, target) in enumerate(shots):
         cam = spawn(unreal.CameraActor, "ShowcaseCam_%d" % i, eye, folder="Cameras")
         cam.set_actor_rotation(unreal.MathLibrary.find_look_at_rotation(unreal.Vector(*eye), unreal.Vector(*target)), False)

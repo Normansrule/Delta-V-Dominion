@@ -98,6 +98,9 @@ public:
 
 	static FString RankToString(EDVRank Rank);
 
+	/** The weapon picked at the Kestrel armoury (DVLoadouts index); carried into every mission this session. */
+	int32 PlayerLoadout = 0;
+
 private:
 	FDVSoldierRecord* FindSoldier(const FGuid& Id);
 	FDVSoldierRecord MakeRecruit(bool bConscript);

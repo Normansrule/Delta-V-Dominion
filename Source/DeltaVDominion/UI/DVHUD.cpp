@@ -1,4 +1,4 @@
-#include "UI/DVHUD.h"
+﻿#include "UI/DVHUD.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCommandComponent.h"
 #include "Combat/DVAttributeSet.h"
@@ -8,6 +8,7 @@
 #include "Core/DVPlayerController.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
+#include "Combat/DVLoadouts.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Vehicles/DVGroundVehicle.h"
@@ -536,6 +537,19 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 	if (const ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner); PC && PC->IsMemorialOpen())
 	{
 		DrawMemorial();
+	}
+	if (const ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner); PC && GetWorld()->GetTimeSeconds() - PC->GetArmouryTime() < 4.0)
+	{
+		const UDVWeaponData* Data = Soldier->GetCurrentWeapon() ? Soldier->GetCurrentWeapon()->GetData() : nullptr;
+		if (Data)
+		{
+			const float W = Canvas->ClipX;
+			const float H = Canvas->ClipY;
+			DrawRect(DVHudColors::Panel, W * 0.3f, H * 0.62f, W * 0.4f, S(96.f));
+			Text(FString::Printf(TEXT("ARMOURY  >  %s"), *Data->DisplayName.ToString().ToUpper()), W * 0.5f, H * 0.62f + S(12.f),
+				FLinearColor(0.4f, 1.f, 0.5f, 1.f), GEngine->GetLargeFont(), 1.1f, true);
+			Text(DVLoadouts::Describe(Data), W * 0.5f, H * 0.62f + S(60.f), DVHudColors::Text, GEngine->GetSmallFont(), 1.1f, true);
+		}
 	}
 }
 

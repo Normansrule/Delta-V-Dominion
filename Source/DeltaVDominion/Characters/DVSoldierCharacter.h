@@ -73,6 +73,8 @@ public:
 
 	// --- Combat -------------------------------------------------------------
 	UFUNCTION(BlueprintPure, Category = "Soldier") ADVWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
+	/** Server: swap the carried weapon's profile (armoury), with a full magazine and reserve. */
+	void EquipWeaponData(UDVWeaponData* Data);
 	UFUNCTION(BlueprintPure, Category = "Soldier") bool IsAiming() const { return bIsAiming; }
 	UFUNCTION(BlueprintPure, Category = "Soldier") bool IsDead() const { return bIsDead; }
 	UFUNCTION(BlueprintPure, Category = "Soldier") float GetLean() const { return LeanAmount; }

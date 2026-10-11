@@ -63,6 +63,13 @@ public:
 
 	double GetLastHitTime() const { return LastHitTime; }
 	bool IsMemorialOpen() const { return bShowMemorial; }
+	double GetArmouryTime() const { return ArmouryTime; }
+
+	/** Console / capture: "DVLoadout N" equips armoury weapon N (0 Bastion, 1 Kite, 2 Halberd, 3 Longreach, 4 Pulse). */
+	UFUNCTION(Exec)
+	void DVLoadout(int32 Index);
+
+	virtual void AcknowledgePossession(APawn* P) override;
 	bool WasLastHitKill() const { return bLastHitKill; }
 	bool WasLastHitHeadshot() const { return bLastHitHeadshot; }
 
@@ -84,6 +91,7 @@ private:
 
 	UFUNCTION(Server, Reliable) void ServerEnterVehicle(APawn* Vehicle);
 	UFUNCTION(Server, Reliable) void ServerExitVehicle();
+	UFUNCTION(Server, Reliable) void ServerEquipLoadout(int32 Index);
 	void ShowcaseOrderFlank();
 	void CaptureTick();
 	void StartCapture();
@@ -98,6 +106,7 @@ private:
 
 	double LastHitTime = -100.0;
 	bool bShowMemorial = false;
+	double ArmouryTime = -100.0;
 	bool bLastHitKill = false;
 	bool bLastHitHeadshot = false;
 

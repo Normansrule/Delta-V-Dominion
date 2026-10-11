@@ -55,7 +55,7 @@ BIOMES = {
                   sand_a=(0.16, 0.16, 0.17), sand_b=(0.06, 0.06, 0.065), slope_rock=(0.03, 0.03, 0.035),
                   rock_dark=(0.02, 0.02, 0.022), rock_light=(0.12, 0.12, 0.13),
                   sun=(-8, 200), sun_color=(170, 185, 255), sun_lux=1.2, atmosphere=False, mie=0.0, sky_light=0.4,
-                  fog=0.004, fog_color=(0.05, 0.07, 0.15), clouds=False, saturation=1.25, contrast=1.2, exposure=1.2,
+                  fog=0.004, fog_color=(0.05, 0.07, 0.15), clouds=False, saturation=1.0, contrast=1.15, exposure=0.5,
                   extras=["neon"]),
     "gaia": dict(map="/Game/Maps/Gaia", env="/Game/Environment/Planets/Gaia", seed=61, dunes=80.0, rim=600.0, mesa=1800.0,
                  sand_a=(0.13, 0.17, 0.06), sand_b=(0.15, 0.115, 0.075), slope_rock=(0.12, 0.11, 0.1),
@@ -535,7 +535,9 @@ def build_extras(mats, rocks, rock_mat):
             log("trees %d" % count)
     if "neon" in extras:
         # Cyberpunk mining town: rigs, stacked habitat blocks and neon signage, lit for the night.
-        neon = [mats["neon_pink"], mats["neon_cyan"], mats["neon_amber"]]
+        # Mostly sodium-amber and cold cyan work lights; magenta is an accent on a few signs, not the whole town.
+        neon = [mats["sign_amber"], mats["sign_amber"], mats["sign_cyan"], mats["sign_cyan"], mats["sign_pink"]]
+        windows = mats["windows_dim"]
         for i in range(26):
             ang = random.uniform(0, 2 * math.pi)
             q = random.uniform(1.05, 1.6)
@@ -545,8 +547,10 @@ def build_extras(mats, rocks, rock_mat):
             yaw = random.uniform(0, 90)
             block("Hab_%02d" % i, (x, y, gz + h / 2), (w, d, h), mats["concrete_dark"], yaw, folder="Town")
             for k in range(int(h // 500)):
-                block("HabStrip_%02d_%d" % (i, k), (x, y, gz + 300 + k * 500), (w + 12, d + 12, 18), random.choice(neon), yaw, folder="Town")
-            if random.random() < 0.6:
+                # Lit window bands on most floors, a neon trim every third floor.
+                strip = random.choice(neon) if k % 3 == 2 else windows
+                block("HabStrip_%02d_%d" % (i, k), (x, y, gz + 300 + k * 500), (w + 12, d + 12, 18), strip, yaw, folder="Town")
+            if random.random() < 0.45:
                 block("HabSign_%02d" % i, (x, y, gz + h + 260), (w * 0.7, 40, 380), random.choice(neon), yaw, folder="Town")
         for i in range(10):
             x, y = random.uniform(-4000, 4500), random.choice((-1, 1)) * random.uniform(2400, 3600)
@@ -556,12 +560,12 @@ def build_extras(mats, rocks, rock_mat):
             for k, (ox, oy) in enumerate([(-150, -150), (150, -150), (-150, 150), (150, 150)]):
                 block("Rig_%d_Leg%d" % (i, k), (x + ox, y + oy, gz + 900), (30, 30, 1800), mats["gunmetal"], folder="Rigs")
             block("Rig_%d_Head" % i, (x, y, gz + 1850), (420, 420, 180), mats["gunmetal"], folder="Rigs")
-            block("Rig_%d_Ring" % i, (x, y, gz + 1700), (440, 440, 20), random.choice(neon), folder="Rigs")
+            block("Rig_%d_Ring" % i, (x, y, gz + 1700), (440, 440, 20), mats["sign_amber"], folder="Rigs")
             l = spawn(unreal.PointLight, "RigLight_%d" % i, (x, y, gz + 1650), folder="Rigs")
             lc = l.point_light_component
             setp(lc, "intensity_units", unreal.LightUnits.CANDELAS)
-            setp(lc, "intensity", 4000.0)
-            setp(lc, "light_color", random.choice([unreal.Color(r=255, g=40, b=180, a=255), unreal.Color(r=30, g=220, b=255, a=255), unreal.Color(r=255, g=150, b=20, a=255)]))
+            setp(lc, "intensity", 1600.0)
+            setp(lc, "light_color", random.choice([unreal.Color(r=255, g=170, b=70, a=255), unreal.Color(r=255, g=170, b=70, a=255), unreal.Color(r=60, g=200, b=255, a=255)]))
             setp(lc, "attenuation_radius", 3500.0)
     if "city" in extras:
         # The capital's skyline beyond the hills: towers with lit window bands and aircraft beacons.
@@ -607,6 +611,10 @@ def build():
         "neon_pink": glow("MI_Neon_Pink", (1.0, 0.1, 0.6), 45.0),
         "neon_cyan": glow("MI_Neon_Cyan", (0.05, 0.9, 1.0), 45.0),
         "neon_amber": glow("MI_Neon_Amber", (1.0, 0.55, 0.05), 40.0),
+        "sign_pink": glow("MI_Sign_Pink", (1.0, 0.15, 0.55), 9.0),
+        "sign_cyan": glow("MI_Sign_Cyan", (0.1, 0.8, 1.0), 8.0),
+        "sign_amber": glow("MI_Sign_Amber", (1.0, 0.55, 0.12), 10.0),
+        "windows_dim": glow("MI_Windows_Dim", (1.0, 0.8, 0.55), 3.0),
         "windows": glow("MI_Windows", (1.0, 0.85, 0.6), 12.0),
         "giant": glow("MI_GasGiant", (0.85, 0.6, 0.38), 3.0),
         "giant_band": glow("MI_GasGiantBand", (0.55, 0.32, 0.18), 2.0),

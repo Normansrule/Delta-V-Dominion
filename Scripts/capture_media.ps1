@@ -2,6 +2,7 @@
 # Needs ffmpeg on PATH (winget install Gyan.FFmpeg) and a built editor (Build.bat DeltaVDominionEditor).
 #
 #   powershell -ExecutionPolicy Bypass -File Scripts\capture_media.ps1
+#   powershell -ExecutionPolicy Bypass -File Scripts\capture_media.ps1 -Only planet_ceres,kestrel_mars
 #
 # Frames are rendered off-screen by the engine itself ("DVCapture" console command), so nothing
 # else on your desktop can end up in the images. Output goes to Docs\media.
@@ -12,7 +13,8 @@ param(
     [int]$Height = 720,
     [switch]$GifsOnly,
     [switch]$FirefightOnly,
-    [string]$Map = "/Game/Maps/Outpost"
+    [string]$Map = "/Game/Maps/Outpost",
+    [string[]]$Only = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,12 +43,14 @@ function Invoke-Capture([string]$ExecCmds, [string]$LastFrame, [string]$Extra = 
 }
 
 function Save-Still([string]$Name, [int]$Camera, [float]$Delay, [int]$ShowUI = 0, [string]$Before = "") {
+    if ($Only.Count -gt 0 -and $Only -notcontains $Name) { return }
     $cam = if ($Camera -ge 0) { "DVShowcase $Camera, " } else { "" }
     Invoke-Capture "${cam}${Before}DVCapture $Name 1 0 $Delay $ShowUI" (Join-Path $Frames "${Name}_0000.png")
     Copy-Item (Join-Path $Frames "${Name}_0000.png") (Join-Path $Out "$Name.png") -Force
 }
 
 function Save-Gif([string]$Name, [int]$Camera, [float]$Delay, [int]$Seconds, [string]$Before = "", [int]$Fps = 15, [int]$GifWidth = 640) {
+    if ($Only.Count -gt 0 -and $Only -notcontains $Name) { return }
     # Fixed-step simulation: every frame is exactly 1/Fps of game time, however slow the capture.
     $count = $Seconds * $Fps
     Get-ChildItem $Frames -Filter "${Name}_*.png" | Remove-Item
@@ -57,11 +61,13 @@ function Save-Gif([string]$Name, [int]$Camera, [float]$Delay, [int]$Seconds, [st
 }
 
 function Save-GalaxyStill([string]$Name, [string]$Cmds, [float]$Delay) {
+    if ($Only.Count -gt 0 -and $Only -notcontains $Name) { return }
     Invoke-Capture "${Cmds}DVCapture $Name 1 0 $Delay 1" (Join-Path $Frames "${Name}_0000.png") "" "/Game/Maps/Galaxy"
     Copy-Item (Join-Path $Frames "${Name}_0000.png") (Join-Path $Out "$Name.png") -Force
 }
 
 function Save-MapStill([string]$Name, [string]$ShotMap, [string]$Cmds, [float]$Delay, [int]$ShowUI = 0) {
+    if ($Only.Count -gt 0 -and $Only -notcontains $Name) { return }
     Invoke-Capture "${Cmds}DVCapture $Name 1 0 $Delay $ShowUI" (Join-Path $Frames "${Name}_0000.png") "" $ShotMap
     Copy-Item (Join-Path $Frames "${Name}_0000.png") (Join-Path $Out "$Name.png") -Force
 }
@@ -76,6 +82,8 @@ if (-not $GifsOnly -and -not $FirefightOnly) {
     # The Kestrel: hangar deck, war table, vehicles in action
     Save-MapStill "kestrel_hangar" "/Game/Maps/Kestrel" "DVShowcase 0, " 5
     Save-MapStill "kestrel_wartable" "/Game/Maps/Kestrel" "DVShowcase 1, " 4 1
+    Save-MapStill "kestrel_mars" "/Game/Maps/Kestrel" "DVShowcase 3, " 5
+    Save-MapStill "kestrel_armoury" "/Game/Maps/Kestrel" "DVShowcase 4, " 5
     Save-MapStill "landing_zone" "/Game/Maps/Outpost" "DVShowcase 4, " 3
     Save-MapStill "tank_kestrel" "/Game/Maps/Outpost" "DVBoard tank 1, DVAutopilot 2 0.6 0.1 0 1, " 7 1
     Save-MapStill "vehicle_gunship" "/Game/Maps/Outpost" "DVBoard gunship 1, DVAutopilot 1.5 0.6 0.2 0.6 3, " 7 1
