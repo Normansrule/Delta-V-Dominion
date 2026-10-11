@@ -102,6 +102,11 @@ void UDVCommandComponent::ServerIssueOrder_Implementation(EDVSquadOrder Order, F
 	ClientOrderAcknowledged(Order, Location);
 }
 
+void UDVCommandComponent::IssueOrderAt(EDVSquadOrder Order, FVector Location, AActor* Target)
+{
+	ServerIssueOrder(Order, Location, Target);
+}
+
 void UDVCommandComponent::DispatchOrder(const FDVSquadOrderData& Data)
 {
 	TArray<ADVSquadAIController*> Bots;

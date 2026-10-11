@@ -9,6 +9,7 @@
 
 class UCameraComponent;
 class USkeletalMeshComponent;
+class UStaticMeshComponent;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class UDVAttributeSet;
@@ -131,6 +132,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<USkeletalMeshComponent> FirstPersonMesh;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UDVCommandComponent> CommandComponent;
+	/** Grey-box body shown until a skeletal Mesh is assigned, tinted by team (blue = friendly, red = Hearthbound). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UStaticMeshComponent> PlaceholderBody;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UStaticMeshComponent> PlaceholderVisor;
 	UPROPERTY() TObjectPtr<UDVAttributeSet> AttributeSet;
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeapon) TObjectPtr<ADVWeaponBase> CurrentWeapon;
@@ -151,6 +155,7 @@ private:
 	void SpawnDefaultWeapon();
 	void HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser);
 	void EnterRagdoll();
+	void SetupPlaceholderBody();
 	void CreateFallbackInput();
 	UDVCharacterMovementComponent* GetDVMovement() const;
 

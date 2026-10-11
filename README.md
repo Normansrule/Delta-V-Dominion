@@ -1,94 +1,214 @@
 # DELTA-V: DOMINION
 
-Unreal Engine 5.6 C++ project. This first drop covers milestones 1 and 2 of the design brief:
-the soldier, GAS weapons, squad AI with orders, and persistent roster attrition.
+Military hard-sci-fi squad shooter in **Unreal Engine 5.8** (C++, Gameplay Ability System, Lumen).
+Single player and co-op: lead a named squad from a persistent roster where every death is permanent.
 
-## Open it
+<p align="center">
+  <img src="Docs/media/overwatch_flank.gif" width="720" alt="Squad flanking the Hearthbound fire team, seen from the overwatch camera">
+</p>
 
-1. Install UE 5.6 and Visual Studio 2022 (Game development with C++ workload).
-2. Right-click `DeltaVDominion.uproject` > **Generate Visual Studio project files**.
-3. Open `DeltaVDominion.sln`, set **Development Editor / Win64**, build, then launch.
-4. Create a test map: a floor, some walls/crates for cover, a **NavMeshBoundsVolume**
-   (press P to check the green navmesh), and a Player Start. Press Play.
+> **Status: Boot Camp slice (milestone 1).** Everything runs and fights; the art is grey-box.
+> Blue capsules are your squad, red are the Hearthbound, yellow streaks are tracers.
+> Real characters, weapons and VFX drop in through data assets without code changes.
 
-The game mode, pawn and input all work with **no assets**: the soldier has a camera and a
-code-built default input layout. You won't see arms or a gun until you assign meshes (below).
+| | |
+|---|---|
+| ![Overview](Docs/media/overview.png) | ![Cover line](Docs/media/cover_line.png) |
+| **Boot Camp range** from the overwatch camera: 60 m x 40 m, crouch-height crates and lean-around walls | **The cover line**: the squad advances crate to crate toward the enemy |
+| ![Enemy line](Docs/media/enemy_line.png) | ![First person](Docs/media/first_person.png) |
+| **Reverse angle** from behind the Hearthbound positions | **First person**, the player's own view downrange |
 
-Optional: the Fab/Quixel/Lyra assets the brief lists are not included (they're licensed downloads).
+<p align="center">
+  <img src="Docs/media/firefight.gif" width="720" alt="Firefight across the crates">
+</p>
 
-## Controls (fallback layout)
+---
+
+## Download and play (Windows 10/11)
+
+**One line**, in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/Normansrule/DeltaVDominion/main/Installer/Install-DeltaVDominion.ps1 | iex
+```
+
+That downloads the latest release, installs it to `%LOCALAPPDATA%\DeltaVDominion`, installs the
+VC++/DirectX runtime if missing, and adds Desktop and Start Menu shortcuts. Run it again to update.
+
+**Or by hand:** grab `DeltaVDominion-Win64.zip` from [Releases](../../releases/latest), unzip anywhere,
+run `DeltaVDominion.exe`.
+
+Needs a 64-bit Windows PC with a DirectX 12 GPU (GTX 1060 / RX 580 or better) and 8 GB RAM.
+Unreal games are Windows-native; on Linux use Steam Proton, on macOS a Windows VM or cloud PC.
+
+### Controls
 
 | Key | Action | Key | Action |
 |---|---|---|---|
 | WASD / Mouse | Move / look | F | Squad: move to crosshair |
 | LMB / RMB | Fire / aim down sights | G | Squad: hold position |
 | R | Reload | V | Squad: regroup on me |
-| Shift | Sprint | T | Squad: suppress target/area |
+| Shift | Sprint | T | Squad: suppress target |
 | C | Crouch | X | Squad: flank target |
 | Q / E | Lean left / right | Space | Jump |
+| `~` then `DVShowcase 0`/`1`/`2` | Spectator cameras (squad flanks) | `DVShowcase -1` | Back to your soldier |
 
-## Wiring up art (in the editor)
+---
 
-- **Soldier**: create `BP_Soldier` from `DVSoldierCharacter`. Set `Mesh` (third-person body with a
-  physics asset, for per-bone hits and headshots), `FirstPersonMesh` (arms), anim blueprints, and
-  optionally your own Input Mapping Context / Input Actions (they replace the fallback layout).
-  Set it as `DefaultPawnClass` and `SquadmateClass` on a `BP_GameMode` child of `DVGameMode`.
-- **Weapons**: Content Browser > Data Asset > `DVWeaponData`, one per weapon (M9 Bastion, Kite,
-  Halberd: `PelletsPerShot` 8, Longreach, Pulse Carbine: `bUsesHeat`). Assign mesh, muzzle socket,
-  Niagara muzzle/tracer/impact, sound, montages. Put it in the soldier's `DefaultWeapon`.
-  With nothing assigned, the class defaults act as an M9-style auto rifle.
-- **Enemies**: place `BP_Soldier` instances with `TeamId = 2` (Hearthbound). They hold where
-  placed and fight from cover. Squadmates and the player are `TeamId = 1`.
+## How it fits together
 
-## Source layout
+```mermaid
+flowchart LR
+    subgraph Player["Player machine"]
+        PC[DVPlayerController] --> S[DVSoldierCharacter]
+        S --> CMC[DVCharacterMovementComponent<br/>predicted sprint / ADS]
+        S --> ASC[AbilitySystemComponent]
+        ASC --> FIRE[DVGA_FireWeapon<br/>local prediction + target data]
+        ASC --> REL[DVGA_Reload]
+        S --> CMD[DVCommandComponent<br/>F G V T X orders]
+    end
+
+    subgraph Server["Server (listen host or dedicated)"]
+        GM[DVGameMode] --> ROSTER[DVRosterSubsystem<br/>named soldiers, KIA, XP]
+        ROSTER --> SAVE[(DVSaveGame<br/>SHA-1 checksummed)]
+        GM --> SQUAD[DVSquadAIController x3]
+        SQUAD --> COVER[DVCoverQuery<br/>navmesh cover search]
+        VAL{{Server hit validation<br/>rate, ammo, LOS, range,<br/>aim cone, ping tolerance}}
+        VAL --> DMG[DVDamageEffect<br/>headshot x2.5, armour]
+        DMG --> ATTR[DVAttributeSet<br/>Health, Armor, Suppression]
+    end
+
+    FIRE -- "hits as target data" --> VAL
+    CMD -- "rate-limited RPC" --> SQUAD
+    ATTR -- "out of health" --> GM
+```
+
+### A shot, end to end
+
+```mermaid
+sequenceDiagram
+    participant C as Shooter (client)
+    participant S as Server
+    participant V as Victim
+    C->>C: Trace on Weapon channel, play muzzle/tracer at once
+    C->>S: Target data (hits, origin, timestamp)
+    S->>S: Fire rate, ammo/heat, pellet count, origin, range,<br/>aim angle, line of sight, ping-scaled position check
+    alt valid
+        S->>V: Apply DVDamageEffect (SetByCaller damage)
+        S-->>C: Ammo/heat replicate (prediction confirmed)
+        S->>S: Near-misses add Suppression to nearby enemies
+    else rejected
+        S->>S: Hit dropped and logged (LogDVNet)
+    end
+```
+
+### Squad orders
+
+```mermaid
+stateDiagram-v2
+    [*] --> Follow
+    Follow --> MoveTo: F
+    Follow --> Hold: G
+    Follow --> Suppress: T
+    Follow --> Flank: X
+    MoveTo --> Follow: V (regroup)
+    Hold --> Follow: V
+    Suppress --> Follow: V
+    Flank --> Follow: V
+    state Flank {
+        [*] --> FirstBotSuppresses
+        [*] --> OthersSwingWide
+        OthersSwingWide --> Engage
+    }
+```
+
+### Campaign attrition
+
+```mermaid
+flowchart TD
+    M[Mission ends] --> XP[XP, kills, promotions]
+    M --> KIA[KIA: permanent, saved instantly]
+    M --> W{Lost more than half health?}
+    W -- yes --> MED[Medbay: sits out 2 missions]
+    W -- no --> READY[Ready]
+    KIA --> R{Manpower left?}
+    R -- yes --> REC[Recruit greener replacements]
+    R -- no --> CON[Emergency conscripts<br/>bDireStraits = true]
+```
+
+---
+
+## Build from source
+
+You need **Unreal Engine 5.8** (Epic Games Launcher) and **Visual Studio 2022 Build Tools** with
+*Desktop development with C++* and the *.NET Framework 4.8 SDK* component.
+
+### From an Ubuntu (WSL) terminal, any directory
+
+```bash
+# Where the project lives on Windows (change if you cloned elsewhere)
+DV="/mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')/Desktop/Delta Force Dominion Game/DeltaVDominion"
+alias dv='bash "$DV/Scripts/dv.sh"'
+
+dv build      # compile the C++ (editor target)
+dv editor     # open the Unreal Editor on the Boot Camp map
+dv play       # play standalone in a window
+dv watch      # spectator view: overwatch camera, squad flanks the enemy
+dv log        # follow the live game/editor log
+dv status     # git status, recent commits, what's built
+dv map        # regenerate the Boot Camp map from Scripts/build_bootcamp_map.py
+dv capture    # re-render the screenshots and GIFs in Docs/media
+dv package    # build Build/Release/DeltaVDominion-Win64.zip
+```
+
+### From Windows
+
+Double-click `DeltaVDominion.uproject` (it will offer to build), or right-click it and choose
+*Generate Visual Studio project files*, open `DeltaVDominion.slnx`, select *Development Editor / Win64*, build.
+
+---
+
+## Project layout
 
 ```
 Source/DeltaVDominion/
-  DVGameplayTags        Native gameplay tags (abilities, states, SetByCaller)
-  Core/                 DVGameInstance, DVGameMode, DVPlayerController,
-                        DVRosterSubsystem, DVRosterTypes, DVSaveGame
-  Characters/           DVSoldierCharacter, DVCharacterMovementComponent,
-                        DVCommandComponent, DVSquadAIController, DVCoverQuery, DVSquadTypes
-  Combat/               DVAttributeSet, DVCombatEffects (damage exec + suppression),
-                        DVGameplayAbility, DVGA_FireWeapon, DVGA_Reload, DVWeaponBase, DVWeaponData
-  Net/                  DVRateLimiter (token bucket for server RPCs)
-  Vehicles/ Space/ Campaign/ Strategy/ Physics/ Narrative/ UI/   (placeholders for later milestones)
+  Core/         DVGameMode, DVPlayerController (DVShowcase / DVCapture console commands),
+                DVRosterSubsystem, DVRosterTypes, DVSaveGame, DVGameInstance
+  Characters/   DVSoldierCharacter (+ grey-box body), DVCharacterMovementComponent,
+                DVCommandComponent, DVSquadAIController, DVCoverQuery
+  Combat/       DVAttributeSet, DVCombatEffects, DVGA_FireWeapon, DVGA_Reload,
+                DVWeaponBase (+ grey-box rifle and tracers), DVWeaponData
+  Net/          DVRateLimiter (token bucket for server RPCs)
+  Vehicles/ Space/ Campaign/ Strategy/ Physics/ Narrative/ UI/   later milestones
+Content/Maps/BootCamp.umap        generated by Scripts/build_bootcamp_map.py
+Content/Dev/                      grey-box materials (M_GreyBox + tinted instances)
+Scripts/                          dv.sh, build_bootcamp_map.py, capture_media.ps1, package_game.ps1
+Installer/                        one-line Windows installer, PLAY_ME.txt
+Docs/media/                       README screenshots and GIFs (rendered off-screen by the engine)
 ```
 
-## How the systems work
+## Wiring up real art (in the editor)
 
-**Soldier** (`DVSoldierCharacter`): first-person camera and arms for the local player, body for
-everyone else. Owns its own AbilitySystemComponent, so AI squadmates and co-op takeovers keep
-health, ammo and abilities with the pawn. Sprint and ADS speeds go through the custom movement
-component's saved-move flags, so they're predicted and server-corrected rather than trusted.
-Lean is a rate-limited server RPC.
+- **Soldier:** make `BP_Soldier` from `DVSoldierCharacter`; set `Mesh` (with a physics asset for
+  per-bone hits/headshots), `FirstPersonMesh`, anim blueprints. The grey-box body hides itself
+  once a mesh is set. Use it as `DefaultPawnClass` and `SquadmateClass` on a `DVGameMode` child.
+- **Weapons:** Data Asset > `DVWeaponData` per weapon (M9 Bastion, Kite, Halberd with
+  `PelletsPerShot` 8, Longreach, Pulse Carbine with `bUsesHeat`). Assign mesh, muzzle socket,
+  Niagara muzzle/tracer/impact, sound, montages. Grey-box rifle and tracers are used until then.
+- **Enemies:** place soldiers with `TeamId = 2` (Hearthbound). Squad and player are `TeamId = 1`.
 
-**Weapons on GAS**: `DVGA_FireWeapon` is locally predicted. The shooter traces and plays effects at
-once, then sends hits to the server as target data. The server checks fire rate, ammo/heat,
-pellet count, shot origin, range, aim angle, line of sight (no shooting through walls) and a
-ping-scaled target position tolerance before applying `DVDamageEffect`
-(SetByCaller damage, x2.5 headshot, armour reduction). Rounds passing near enemies apply
-suppression, which widens aim, slows AI and pins them. Recoil patterns, bloom, burst/auto/semi,
-shotguns and heat-based weapons are data-driven in `DVWeaponData`.
+## Security and anti-cheat design
 
-**Squad AI** (`DVSquadAIController`): sight perception by team, runtime cover search on the
-navmesh (low cover preferred, so bots pop up to fire and duck between bursts), and the orders
-Follow, Move, Hold, Flank, Suppress and Regroup. On Flank, one bot suppresses while the rest
-swing wide. Aim error comes from each soldier's roster Accuracy plus their current suppression.
+- Server-authoritative movement (`ClientAuthorativePosition=false`), predicted sprint/ADS via saved moves.
+- Every hit is re-validated on the server (see the sequence diagram); clients never apply damage.
+- Server RPCs (fire, reload, lean, orders) are token-bucket rate limited.
+- Saves are SHA-1 checksummed and rejected if edited; in co-op only the host's save counts.
+- EOS + Easy Anti-Cheat config template in `Config/DefaultEngine.ini` (fill in portal credentials).
 
-**Roster and attrition** (`DVRosterSubsystem`): named soldiers with rank, traits, accuracy,
-morale, XP, kills and portrait index. KIA is permanent and saved immediately (no undo by
-quitting). `DVGameMode::EndMission` gives XP, promotions, morale changes, sends heavily damaged
-survivors to the medbay for 2 missions, adds rewards, then recruits greener replacements with
-manpower. When manpower runs out, emergency conscripts keep the campaign winnable and set the
-`bDireStraits` flag (for the salvage mission). Saves are SHA-1 checksummed and rejected if
-edited. In co-op the host's save is the only authority.
+## Roadmap
 
-**Co-op**: the first player leads; later players take over a living AI squadmate.
-
-## Not done yet (by design for this drop)
-
-- Compiling: this was written without an Unreal install. Expect a few small fixes on first build.
-- Lag-compensation rewind (the tolerance check is the placeholder), EOS/EAC wiring
-  (config template is in `Config/DefaultEngine.ini`), HUD/command wheel UI, StateTree assets
-  (the AI is C++; StateTree tasks can wrap its behaviours later), animation blueprints.
+- [x] Milestone 1: soldier, GAS weapons, squad AI and orders, roster attrition, Boot Camp range
+- [ ] Lag-compensated rewind (replaces the tolerance check), EOS sessions + EAC
+- [ ] HUD and command wheel (CommonUI), StateTree wrappers for AI behaviours
+- [ ] Character and weapon art, animation blueprints, Niagara VFX, MetaSounds
+- [ ] Vehicles, space segments, campaign map and story missions

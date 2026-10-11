@@ -3,6 +3,12 @@
 #include "Characters/DVSoldierCharacter.h"
 #include "DeltaVDominion.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
+#include "UObject/ConstructorHelpers.h"
+#include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -18,6 +24,20 @@ ADVWeaponBase::ADVWeaponBase()
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->CastShadow = true;
 	RootComponent = Mesh;
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	PlaceholderTracerMesh = CylinderMesh.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> GreyBoxMat(TEXT("/Game/Dev/M_GreyBox.M_GreyBox"));
+	PlaceholderMaterial = GreyBoxMat.Object;
+
+	PlaceholderMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlaceholderMesh"));
+	PlaceholderMesh->SetupAttachment(Mesh);
+	PlaceholderMesh->SetStaticMesh(CubeMesh.Object);
+	PlaceholderMesh->SetRelativeLocation(FVector(25.f, 0.f, 0.f));
+	PlaceholderMesh->SetRelativeScale3D(FVector(0.75f, 0.07f, 0.13f));
+	PlaceholderMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PlaceholderMesh->SetMaterial(0, PlaceholderMaterial);
 }
 
 void ADVWeaponBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -45,6 +65,7 @@ void ADVWeaponBase::OnRep_Data()
 	{
 		Mesh->SetSkeletalMeshAsset(GetData()->Mesh);
 	}
+	PlaceholderMesh->SetVisibility(!HasRealMesh());
 	if (ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetOwner()))
 	{
 		AttachToSoldier(Soldier);
@@ -61,9 +82,15 @@ void ADVWeaponBase::AttachToSoldier(ADVSoldierCharacter* Soldier)
 	const bool bFirstPerson = Soldier->IsLocallyControlled() && Soldier->IsPlayerControlled();
 	USkeletalMeshComponent* Parent = bFirstPerson ? Soldier->GetFirstPersonMesh() : Soldier->GetMesh();
 	const FName Socket = bFirstPerson ? GetData()->FirstPersonAttachSocket : GetData()->ThirdPersonAttachSocket;
-	if (Parent)
+	if (Parent && Parent->DoesSocketExist(Socket))
 	{
 		AttachToComponent(Parent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
+	}
+	else if (Parent)
+	{
+		// No skeleton yet: hold the weapon at a fixed offset (in view for first person, at the hip for third).
+		AttachToComponent(Parent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, NAME_None);
+		SetActorRelativeLocation(bFirstPerson ? FVector(62.f, 16.f, 128.f) : FVector(30.f, 22.f, 15.f));
 	}
 	Mesh->SetOnlyOwnerSee(false);
 	Mesh->SetOwnerNoSee(false);
@@ -205,6 +232,10 @@ FVector ADVWeaponBase::GetMuzzleLocation() const
 	{
 		return Mesh->GetSocketLocation(GetData()->MuzzleSocket);
 	}
+	if (PlaceholderMesh && PlaceholderMesh->IsVisible())
+	{
+		return PlaceholderMesh->GetComponentLocation() + PlaceholderMesh->GetForwardVector() * 40.f;
+	}
 	return GetActorLocation();
 }
 
@@ -262,11 +293,52 @@ void ADVWeaponBase::SpawnShotEffects(const TArray<FVector>& ImpactPoints) const
 				Tracer->SetVectorParameter(TEXT("BeamEnd"), Impact);
 			}
 		}
+		else
+		{
+			SpawnPlaceholderTracer(Muzzle, Impact);
+		}
 		if (GetData()->ImpactFX)
 		{
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, GetData()->ImpactFX, Impact);
 		}
 	}
+}
+
+bool ADVWeaponBase::HasRealMesh() const
+{
+	return GetData() && GetData()->Mesh;
+}
+
+void ADVWeaponBase::SpawnPlaceholderTracer(const FVector& From, const FVector& To) const
+{
+	const FVector Delta = To - From;
+	const float Length = Delta.Size();
+	if (!PlaceholderTracerMesh || Length < 50.f || GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
+	// Cosmetic only; a transient component that removes itself after a couple of frames.
+	ADVWeaponBase* MutableThis = const_cast<ADVWeaponBase*>(this);
+	UStaticMeshComponent* Beam = NewObject<UStaticMeshComponent>(MutableThis);
+	Beam->SetStaticMesh(PlaceholderTracerMesh);
+	Beam->SetMaterial(0, PlaceholderMaterial);
+	Beam->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Beam->CastShadow = false;
+	Beam->SetUsingAbsoluteLocation(true);
+	Beam->SetUsingAbsoluteRotation(true);
+	Beam->SetUsingAbsoluteScale(true);
+	Beam->RegisterComponent();
+	Beam->SetWorldLocationAndRotation((From + To) * 0.5f, FRotationMatrix::MakeFromZ(Delta).Rotator());
+	Beam->SetWorldScale3D(FVector(0.025f, 0.025f, Length / 100.f));
+	if (UMaterialInstanceDynamic* Mat = Beam->CreateAndSetMaterialInstanceDynamic(0))
+	{
+		Mat->SetVectorParameterValue(TEXT("Color"), FLinearColor(1.f, 0.7f, 0.15f));
+		Mat->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(20.f, 9.f, 1.5f));
+	}
+
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(Beam, [Beam]() { Beam->DestroyComponent(); }), 0.06f, false);
 }
 
 const UDVWeaponData* ADVWeaponBase::GetData() const

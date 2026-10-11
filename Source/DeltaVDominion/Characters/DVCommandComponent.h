@@ -30,6 +30,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Command")
 	void IssueOrderFromView(EDVSquadOrder Order);
 
+	/** Issue an order at an explicit spot / target (scripted sequences, showcase, future command wheel). */
+	UFUNCTION(BlueprintCallable, Category = "Command")
+	void IssueOrderAt(EDVSquadOrder Order, FVector Location, AActor* Target);
+
 	/** Server: adds a squadmate under this leader. */
 	void RegisterSquadMember(ADVSoldierCharacter* Member);
 

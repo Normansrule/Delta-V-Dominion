@@ -25,6 +25,7 @@ class DELTAVDOMINION_API ADVGameMode : public AGameModeBase
 public:
 	ADVGameMode();
 
+	virtual void StartPlay() override;
 	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 
 	void NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCharacter* Killer, AController* KillerController);

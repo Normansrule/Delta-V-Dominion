@@ -17,6 +17,10 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/ConstructorHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
@@ -53,6 +57,29 @@ ADVSoldierCharacter::ADVSoldierCharacter(const FObjectInitializer& ObjectInitial
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->SetCollisionResponseToChannel(DV_TRACE_WEAPON, ECR_Block);
+
+	// Grey-box stand-in so the game is playable before character art exists. Hidden in BeginPlay once a Mesh is set.
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	// Created by Scripts/build_bootcamp_map.py; exposes Color / Emissive parameters.
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> GreyBoxMat(TEXT("/Game/Dev/M_GreyBox.M_GreyBox"));
+
+	PlaceholderBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlaceholderBody"));
+	PlaceholderBody->SetupAttachment(GetCapsuleComponent());
+	PlaceholderBody->SetStaticMesh(CylinderMesh.Object);
+	PlaceholderBody->SetMaterial(0, GreyBoxMat.Object);
+	PlaceholderBody->SetRelativeScale3D(FVector(0.62f, 0.62f, 1.8f));
+	PlaceholderBody->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PlaceholderBody->SetOwnerNoSee(true);
+
+	PlaceholderVisor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlaceholderVisor"));
+	PlaceholderVisor->SetupAttachment(GetCapsuleComponent());
+	PlaceholderVisor->SetStaticMesh(CubeMesh.Object);
+	PlaceholderVisor->SetMaterial(0, GreyBoxMat.Object);
+	PlaceholderVisor->SetRelativeLocation(FVector(26.f, 0.f, 62.f));
+	PlaceholderVisor->SetRelativeScale3D(FVector(0.15f, 0.4f, 0.12f));
+	PlaceholderVisor->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PlaceholderVisor->SetOwnerNoSee(true);
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystem"));
 	AbilitySystemComponent->SetIsReplicated(true);
@@ -91,6 +118,7 @@ void ADVSoldierCharacter::BeginPlay()
 	const bool bHasPhysicsBodies = GetMesh()->GetSkeletalMeshAsset() && GetMesh()->GetPhysicsAsset();
 	GetCapsuleComponent()->SetCollisionResponseToChannel(DV_TRACE_WEAPON, bHasPhysicsBodies ? ECR_Ignore : ECR_Block);
 	FirstPersonCamera->SetFieldOfView(DefaultFOV);
+	SetupPlaceholderBody();
 	InitAbilitySystem();
 
 	if (HasAuthority())
@@ -98,6 +126,29 @@ void ADVSoldierCharacter::BeginPlay()
 		GrantDefaultAbilities();
 		SpawnDefaultWeapon();
 		AttributeSet->OnOutOfHealth.AddUObject(this, &ADVSoldierCharacter::HandleOutOfHealth);
+	}
+}
+
+void ADVSoldierCharacter::SetupPlaceholderBody()
+{
+	if (GetMesh()->GetSkeletalMeshAsset())
+	{
+		PlaceholderBody->DestroyComponent();
+		PlaceholderVisor->DestroyComponent();
+		PlaceholderBody = nullptr;
+		PlaceholderVisor = nullptr;
+		return;
+	}
+
+	const FLinearColor TeamColor = TeamId == 1 ? FLinearColor(0.15f, 0.35f, 0.9f) : FLinearColor(0.85f, 0.12f, 0.08f);
+	if (UMaterialInstanceDynamic* BodyMat = PlaceholderBody->CreateAndSetMaterialInstanceDynamic(0))
+	{
+		BodyMat->SetVectorParameterValue(TEXT("Color"), TeamColor);
+	}
+	if (UMaterialInstanceDynamic* VisorMat = PlaceholderVisor->CreateAndSetMaterialInstanceDynamic(0))
+	{
+		VisorMat->SetVectorParameterValue(TEXT("Color"), FLinearColor(0.9f, 0.75f, 0.1f));
+		VisorMat->SetVectorParameterValue(TEXT("Emissive"), TeamColor * 4.f);
 	}
 }
 
@@ -502,6 +553,14 @@ void ADVSoldierCharacter::EnterRagdoll()
 	Body->SetAllBodiesSimulatePhysics(true);
 	Body->WakeAllRigidBodies();
 	FirstPersonMesh->SetVisibility(false, true);
+
+	// No skeleton to ragdoll: topple the grey-box body instead.
+	if (PlaceholderBody)
+	{
+		PlaceholderBody->SetOwnerNoSee(false);
+		PlaceholderBody->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -60.f), FRotator(90.f, 0.f, 0.f));
+		PlaceholderVisor->SetVisibility(false);
+	}
 }
 
 // ---------------------------------------------------------------------------

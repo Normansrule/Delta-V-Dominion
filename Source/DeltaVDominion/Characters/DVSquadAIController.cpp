@@ -485,8 +485,19 @@ void ADVSquadAIController::MoveIfFar(const FVector& Dest, float Tolerance, bool 
 	if (bNewDest || GetMoveStatus() == EPathFollowingStatus::Idle)
 	{
 		CurrentMoveDest = Dest;
-		MoveToLocation(Dest, Tolerance * 0.5f, /*bStopOnOverlap*/ true, /*bUsePathfinding*/ true,
-			/*bProjectDestinationToNavigation*/ true, /*bCanStrafe*/ true);
+		const EPathFollowingRequestResult::Type Result = MoveToLocation(Dest, Tolerance * 0.5f, /*bStopOnOverlap*/ true,
+			/*bUsePathfinding*/ true, /*bProjectDestinationToNavigation*/ true, /*bCanStrafe*/ true);
+		if (Result == EPathFollowingRequestResult::Failed)
+		{
+			UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
+			const ANavigationData* NavData = Nav ? Nav->GetNavDataForProps(Soldier->GetNavAgentPropertiesRef(), Soldier->GetNavAgentLocation()) : nullptr;
+			FNavLocation Tmp;
+			const bool bStartOnNav = Nav && Nav->ProjectPointToNavigation(Soldier->GetNavAgentLocation(), Tmp, FVector(100.f, 100.f, 200.f));
+			const bool bDestOnNav = Nav && Nav->ProjectPointToNavigation(Dest, Tmp, FVector(100.f, 100.f, 200.f));
+			UE_LOG(LogDVAI, Verbose, TEXT("%s: no path to %s (navdata %s, start on nav %d, dest on nav %d, agent r=%.0f h=%.0f)"), *GetNameSafe(Soldier),
+				*Dest.ToCompactString(), *GetNameSafe(NavData), bStartOnNav, bDestOnNav,
+				Soldier->GetNavAgentPropertiesRef().AgentRadius, Soldier->GetNavAgentPropertiesRef().AgentHeight);
+		}
 	}
 	Soldier->SetSprinting(bSprint && !Target.IsValid());
 }

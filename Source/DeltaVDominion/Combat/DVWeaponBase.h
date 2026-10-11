@@ -7,6 +7,9 @@
 
 class UDVWeaponData;
 class USkeletalMeshComponent;
+class UStaticMeshComponent;
+class UStaticMesh;
+class UMaterialInterface;
 class ADVSoldierCharacter;
 
 /**
@@ -74,6 +77,11 @@ protected:
 	UFUNCTION() void OnRep_Data();
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon") TObjectPtr<USkeletalMeshComponent> Mesh;
+	/** Grey-box rifle shown until the data asset supplies a Mesh. */
+	UPROPERTY(VisibleAnywhere, Category = "Weapon") TObjectPtr<UStaticMeshComponent> PlaceholderMesh;
+	/** Used for grey-box tracers when the data asset has no Niagara tracer. */
+	UPROPERTY() TObjectPtr<UStaticMesh> PlaceholderTracerMesh;
+	UPROPERTY() TObjectPtr<UMaterialInterface> PlaceholderMaterial;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Data) TObjectPtr<UDVWeaponData> WeaponData;
 	UPROPERTY(Replicated) int32 AmmoInMag = 0;
@@ -83,6 +91,8 @@ protected:
 
 private:
 	void SpawnShotEffects(const TArray<FVector>& ImpactPoints) const;
+	void SpawnPlaceholderTracer(const FVector& From, const FVector& To) const;
+	bool HasRealMesh() const;
 
 	double LastShotTime = -1000.0;		// local / predicted
 	double LastServerShotTime = -1000.0;

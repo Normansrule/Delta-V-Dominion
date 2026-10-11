@@ -1,0 +1,19 @@
+DELTA-V: DOMINION  -  Boot Camp build
+
+Run DeltaVDominion.exe.
+If Windows says a DLL (VCRUNTIME / XINPUT / D3D) is missing, run
+Engine\Extras\Redist\en-us\UEPrereqSetup_x64.exe once, then start the game again.
+
+Needs: Windows 10/11 64-bit, a DirectX 12 GPU (GTX 1060 / RX 580 or better), 8 GB RAM.
+
+Controls
+  WASD / Mouse   move / look          F   squad: move to crosshair
+  LMB / RMB      fire / aim           G   squad: hold position
+  R              reload               V   squad: regroup on me
+  Shift          sprint               T   squad: suppress target
+  C              crouch               X   squad: flank target
+  Q / E          lean left / right    Space  jump
+
+Console (press ~)
+  DVShowcase 0 / 1 / 2   spectator cameras, squad flanks the enemy
+  DVShowcase -1          back to your soldier
