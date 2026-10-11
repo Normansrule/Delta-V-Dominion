@@ -69,6 +69,7 @@ private:
 	void ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target);
 	int32 HostileKills = 0;
 	bool bIsTrainingMap = false;
+	bool bIsHub = false;
 	class ADVGameState* GetDVGameState() const;
 
 	TWeakObjectPtr<ADVSoldierCharacter> SquadLeader;

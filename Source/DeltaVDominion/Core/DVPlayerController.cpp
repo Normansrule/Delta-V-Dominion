@@ -3,6 +3,7 @@
 #include "Characters/DVCommandComponent.h"
 #include "Core/DVGameMode.h"
 #include "Vehicles/DVVehicleKit.h"
+#include "Core/DVInteractable.h"
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
 #include "Core/DVGameState.h"
@@ -227,7 +228,7 @@ void ADVPlayerController::OnMapPressed()
 	const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
 	if (GS && GS->Phase != EDVMissionPhase::InProgress && IsLocalController())
 	{
-		UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Galaxy")));	// back to the Kestrel's strategic map
+		UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Kestrel")));	// back aboard the Kestrel
 	}
 }
 
@@ -241,6 +242,20 @@ void ADVPlayerController::OnInteractPressed()
 	if (MyPawn->FindComponentByClass<UDVSeatComponent>())
 	{
 		ServerExitVehicle();
+	}
+	else if (ADVInteractable* Thing = ADVInteractable::FindNear(MyPawn))
+	{
+		switch (Thing->Interaction)
+		{
+		case EDVInteraction::WarTable:
+			UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Galaxy")));
+			break;
+		case EDVInteraction::Memorial:
+			bShowMemorial = !bShowMemorial;
+			break;
+		default:
+			break;
+		}
 	}
 	else if (UDVSeatComponent* Seat = UDVSeatComponent::FindNear(Cast<ADVSoldierCharacter>(MyPawn)))
 	{

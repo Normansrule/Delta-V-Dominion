@@ -32,7 +32,7 @@ public:
 	static float ArmAngleRad(int32 Arm, float Radius);
 
 protected:
-	/** 0 blue-white, 1 white, 2 yellow, 3 orange, 4 pink (star-forming regions). */
+	/** 0 blue, 1 blue-white, 2 yellow, 3 orange, 4 pink knots, 5-6 coloured gas haze. */
 	UPROPERTY(VisibleAnywhere) TArray<TObjectPtr<UInstancedStaticMeshComponent>> Bins;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> CoreGlow;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> CoreHaze;

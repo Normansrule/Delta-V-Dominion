@@ -61,8 +61,24 @@ function Save-GalaxyStill([string]$Name, [string]$Cmds, [float]$Delay) {
     Copy-Item (Join-Path $Frames "${Name}_0000.png") (Join-Path $Out "$Name.png") -Force
 }
 
+function Save-MapStill([string]$Name, [string]$ShotMap, [string]$Cmds, [float]$Delay, [int]$ShowUI = 0) {
+    Invoke-Capture "${Cmds}DVCapture $Name 1 0 $Delay $ShowUI" (Join-Path $Frames "${Name}_0000.png") "" $ShotMap
+    Copy-Item (Join-Path $Frames "${Name}_0000.png") (Join-Path $Out "$Name.png") -Force
+}
+
 try {
 if (-not $GifsOnly -and -not $FirefightOnly) {
+    # Planets
+    foreach ($planet in "Europa", "Io", "Proxima", "Ceres", "Gaia") {
+        Save-MapStill ("planet_" + $planet.ToLower()) "/Game/Maps/$planet" "DVShowcase 0, " 6
+    }
+    Save-MapStill "gaia_title" "/Game/Maps/Gaia" "" 3 1
+    # The Kestrel: hangar deck, war table, vehicles in action
+    Save-MapStill "kestrel_hangar" "/Game/Maps/Kestrel" "DVShowcase 0, " 5
+    Save-MapStill "kestrel_wartable" "/Game/Maps/Kestrel" "DVShowcase 1, " 4 1
+    Save-MapStill "landing_zone" "/Game/Maps/Outpost" "DVShowcase 4, " 3
+    Save-MapStill "tank_kestrel" "/Game/Maps/Outpost" "DVBoard tank 1, DVAutopilot 2 0.6 0.1 0 1, " 7 1
+    Save-MapStill "vehicle_gunship" "/Game/Maps/Outpost" "DVBoard gunship 1, DVAutopilot 1.5 0.6 0.2 0.6 3, " 7 1
     Save-GalaxyStill "galaxy" "" 9                                        # start screen: the Milky Way
     Save-GalaxyStill "galaxy_sol" "DVGalaxyView 1, " 5                    # Sol, Gaia and the local bubble
     Save-GalaxyStill "galaxy_arm" "DVGalaxyView 3, DVSelectSystem Eagle, " 6

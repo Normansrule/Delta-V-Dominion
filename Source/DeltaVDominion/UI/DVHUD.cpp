@@ -7,6 +7,9 @@
 #include "Core/DVGameState.h"
 #include "Core/DVPlayerController.h"
 #include "Vehicles/DVVehicleKit.h"
+#include "Core/DVInteractable.h"
+#include "Core/DVRosterSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
 
@@ -488,7 +491,7 @@ void ADVHUD::DrawRadio(const ADVGameState* GS)
 
 void ADVHUD::DrawOrbital(const ADVGameState* GS)
 {
-	if (!GS || GS->Phase != EDVMissionPhase::InProgress)
+	if (!GS || GS->Phase != EDVMissionPhase::InProgress || GS->OrbitalReadyTime > 1.e8f)
 	{
 		return;
 	}
@@ -525,6 +528,14 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 	if (const UDVSeatComponent* Seat = UDVSeatComponent::FindNear(Soldier))
 	{
 		Text(FString::Printf(TEXT("[Z]  Board %s"), *Seat->VehicleName), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Friendly, GEngine->GetMediumFont(), 1.1f, true);
+	}
+	else if (const ADVInteractable* Thing = ADVInteractable::FindNear(Soldier))
+	{
+		Text(FString::Printf(TEXT("[Z]  %s"), *Thing->Prompt), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Warn, GEngine->GetMediumFont(), 1.1f, true);
+	}
+	if (const ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner); PC && PC->IsMemorialOpen())
+	{
+		DrawMemorial();
 	}
 }
 
@@ -567,4 +578,53 @@ void ADVHUD::DrawVehicle(APawn* Vehicle)
 	Text(Seat ? Seat->WeaponName : FString(), X, Y + S(64.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.05f);
 	Bar(X, Y + S(92.f), S(430.f), S(5.f), Ready, Ready >= 1.f ? DVHudColors::Health : DVHudColors::Warn);
 	Text(TEXT("WASD drive  |  mouse aim  |  LMB fire  |  Z exit"), CX, Canvas->ClipY - S(40.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, true);
+}
+
+void ADVHUD::DrawMemorial()
+{
+	const UGameInstance* GI = GetGameInstance();
+	const UDVRosterSubsystem* Roster = GI ? GI->GetSubsystem<UDVRosterSubsystem>() : nullptr;
+	if (!Roster)
+	{
+		return;
+	}
+	const float W = Canvas->ClipX;
+	const float H = Canvas->ClipY;
+	DrawRect(FLinearColor(0.01f, 0.012f, 0.02f, 0.86f), W * 0.12f, H * 0.1f, W * 0.76f, H * 0.78f);
+	const float L = W * 0.15f;
+	const float R = W * 0.52f;
+	float Y = H * 0.13f;
+	Text(TEXT("MEMORIAL WALL"), L, Y, FLinearColor(1.f, 0.75f, 0.4f, 1.f), GEngine->GetLargeFont(), 1.2f);
+	Text(TEXT("ACTIVE ROSTER"), R, Y, DVHudColors::Friendly, GEngine->GetLargeFont(), 1.2f);
+	Y += S(64.f);
+
+	float LY = Y;
+	const TArray<FDVSoldierRecord> Fallen = Roster->GetMemorial();
+	if (Fallen.Num() == 0)
+	{
+		Text(TEXT("No names yet. Keep it that way."), L, LY, DVHudColors::Dim, GEngine->GetSmallFont(), 1.1f);
+	}
+	for (int32 i = Fallen.Num() - 1; i >= 0 && LY < H * 0.82f; --i)
+	{
+		const FDVSoldierRecord& Rec = Fallen[i];
+		Text(FString::Printf(TEXT("%s %s"), *UDVRosterSubsystem::RankToString(Rec.Rank), *Rec.GetDisplayName()), L, LY, DVHudColors::Text, GEngine->GetSmallFont(), 1.15f);
+		Text(FString::Printf(TEXT("%s  -  %s"), *Rec.DiedAt, *Rec.CauseOfDeath), L + S(20.f), LY + S(24.f), DVHudColors::Dim, GEngine->GetSmallFont(), 0.95f);
+		LY += S(54.f);
+	}
+
+	float RY = Y;
+	for (const FDVSoldierRecord& Rec : Roster->GetState().Soldiers)
+	{
+		if (Rec.Status == EDVSoldierStatus::KIA || RY > H * 0.82f)
+		{
+			continue;
+		}
+		const bool bWounded = Rec.Status == EDVSoldierStatus::Wounded;
+		Text(FString::Printf(TEXT("%s %s"), *UDVRosterSubsystem::RankToString(Rec.Rank), *Rec.GetDisplayName()), R, RY,
+			bWounded ? DVHudColors::Warn : DVHudColors::Text, GEngine->GetSmallFont(), 1.15f);
+		Text(FString::Printf(TEXT("%d missions  |  %d kills%s"), Rec.MissionsFlown, Rec.Kills, bWounded ? TEXT("  |  MEDBAY") : TEXT("")),
+			R + S(20.f), RY + S(24.f), DVHudColors::Dim, GEngine->GetSmallFont(), 0.95f);
+		RY += S(54.f);
+	}
+	Text(TEXT("[Z] close"), W * 0.5f, H * 0.84f, DVHudColors::Dim, GEngine->GetMediumFont(), 1.f, true);
 }

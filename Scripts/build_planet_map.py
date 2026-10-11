@@ -1,9 +1,17 @@
-"""Builds /Game/Maps/Outpost: Hearthbound outpost on an arid moon at dusk (milestone 1 combat map).
+"""Builds the playable planets: one map per biome, each a Hearthbound strongpoint to assault.
 
-Everything is generated: Nanite terrain and rocks (GeometryScript), PBR master materials, a fortified
-compound kit-bashed from engine meshes, floodlights, and cinematic lighting/post. Re-run any time:
-  UnrealEditor-Cmd.exe DeltaVDominion.uproject -ExecutePythonScript="<path>/build_outpost_map.py -quit" -nullrhi -unattended
-(the script path must not contain spaces). Pass -rebuild to regenerate the meshes and materials too.
+  mars     /Game/Maps/Outpost   Red Tide       Tharsis Ridge at dusk (rust dunes, mesas)
+  europa   /Game/Maps/Europa    Glass Ocean    Jupiter's ice moon: blue ice cliffs, black sky, Jupiter overhead
+  io       /Game/Maps/Io        Forgefall      Volcanic moon: black basalt, sulphur haze, rivers of lava
+  proxima  /Game/Maps/Proxima   Cold Wake      Proxima b colony: red-dwarf light over forested hills
+  ceres    /Game/Maps/Ceres     Ghost Signal   Night mining town on Ceres, drowned in neon
+  gaia     /Game/Maps/Gaia      Gaia Falls     Earth: green hills outside the capital, skyline on the horizon
+
+Everything is generated: Nanite terrain and rocks (GeometryScript), PBR materials, a fortified compound
+kit-bashed from engine meshes, the Accord landing zone with vehicles, the Kestrel overhead, biome extras,
+and cinematic lighting/post. Run headless (script path without spaces):
+  UnrealEditor-Cmd.exe DeltaVDominion.uproject -ExecutePythonScript="<path>/build_planet_map.py -biome=all -quit" -nullrhi -unattended
+-biome=<name> builds one planet; -rebuild regenerates meshes and materials.
 
 Units are cm. +X points from the player's start (west) toward the compound (east).
 """
@@ -14,9 +22,59 @@ import sys
 
 import unreal
 
-MAP_PATH = "/Game/Maps/Outpost"
-ENV = "/Game/Environment/Outpost"
 REBUILD = "-rebuild" in sys.argv
+SHARED = "/Game/Environment/Outpost"     # shared structure materials (also used by the C++ vehicle kit)
+
+# Per-planet look and layout. Colours are linear RGB.
+BIOMES = {
+    "mars": dict(map="/Game/Maps/Outpost", env="/Game/Environment/Outpost", seed=0, dunes=90.0, rim=900.0, mesa=2600.0,
+                 sand_a=(0.26, 0.155, 0.09), sand_b=(0.085, 0.06, 0.045), slope_rock=(0.05, 0.042, 0.036),
+                 rock_dark=(0.022, 0.02, 0.018), rock_light=(0.12, 0.095, 0.075),
+                 sun=(-21, 38), sun_color=(255, 196, 150), sun_lux=9.0, atmosphere=True, mie=0.008, sky_light=1.2,
+                 fog=0.012, fog_color=(0.35, 0.22, 0.16), clouds=True, saturation=1.08, contrast=1.15, exposure=-0.2,
+                 extras=[]),
+    "europa": dict(map="/Game/Maps/Europa", env="/Game/Environment/Planets/Europa", seed=21, dunes=60.0, rim=1400.0, mesa=3600.0,
+                   sand_a=(0.62, 0.7, 0.78), sand_b=(0.34, 0.42, 0.52), slope_rock=(0.16, 0.24, 0.32),
+                   rock_dark=(0.1, 0.15, 0.2), rock_light=(0.55, 0.66, 0.78),
+                   sun=(-12, 150), sun_color=(230, 238, 255), sun_lux=6.0, atmosphere=False, mie=0.0, sky_light=0.8,
+                   fog=0.004, fog_color=(0.25, 0.35, 0.5), clouds=False, saturation=0.95, contrast=1.2, exposure=0.2,
+                   extras=["gas_giant"]),
+    "io": dict(map="/Game/Maps/Io", env="/Game/Environment/Planets/Io", seed=31, dunes=110.0, rim=1000.0, mesa=2200.0,
+               sand_a=(0.42, 0.36, 0.07), sand_b=(0.06, 0.055, 0.05), slope_rock=(0.025, 0.022, 0.02),
+               rock_dark=(0.018, 0.016, 0.015), rock_light=(0.09, 0.075, 0.05),
+               sun=(-30, 60), sun_color=(255, 232, 196), sun_lux=7.0, atmosphere=True, mie=0.03, sky_light=1.0,
+               fog=0.03, fog_color=(0.55, 0.32, 0.1), clouds=False, saturation=1.15, contrast=1.2, exposure=0.0,
+               extras=["lava", "gas_giant"]),
+    "proxima": dict(map="/Game/Maps/Proxima", env="/Game/Environment/Planets/Proxima", seed=41, dunes=160.0, rim=800.0, mesa=2000.0,
+                    sand_a=(0.11, 0.17, 0.05), sand_b=(0.06, 0.09, 0.035), slope_rock=(0.09, 0.08, 0.07),
+                    rock_dark=(0.045, 0.045, 0.04), rock_light=(0.2, 0.19, 0.17),
+                    sun=(-32, 20), sun_color=(255, 135, 85), sun_lux=7.5, atmosphere=True, mie=0.02, sky_light=1.1,
+                    fog=0.02, fog_color=(0.35, 0.2, 0.18), clouds=True, saturation=1.05, contrast=1.1, exposure=0.0,
+                    extras=["trees"]),
+    "ceres": dict(map="/Game/Maps/Ceres", env="/Game/Environment/Planets/Ceres", seed=51, dunes=70.0, rim=1200.0, mesa=3000.0,
+                  sand_a=(0.16, 0.16, 0.17), sand_b=(0.06, 0.06, 0.065), slope_rock=(0.03, 0.03, 0.035),
+                  rock_dark=(0.02, 0.02, 0.022), rock_light=(0.12, 0.12, 0.13),
+                  sun=(-8, 200), sun_color=(170, 185, 255), sun_lux=1.2, atmosphere=False, mie=0.0, sky_light=0.4,
+                  fog=0.004, fog_color=(0.05, 0.07, 0.15), clouds=False, saturation=1.25, contrast=1.2, exposure=1.2,
+                  extras=["neon"]),
+    "gaia": dict(map="/Game/Maps/Gaia", env="/Game/Environment/Planets/Gaia", seed=61, dunes=80.0, rim=600.0, mesa=1800.0,
+                 sand_a=(0.13, 0.17, 0.06), sand_b=(0.15, 0.115, 0.075), slope_rock=(0.12, 0.11, 0.1),
+                 rock_dark=(0.05, 0.05, 0.048), rock_light=(0.22, 0.21, 0.2),
+                 sun=(-40, 30), sun_color=(255, 245, 230), sun_lux=10.0, atmosphere=True, mie=0.004, sky_light=1.2,
+                 fog=0.01, fog_color=(0.4, 0.45, 0.55), clouds=True, saturation=1.05, contrast=1.1, exposure=0.0,
+                 extras=["city", "trees"]),
+}
+B = BIOMES["mars"]
+MAP_PATH = B["map"]
+ENV = B["env"]
+
+
+def use_biome(name):
+    global B, MAP_PATH, ENV
+    B = BIOMES[name]
+    MAP_PATH = B["map"]
+    ENV = B["env"]
+    random.seed(7 + B["seed"])
 
 actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 levels = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
@@ -29,7 +87,7 @@ random.seed(7)
 
 
 def log(msg):
-    unreal.log("OUTPOST " + msg)
+    unreal.log("PLANET " + msg)
 
 
 def setp(obj, name, value):
@@ -92,11 +150,19 @@ def smoothstep(e0, e1, v):
 def terrain_height(x, y):
     """Flat-ish battlefield in an oval basin, ringed by ridged mesas."""
     q = math.sqrt((x / 5600.0) ** 2 + (y / 4300.0) ** 2)
-    ground = (fbm(x / 2400.0, y / 2400.0, 4, 3) - 0.5) * 90.0          # gentle dunes in the arena
+    sd = B["seed"]
+    ground = (fbm(x / 2400.0, y / 2400.0, 4, 3 + sd) - 0.5) * B["dunes"]          # gentle relief in the arena
     rim = smoothstep(1.0, 1.7, q)
-    mesa = ridged(x / 9000.0, y / 9000.0, 4, 11)
-    mountains = rim * (900.0 + 2600.0 * mesa) + rim * (fbm(x / 1500.0, y / 1500.0, 5, 5) - 0.5) * 600.0
-    return ground + mountains
+    mesa = ridged(x / 9000.0, y / 9000.0, 4, 11 + sd)
+    mountains = rim * (B["rim"] + B["mesa"] * mesa) + rim * (fbm(x / 1500.0, y / 1500.0, 5, 5 + sd) - 0.5) * 600.0
+    h = ground + mountains
+    if "lava" in B["extras"]:
+        # Two meandering channels cut across the arena flanks; the lava plane fills them.
+        for offset in (-2600.0, 2900.0):
+            centre = offset + math.sin(x / 1700.0 + offset) * 700.0
+            d = abs(y - centre)
+            h -= 380.0 * (1.0 - smoothstep(250.0, 650.0, d)) * (1.0 - smoothstep(4800.0, 6200.0, abs(x)))
+    return h
 
 
 # --------------------------------------------------------------------------------------------
@@ -150,8 +216,8 @@ def make_terrain_material():
     big = expr(mat, unreal.MaterialExpressionNoise, -1300, -300, scale=0.0009, levels=5, output_min=0.0, output_max=1.0,
                noise_function=unreal.NoiseFunction.NOISEFUNCTION_GRADIENT_ALU, turbulence=False)
     mel.connect_material_expressions(wp_macro, "", big, "Position")
-    sand_a = const3(mat, (0.26, 0.155, 0.09), -1200, -560)
-    sand_b = const3(mat, (0.085, 0.06, 0.045), -1200, -440)
+    sand_a = const3(mat, B["sand_a"], -1200, -560)
+    sand_b = const3(mat, B["sand_b"], -1200, -440)
     l1 = expr(mat, unreal.MaterialExpressionLinearInterpolate, -900, -480)
     mel.connect_material_expressions(sand_a, "", l1, "A")
     mel.connect_material_expressions(sand_b, "", l1, "B")
@@ -164,7 +230,7 @@ def make_terrain_material():
     mel.connect_material_expressions(normal_ws, "", up, "")
     slope = expr(mat, unreal.MaterialExpressionPower, -1300, 100, const_exponent=6.0)
     mel.connect_material_expressions(up, "", slope, "Base")
-    rock = const3(mat, (0.05, 0.042, 0.036), -1100, 0)
+    rock = const3(mat, B["slope_rock"], -1100, 0)
     l2 = expr(mat, unreal.MaterialExpressionLinearInterpolate, -700, -300)
     mel.connect_material_expressions(rock, "", l2, "A")
     mel.connect_material_expressions(l1, "", l2, "B")
@@ -206,8 +272,8 @@ def make_rock_material():
         return mat
     uv = world_uv(mat, 380.0, -1400, -200)
     grain = tex(mat, "/Game/Building/Textures/T_PolishedConcrete01_BC", uv, -1000, -200)
-    dark = const3(mat, (0.022, 0.02, 0.018), -1000, -450)
-    light = const3(mat, (0.12, 0.095, 0.075), -1000, -330)
+    dark = const3(mat, B["rock_dark"], -1000, -450)
+    light = const3(mat, B["rock_light"], -1000, -330)
     l = expr(mat, unreal.MaterialExpressionLinearInterpolate, -700, -350)
     mel.connect_material_expressions(dark, "", l, "A")
     mel.connect_material_expressions(light, "", l, "B")
@@ -224,12 +290,12 @@ def make_rock_material():
 
 
 def tinted(parent_path, name, tint, metallic=None, roughness=None, uv_scale=None):
-    path = ENV + "/Materials/" + name
+    path = SHARED + "/Materials/" + name
     if lib.does_asset_exist(path) and not REBUILD:
         return lib.load_asset(path)
     if lib.does_asset_exist(path):
         lib.delete_asset(path)
-    mi = tools.create_asset(name, ENV + "/Materials", unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+    mi = tools.create_asset(name, SHARED + "/Materials", unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
     mi.set_editor_property("parent", lib.load_asset(parent_path))
     mel.set_material_instance_vector_parameter_value(mi, "TintColor", unreal.LinearColor(tint[0], tint[1], tint[2], 1.0))
     if metallic is not None:
@@ -243,12 +309,12 @@ def tinted(parent_path, name, tint, metallic=None, roughness=None, uv_scale=None
 
 
 def glow(name, color, strength):
-    path = ENV + "/Materials/" + name
+    path = SHARED + "/Materials/" + name
     if lib.does_asset_exist(path) and not REBUILD:
         return lib.load_asset(path)
     if lib.does_asset_exist(path):
         lib.delete_asset(path)
-    mi = tools.create_asset(name, ENV + "/Materials", unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+    mi = tools.create_asset(name, SHARED + "/Materials", unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
     mi.set_editor_property("parent", lib.load_asset("/Game/Dev/M_GreyBox"))
     mel.set_material_instance_vector_parameter_value(mi, "Color", unreal.LinearColor(color[0], color[1], color[2], 1.0))
     mel.set_material_instance_vector_parameter_value(mi, "Emissive", unreal.LinearColor(color[0] * strength, color[1] * strength, color[2] * strength, 1.0))
@@ -418,6 +484,101 @@ def jersey(label, x, y, yaw, mats):
 
 
 # --------------------------------------------------------------------------------------------
+# Biome extras
+# --------------------------------------------------------------------------------------------
+
+def clear_of_gameplay(x, y):
+    """Keep scatter away from the player start, landing zone and compound."""
+    cameras = ((-2400, -2900), (-2200, -1500), (5600, 2600), (1300, -700), (-2500, 1900))   # keep showcase views clear
+    if any((x - cx) ** 2 + (y - cy) ** 2 < 1800 ** 2 for cx, cy in cameras):
+        return False
+    return not ((-6200 < x < -2600 and -1600 < y < 3400) or (1400 < x < 4600 and -2000 < y < 2200))
+
+
+def build_extras(mats, rocks, rock_mat):
+    extras = B["extras"]
+    if "lava" in extras:
+        lava = place(CHAMFER, "LavaSea", (0, 0, -260), rot(), (60000 / CHAMFER_SIZE.x, 60000 / CHAMFER_SIZE.y, 20 / CHAMFER_SIZE.z), mats["lava"], "Lava")
+        for i in range(18):
+            x = -5000 + i * 600
+            for offset in (-2600.0, 2900.0):
+                y = offset + math.sin(x / 1700.0 + offset) * 700.0
+                l = spawn(unreal.PointLight, "LavaGlow_%d_%d" % (i, int(offset)), (x, y, -150), folder="Lava")
+                lc = l.point_light_component
+                setp(lc, "intensity_units", unreal.LightUnits.CANDELAS)
+                setp(lc, "intensity", 2500.0)
+                setp(lc, "light_color", unreal.Color(r=255, g=90, b=20, a=255))
+                setp(lc, "attenuation_radius", 1600.0)
+                setp(lc, "cast_shadows", False)
+    if "gas_giant" in extras:
+        # A gas giant hanging in the sky (Jupiter seen from its moons): body plus darker bands.
+        sphere = lib.load_asset("/Engine/BasicShapes/Sphere")
+        cx, cy, cz, r = 900000.0, -1400000.0, 700000.0, 560000.0
+        place(sphere, "GasGiant", (cx, cy, cz), rot(roll=18), (r / 50.0, r / 50.0, r / 50.0), mats["giant"], "Sky")
+        for i, dz in enumerate((-0.35, -0.12, 0.08, 0.3)):
+            band_r = r * math.sqrt(max(0.0, 1.0 - dz * dz)) * 1.004
+            place(sphere, "GasGiantBand%d" % i, (cx, cy, cz + dz * r), rot(roll=18), (band_r / 50.0, band_r / 50.0, r * 0.07 / 50.0), mats["giant_band"], "Sky")
+    if "trees" in extras:
+        tree = lib.load_asset("/Game/ArchVis/SampleScene/Tree/HillTree_02")
+        if tree:
+            count = 0
+            for i in range(600):
+                x, y = random.uniform(-14000, 14000), random.uniform(-11000, 11000)
+                q = math.sqrt((x / 5600.0) ** 2 + (y / 4300.0) ** 2)
+                if q < 0.55 or not clear_of_gameplay(x, y) or (q < 1.0 and random.random() < 0.75):
+                    continue
+                s = random.uniform(0.8, 1.5)
+                place(tree, "Tree_%03d" % count, (x, y, ground(x, y) - 20), rot(yaw=random.uniform(0, 360)), (s, s, s * random.uniform(0.9, 1.2)), None, "Trees")
+                count += 1
+                if count >= 220:
+                    break
+            log("trees %d" % count)
+    if "neon" in extras:
+        # Cyberpunk mining town: rigs, stacked habitat blocks and neon signage, lit for the night.
+        neon = [mats["neon_pink"], mats["neon_cyan"], mats["neon_amber"]]
+        for i in range(26):
+            ang = random.uniform(0, 2 * math.pi)
+            q = random.uniform(1.05, 1.6)
+            x, y = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
+            gz = ground(x, y)
+            w, d, h = random.uniform(600, 1400), random.uniform(600, 1400), random.uniform(1200, 4200)
+            yaw = random.uniform(0, 90)
+            block("Hab_%02d" % i, (x, y, gz + h / 2), (w, d, h), mats["concrete_dark"], yaw, folder="Town")
+            for k in range(int(h // 500)):
+                block("HabStrip_%02d_%d" % (i, k), (x, y, gz + 300 + k * 500), (w + 12, d + 12, 18), random.choice(neon), yaw, folder="Town")
+            if random.random() < 0.6:
+                block("HabSign_%02d" % i, (x, y, gz + h + 260), (w * 0.7, 40, 380), random.choice(neon), yaw, folder="Town")
+        for i in range(10):
+            x, y = random.uniform(-4000, 4500), random.choice((-1, 1)) * random.uniform(2400, 3600)
+            if not clear_of_gameplay(x, y):
+                continue
+            gz = ground(x, y)
+            for k, (ox, oy) in enumerate([(-150, -150), (150, -150), (-150, 150), (150, 150)]):
+                block("Rig_%d_Leg%d" % (i, k), (x + ox, y + oy, gz + 900), (30, 30, 1800), mats["gunmetal"], folder="Rigs")
+            block("Rig_%d_Head" % i, (x, y, gz + 1850), (420, 420, 180), mats["gunmetal"], folder="Rigs")
+            block("Rig_%d_Ring" % i, (x, y, gz + 1700), (440, 440, 20), random.choice(neon), folder="Rigs")
+            l = spawn(unreal.PointLight, "RigLight_%d" % i, (x, y, gz + 1650), folder="Rigs")
+            lc = l.point_light_component
+            setp(lc, "intensity_units", unreal.LightUnits.CANDELAS)
+            setp(lc, "intensity", 4000.0)
+            setp(lc, "light_color", random.choice([unreal.Color(r=255, g=40, b=180, a=255), unreal.Color(r=30, g=220, b=255, a=255), unreal.Color(r=255, g=150, b=20, a=255)]))
+            setp(lc, "attenuation_radius", 3500.0)
+    if "city" in extras:
+        # The capital's skyline beyond the hills: towers with lit window bands and aircraft beacons.
+        for i in range(70):
+            ang = random.uniform(-0.9, 0.9) + (math.pi if random.random() < 0.3 else 0.0)
+            dist = random.uniform(16000, 28000)
+            x, y = math.cos(ang) * dist, math.sin(ang) * dist
+            gz = ground(x, y)
+            w, d, h = random.uniform(900, 2600), random.uniform(900, 2600), random.uniform(4000, 22000)
+            yaw = random.uniform(-15, 15)
+            block("Tower_%02d" % i, (x, y, gz + h / 2), (w, d, h), mats["concrete"], yaw, folder="City")
+            for k in range(int(h // 900)):
+                block("TowerWin_%02d_%d" % (i, k), (x, y, gz + 450 + k * 900), (w + 10, d + 10, 120), mats["windows"], yaw, folder="City")
+            block("TowerBeacon_%02d" % i, (x, y, gz + h + 60), (80, 80, 80), mats["strip_red"], folder="City")
+
+
+# --------------------------------------------------------------------------------------------
 # Build
 # --------------------------------------------------------------------------------------------
 
@@ -442,6 +603,13 @@ def build():
         "lamp": glow("MI_Lamp", (1.0, 0.8, 0.55), 40.0),
         "strip_red": glow("MI_Strip_Red", (1.0, 0.12, 0.05), 25.0),
         "strip_cyan": glow("MI_Strip_Cyan", (0.1, 0.7, 1.0), 20.0),
+        "lava": glow("MI_Lava", (1.0, 0.32, 0.04), 60.0),
+        "neon_pink": glow("MI_Neon_Pink", (1.0, 0.1, 0.6), 45.0),
+        "neon_cyan": glow("MI_Neon_Cyan", (0.05, 0.9, 1.0), 45.0),
+        "neon_amber": glow("MI_Neon_Amber", (1.0, 0.55, 0.05), 40.0),
+        "windows": glow("MI_Windows", (1.0, 0.85, 0.6), 12.0),
+        "giant": glow("MI_GasGiant", (0.85, 0.6, 0.38), 3.0),
+        "giant_band": glow("MI_GasGiantBand", (0.55, 0.32, 0.18), 2.0),
     }
     terrain = make_terrain()
     rocks = [make_rock(i) for i in range(6)]
@@ -570,36 +738,38 @@ def build():
         setp(cc, "field_of_view", 62.0)
 
     # --- Sky, sun, fog, post ------------------------------------------------------------
-    sun = spawn(unreal.DirectionalLight, "Sun", (0, 0, 2000), rot(pitch=-21, yaw=38), "Lighting")
+    sun = spawn(unreal.DirectionalLight, "Sun", (0, 0, 2000), rot(pitch=B["sun"][0], yaw=B["sun"][1]), "Lighting")
     sl = sun.light_component
     setp(sl, "atmosphere_sun_light", True)
-    setp(sl, "intensity", 9.0)
-    setp(sl, "light_color", unreal.Color(r=255, g=196, b=150, a=255))
+    setp(sl, "intensity", B["sun_lux"])
+    setp(sl, "light_color", unreal.Color(r=B["sun_color"][0], g=B["sun_color"][1], b=B["sun_color"][2], a=255))
     setp(sl, "enable_light_shaft_bloom", True)
     setp(sl, "bloom_scale", 0.08)
     setp(sl, "volumetric_scattering_intensity", 2.0)
     sun.root_component.set_mobility(unreal.ComponentMobility.MOVABLE)
 
-    sky_atmo = spawn(unreal.SkyAtmosphere, "SkyAtmosphere", (0, 0, 0), folder="Lighting")
-    ac = sky_atmo.get_component_by_class(unreal.SkyAtmosphereComponent)
-    setp(ac, "mie_scattering_scale", 0.008)      # a little dust haze over the default Earth-like sky
-    setp(ac, "mie_anisotropy", 0.8)
+    if B["atmosphere"]:
+        sky_atmo = spawn(unreal.SkyAtmosphere, "SkyAtmosphere", (0, 0, 0), folder="Lighting")
+        ac = sky_atmo.get_component_by_class(unreal.SkyAtmosphereComponent)
+        setp(ac, "mie_scattering_scale", B["mie"])      # dust / haze level
+        setp(ac, "mie_anisotropy", 0.8)
 
     sky = spawn(unreal.SkyLight, "SkyLight", (0, 0, 800), folder="Lighting")
-    setp(sky.light_component, "real_time_capture", True)
-    setp(sky.light_component, "intensity", 1.2)
+    setp(sky.light_component, "real_time_capture", B["atmosphere"] or B["clouds"])   # real-time capture needs a sky to capture
+    setp(sky.light_component, "intensity", B["sky_light"])
     sky.root_component.set_mobility(unreal.ComponentMobility.MOVABLE)
 
     fog = spawn(unreal.ExponentialHeightFog, "HeightFog", (0, 0, -200), folder="Lighting")
     fc = fog.component
-    setp(fc, "fog_density", 0.012)
+    setp(fc, "fog_density", B["fog"])
     setp(fc, "fog_height_falloff", 0.2)
-    setp(fc, "fog_inscattering_luminance", unreal.LinearColor(0.35, 0.22, 0.16, 1.0))
+    setp(fc, "fog_inscattering_luminance", unreal.LinearColor(B["fog_color"][0], B["fog_color"][1], B["fog_color"][2], 1.0))
     setp(fc, "enable_volumetric_fog", True)
     setp(fc, "volumetric_fog_scattering_distribution", 0.75)
     setp(fc, "volumetric_fog_albedo", unreal.Color(r=255, g=220, b=190, a=255))
     setp(fc, "volumetric_fog_extinction_scale", 0.6)
-    spawn(unreal.VolumetricCloud, "Clouds", (0, 0, 0), folder="Lighting")
+    if B["clouds"]:
+        spawn(unreal.VolumetricCloud, "Clouds", (0, 0, 0), folder="Lighting")
 
     pp = spawn(unreal.PostProcessVolume, "GlobalPost", (0, 0, 0), folder="Lighting")
     pp.set_editor_property("unbound", True)
@@ -612,9 +782,9 @@ def build():
         except Exception as err:   # property names drift between engine versions; skip rather than fail
             log("post setting skipped: %s (%s)" % (name, err))
 
-    setpp("auto_exposure_bias", -0.2)
-    setpp("color_saturation", unreal.Vector4(1.0, 1.0, 1.0, 1.08))
-    setpp("color_contrast", unreal.Vector4(1.0, 1.0, 1.0, 1.15))
+    setpp("auto_exposure_bias", B["exposure"])
+    setpp("color_saturation", unreal.Vector4(1.0, 1.0, 1.0, B["saturation"]))
+    setpp("color_contrast", unreal.Vector4(1.0, 1.0, 1.0, B["contrast"]))
     setpp("bloom_intensity", 0.9)
     setpp("bloom_threshold", 1.2)
     setpp("lens_flare_intensity", 0.15)
@@ -629,14 +799,27 @@ def build():
     setpp("lumen_ray_lighting_mode", unreal.LumenRayLightingModeOverride.HIT_LIGHTING_FOR_REFLECTIONS)
     pp.settings = s
 
+    build_extras(mats, rocks, rock_mat)
+
     if not levels.save_current_level():
         raise RuntimeError("Could not save " + MAP_PATH)
     unreal.SystemLibrary.execute_console_command(unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world(), "RebuildNavigation")
     log("OK actors=%d" % len(actors.get_all_level_actors()))
 
 
+def selected_biomes():
+    for a in sys.argv:
+        if a.startswith("-biome="):
+            name = a.split("=", 1)[1]
+            return list(BIOMES.keys()) if name == "all" else [name]
+    return ["mars"]
+
+
 try:
-    build()
+    for biome in selected_biomes():
+        use_biome(biome)
+        log("building %s -> %s" % (biome, MAP_PATH))
+        build()
 finally:
     if "-quit" in sys.argv:
         unreal.SystemLibrary.quit_editor()

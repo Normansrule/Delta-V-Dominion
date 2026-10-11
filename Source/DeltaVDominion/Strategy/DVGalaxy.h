@@ -75,6 +75,11 @@ private:
 	void Launch1() { LaunchOperation(0); }
 	void Launch2() { LaunchOperation(1); }
 	void Launch3() { LaunchOperation(2); }
+	void Launch4() { LaunchOperation(3); }
+	void Launch5() { LaunchOperation(4); }
+	void Launch6() { LaunchOperation(5); }
+	void Launch7() { LaunchOperation(6); }
+	void Launch8() { LaunchOperation(7); }
 
 	TArray<TWeakObjectPtr<ADVStarSystem>> Systems;
 	TWeakObjectPtr<ADVStarSystem> Selected;

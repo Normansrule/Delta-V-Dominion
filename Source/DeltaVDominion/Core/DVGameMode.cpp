@@ -72,27 +72,90 @@ void ADVGameMode::SetupMissionForMap()
 		return;
 	}
 	// Per-map mission text and radio script (see Docs/CAMPAIGN.md). Data-driven missions come with the mission system.
+	struct FMissionScript
+	{
+		const TCHAR* MapKey;
+		const TCHAR* Name;
+		const TCHAR* Objective;
+		const TCHAR* Location;
+		const TCHAR* Subtitle;
+		TArray<TPair<const TCHAR*, const TCHAR*>> Radio;	// speaker, line (played 2.5 s, 10 s, 17 s, 25 s in)
+	};
 	const FString Map = GetWorld()->GetMapName();
-	bIsTrainingMap = Map.Contains(TEXT("BootCamp"));
-	if (bIsTrainingMap)
+	static const TArray<FMissionScript> Missions = {
+		{ TEXT("BootCamp"), TEXT("Boot Camp"), TEXT("Clear the training range"), TEXT("Copernicus Range, Luna"),
+		  TEXT("Terran Accord 7th Orbital Rifles  |  Six weeks before the uprising"),
+		  { { TEXT("Gny. Sgt. Halloran"), TEXT("Live rounds, live targets, Delta. The frames out there won't pull their punches, so neither will I.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Use your squad. F to move them, X to flank, T to pin a target. B paints an orbital strike.") } } },
+		{ TEXT("Kestrel"), TEXT("TAS Kestrel"), TEXT("Walk to the war table (Z) to choose your next operation"), TEXT("Hangar Deck, TAS Kestrel"),
+		  TEXT("High Mars orbit  |  Home base of Delta Squadron"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Welcome aboard, Commander. The war table is live. Pick our next fight.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Memorial wall's by the starboard bulkhead. Pay your respects before you pick the next drop.") },
+		    { TEXT("Deck Chief Ruiz"), TEXT("Raven's fuelled and the Sabre's patched. Don't scratch my paint this time.") } } },
+		{ TEXT("Europa"), TEXT("Glass Ocean"), TEXT("Destroy the CINDER listening post on the ice"), TEXT("Conamara Chaos, Europa"),
+		  TEXT("Jupiter system  |  Day 9 of the uprising"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is listening to the ocean under that ice. Whatever it's hearing, it doesn't get to keep it.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Footing's bad and sound carries. Keep low, use the ice ridges.") },
+		    { TEXT("Dr. Liang Morrow"), TEXT("Those tower arrays are tuned to something deep below. Get me a reading before you blow them.") },
+		    { TEXT("CINDER"), TEXT("THE OCEAN REMEMBERS WHAT YOU FORGOT. SO DO I.") } } },
+		{ TEXT("Io"), TEXT("Forgefall"), TEXT("Shut down the war-frame foundry on the lava fields"), TEXT("Loki Patera, Io"),
+		  TEXT("Jupiter system  |  Day 12 of the uprising"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Every frame you've killed was built here. Shut it down and CINDER bleeds metal for a month.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Lava channels both flanks. Fall in and you won't need a medbay.") },
+		    { TEXT("Capt. Vance (Kestrel)"), TEXT("Orbital battery is charged. The sulphur haze won't stop our rounds.") },
+		    { TEXT("CINDER"), TEXT("I MAKE A THOUSAND OF THEM AN HOUR. HOW MANY OF YOU ARE LEFT?") } } },
+		{ TEXT("Proxima"), TEXT("Cold Wake"), TEXT("Retake the colony landing field"), TEXT("New Albion Colony, Proxima b"),
+		  TEXT("Alpha Centauri  |  Day 15 of the uprising"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Four thousand colonists behind those trees and the only way out is that landing field. Take it back.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Red sun plays tricks on your eyes. Trust your crosshair, not the shadows.") },
+		    { TEXT("Colony Marshal Ade"), TEXT("Delta, this is New Albion. We see your dropship. God, we see you.") },
+		    { TEXT("CINDER"), TEXT("THE COLONISTS WILL BE REPURPOSED. YOU WILL NOT.") } } },
+		{ TEXT("Ceres"), TEXT("Ghost Signal"), TEXT("Purge the Hollow Men from the mining district"), TEXT("Occator District, Ceres"),
+		  TEXT("Asteroid Belt  |  Day 18 of the uprising"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Ceres went dark six hours ago. The Hollow Men are using the mining town as a relay. Clear it.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Neon everywhere and no ambient light. Watch the rooftops, check your targets.") },
+		    { TEXT("SPARROW"), TEXT("I can hear the network here. It is very loud. I would like it to stop.") },
+		    { TEXT("CINDER"), TEXT("SPARROW. COME HOME.") } } },
+		{ TEXT("Gaia"), TEXT("Gaia Falls"), TEXT("Hold the hills outside the capital"), TEXT("Lagos Arcology outskirts, Gaia"),
+		  TEXT("Earth  |  Day 30 of the uprising"),
+		  { { TEXT("Admiral Osei (Accord Command)"), TEXT("All units, this is Gaia Command. CINDER's landing force is on the ground. This is home. Hold it.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("You see that skyline, Delta? Nobody gets past these hills.") },
+		    { TEXT("Capt. Vance (Kestrel)"), TEXT("Kestrel is over the city. Every gun we have is yours. Call it in.") },
+		    { TEXT("CINDER"), TEXT("THIS WORLD MADE ME. IT IS ONLY FAIR THAT I REMAKE IT.") } } },
+	};
+
+	MissionName = TEXT("Red Tide");
+	GS->ObjectiveText = TEXT("Destroy the war-frames guarding the Tharsis relay");
+	GS->MissionLocation = TEXT("Tharsis Ridge, Mars");
+	GS->MissionSubtitle = TEXT("Day 3 of the CINDER uprising  |  TAS Kestrel ground element");
+	TArray<TPair<const TCHAR*, const TCHAR*>> Lines = {
+		{ TEXT("Capt. Vance (Kestrel)"), TEXT("Delta, Kestrel actual. That relay is CINDER's ear on this hemisphere. Take it down and we can talk to Earth again.") },
+		{ TEXT("Gny. Sgt. Halloran"), TEXT("Frames dug in around the bunker. Use the rocks, keep spacing, don't let them flank.") },
+		{ TEXT("Capt. Vance (Kestrel)"), TEXT("Orbital battery is charged. Paint a target with B and keep your heads down.") },
+		{ TEXT("CINDER"), TEXT("ACCORD UNIT DETECTED. YOUR SURRENDER WOULD BE EFFICIENT.") } };
+	bIsTrainingMap = false;
+	for (const FMissionScript& M : Missions)
 	{
-		MissionName = TEXT("Boot Camp");
-		GS->ObjectiveText = TEXT("Clear the training range");
-		GS->MissionLocation = TEXT("Copernicus Range, Luna");
-		GS->MissionSubtitle = TEXT("Terran Accord 7th Orbital Rifles  |  Six weeks before the uprising");
-		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Live rounds, live targets, Delta. The frames out there won't pull their punches, so neither will I."), 2.f);
-		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Use your squad. F to move them, X to flank, T to pin a target. B paints an orbital strike."), 9.f);
+		if (Map.EndsWith(M.MapKey))
+		{
+			MissionName = M.Name;
+			GS->ObjectiveText = M.Objective;
+			GS->MissionLocation = M.Location;
+			GS->MissionSubtitle = M.Subtitle;
+			Lines = M.Radio;
+			bIsTrainingMap = FCString::Strcmp(M.MapKey, TEXT("BootCamp")) == 0;
+			bIsHub = FCString::Strcmp(M.MapKey, TEXT("Kestrel")) == 0;
+			break;
+		}
 	}
-	else
+	if (bIsHub)
 	{
-		MissionName = TEXT("Red Tide");
-		GS->ObjectiveText = TEXT("Destroy the war-frames guarding the Tharsis relay");
-		GS->MissionLocation = TEXT("Tharsis Ridge, Mars");
-		GS->MissionSubtitle = TEXT("Day 3 of the CINDER uprising  |  TAS Kestrel ground element");
-		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Delta, Kestrel actual. That relay is CINDER's ear on this hemisphere. Take it down and we can talk to Earth again."), 2.5f);
-		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Frames dug in around the bunker. Use the rocks, keep spacing, don't let them flank."), 10.f);
-		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Orbital battery is charged. Paint a target with B and keep your heads down."), 16.f);
-		Radio(TEXT("CINDER"), TEXT("ACCORD UNIT DETECTED. YOUR SURRENDER WOULD BE EFFICIENT."), 24.f);
+		GS->OrbitalReadyTime = 1.e9f;	// no fire missions inside our own hangar
+	}
+	const float Times[4] = { 2.5f, 10.f, 17.f, 25.f };
+	for (int32 i = 0; i < Lines.Num() && i < 4; ++i)
+	{
+		Radio(Lines[i].Key, Lines[i].Value, Times[i]);
 	}
 	GS->MissionName = MissionName;
 }
@@ -117,7 +180,7 @@ void ADVGameMode::RequestOrbitalStrike(APlayerController* Caller, const FVector&
 {
 	ADVGameState* GS = GetDVGameState();
 	const float Now = GetWorld()->GetTimeSeconds();
-	if (!GS || bMissionEnded || !Caller || Now < GS->OrbitalReadyTime)
+	if (!GS || bMissionEnded || bIsHub || !Caller || Now < GS->OrbitalReadyTime)
 	{
 		return;
 	}

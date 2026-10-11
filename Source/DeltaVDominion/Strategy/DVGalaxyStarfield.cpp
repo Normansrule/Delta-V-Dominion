@@ -15,14 +15,17 @@ namespace DVGalaxy
 	constexpr float ArmPhaseDeg[5] = { 121.f, 211.f, 301.f, 31.f, 166.f };	// Perseus, Sagittarius, Norma, Scutum-Centaurus, Orion Spur
 	constexpr float ArmWeight[5] = { 0.30f, 0.17f, 0.15f, 0.30f, 0.08f };
 
-	const FLinearColor BinColor[5] = {
-		FLinearColor(0.55f, 0.7f, 1.f),		// hot young stars along the arms
-		FLinearColor(0.95f, 0.95f, 1.f),
-		FLinearColor(1.f, 0.85f, 0.55f),
-		FLinearColor(1.f, 0.55f, 0.25f),	// old bulge population
-		FLinearColor(1.f, 0.35f, 0.55f),	// H-II nebulae
+	// Saturated colours and modest glow so overlapping stars keep their hue instead of clipping to white.
+	const FLinearColor BinColor[7] = {
+		FLinearColor(0.22f, 0.45f, 1.f),	// hot young blue stars along the arms
+		FLinearColor(0.6f, 0.75f, 1.f),		// blue-white
+		FLinearColor(1.f, 0.72f, 0.32f),	// yellow
+		FLinearColor(1.f, 0.42f, 0.12f),	// old orange bulge population
+		FLinearColor(1.f, 0.18f, 0.45f),	// H-II star-forming knots (pink)
+		FLinearColor(0.85f, 0.25f, 0.6f),	// nebular gas haze (magenta)
+		FLinearColor(0.15f, 0.55f, 0.8f),	// nebular gas haze (teal)
 	};
-	const float BinGlow[5] = { 3.2f, 2.4f, 1.6f, 1.2f, 2.f };
+	const float BinGlow[7] = { 1.0f, 0.6f, 1.1f, 1.2f, 2.2f, 0.16f, 0.14f };
 }
 
 float ADVGalaxyStarfield::ArmAngleRad(int32 Arm, float Radius)
@@ -39,7 +42,7 @@ ADVGalaxyStarfield::ADVGalaxyStarfield()
 	// Unlit additive glow material created by Scripts/build_galaxy_map.py.
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> GreyBox(TEXT("/Game/Environment/Galaxy/M_Star.M_Star"));
 
-	for (int32 i = 0; i < 5; ++i)
+	for (int32 i = 0; i < 7; ++i)
 	{
 		UInstancedStaticMeshComponent* Bin = CreateDefaultSubobject<UInstancedStaticMeshComponent>(*FString::Printf(TEXT("Stars%d"), i));
 		Bin->SetupAttachment(RootComponent);
@@ -59,7 +62,7 @@ ADVGalaxyStarfield::ADVGalaxyStarfield()
 	CoreGlow->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CoreGlow->CastShadow = false;
 	CoreGlow->SetRelativeRotation(FRotator(0.f, 27.f, 0.f));
-	CoreGlow->SetRelativeScale3D(FVector(38.f, 16.f, 7.f));
+	CoreGlow->SetRelativeScale3D(FVector(70.f, 32.f, 14.f));
 
 	CoreHaze = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CoreHaze"));
 	CoreHaze->SetupAttachment(RootComponent);
@@ -86,7 +89,7 @@ void ADVGalaxyStarfield::Generate()
 {
 	FRandomStream Rng(Seed);
 	TArray<TArray<FTransform>> Instances;
-	Instances.SetNum(5);
+	Instances.SetNum(7);
 
 	auto Gauss = [&Rng]()
 	{
@@ -111,7 +114,7 @@ void ADVGalaxyStarfield::Generate()
 		const bool bBar = Rng.FRand() < 0.55f;
 		FVector P(Gauss() * (bBar ? 7000.f : 3200.f), Gauss() * (bBar ? 2200.f : 3200.f), Gauss() * (bBar ? 900.f : 2400.f));
 		P = Bar.RotateVector(P);
-		Add(Rng.FRand() < 0.6f ? 3 : 2, P, Rng.FRandRange(0.4f, 1.1f));
+		Add(Rng.FRand() < 0.55f ? 3 : 2, P, Rng.FRandRange(0.6f, 1.5f));
 	}
 
 	// Spiral arms: logarithmic spirals with scatter that widens outward; young blue stars and pink nebulae.
@@ -129,7 +132,7 @@ void ADVGalaxyStarfield::Generate()
 		FVector P(FMath::Cos(Theta) * R, FMath::Sin(Theta) * R, 0.f);
 		P += FVector(Gauss() * Spread, Gauss() * Spread, Gauss() * (220.f + R * 0.006f));
 		const float Roll = Rng.FRand();
-		const int32 Bin = Roll < 0.04f ? 4 : Roll < 0.6f ? 0 : Roll < 0.88f ? 1 : 2;
+		const int32 Bin = Roll < 0.07f ? 4 : Roll < 0.72f ? 0 : Roll < 0.86f ? 1 : 2;
 		Add(Bin, P, Bin == 4 ? Rng.FRandRange(0.9f, 1.8f) : Rng.FRandRange(0.5f, 1.4f));
 	}
 
@@ -141,6 +144,16 @@ void ADVGalaxyStarfield::Generate()
 		const FVector P(FMath::Cos(Theta) * R, FMath::Sin(Theta) * R, Gauss() * (350.f + R * 0.008f));
 		const float Roll = Rng.FRand();
 		Add(Roll < 0.25f ? 1 : Roll < 0.7f ? 2 : 3, P, Rng.FRandRange(0.4f, 1.f));
+	}
+
+	// Coloured gas: large, faint additive clouds strung along the arms and around the bulge.
+	for (int32 i = 0; i < 1400; ++i)
+	{
+		const int32 Arm = Rng.RandRange(0, 3);
+		const float R = Rng.FRandRange(6000.f, 42000.f);
+		const float Theta = ArmAngleRad(Arm, R) + Gauss() * 0.06f;
+		const FVector P(FMath::Cos(Theta) * R + Gauss() * 900.f, FMath::Sin(Theta) * R + Gauss() * 900.f, Gauss() * 250.f);
+		Instances[Rng.FRand() < 0.55f ? 5 : 6].Add(FTransform(FRotator::ZeroRotator, P, FVector(Rng.FRandRange(10.f, 24.f), Rng.FRandRange(10.f, 24.f), Rng.FRandRange(2.f, 4.f))));
 	}
 
 	for (int32 i = 0; i < Bins.Num(); ++i)
@@ -163,7 +176,7 @@ void ADVGalaxyStarfield::Generate()
 	if (UMaterialInstanceDynamic* Mat = CoreGlow->CreateAndSetMaterialInstanceDynamic(0))
 	{
 		Mat->SetVectorParameterValue(TEXT("Color"), FLinearColor(1.f, 0.7f, 0.35f));
-		Mat->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(0.25f, 0.15f, 0.06f));
+		Mat->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(0.5f, 0.28f, 0.08f));
 	}
 	if (UMaterialInstanceDynamic* Mat = CoreHaze->CreateAndSetMaterialInstanceDynamic(0))
 	{

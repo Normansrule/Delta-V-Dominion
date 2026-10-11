@@ -62,6 +62,7 @@ public:
 	void ClientHitConfirmed(bool bKill, bool bHeadshot);
 
 	double GetLastHitTime() const { return LastHitTime; }
+	bool IsMemorialOpen() const { return bShowMemorial; }
 	bool WasLastHitKill() const { return bLastHitKill; }
 	bool WasLastHitHeadshot() const { return bLastHitHeadshot; }
 
@@ -96,6 +97,7 @@ private:
 	bool bCaptureEveryFrame = false;
 
 	double LastHitTime = -100.0;
+	bool bShowMemorial = false;
 	bool bLastHitKill = false;
 	bool bLastHitHeadshot = false;
 

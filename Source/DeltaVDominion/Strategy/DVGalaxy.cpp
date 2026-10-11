@@ -60,6 +60,11 @@ void ADVGalaxyPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::One, IE_Pressed, this, &ADVGalaxyPlayerController::Launch1);
 	InputComponent->BindKey(EKeys::Two, IE_Pressed, this, &ADVGalaxyPlayerController::Launch2);
 	InputComponent->BindKey(EKeys::Three, IE_Pressed, this, &ADVGalaxyPlayerController::Launch3);
+	InputComponent->BindKey(EKeys::Four, IE_Pressed, this, &ADVGalaxyPlayerController::Launch4);
+	InputComponent->BindKey(EKeys::Five, IE_Pressed, this, &ADVGalaxyPlayerController::Launch5);
+	InputComponent->BindKey(EKeys::Six, IE_Pressed, this, &ADVGalaxyPlayerController::Launch6);
+	InputComponent->BindKey(EKeys::Seven, IE_Pressed, this, &ADVGalaxyPlayerController::Launch7);
+	InputComponent->BindKey(EKeys::Eight, IE_Pressed, this, &ADVGalaxyPlayerController::Launch8);
 }
 
 void ADVGalaxyPlayerController::PlayerTick(float DeltaTime)
@@ -349,12 +354,12 @@ void ADVGalaxyHUD::DrawHUD()
 			const FDVOperation& Op = System->Operations[i];
 			const bool bPlayable = !Op.Map.IsEmpty();
 			Text(FString::Printf(TEXT("[%d]  OPERATION %s"), i + 1, *Op.Name.ToUpper()), PX, Y, bPlayable ? FLinearColor(1.f, 0.6f, 0.2f, 1.f) : FLinearColor(0.5f, 0.5f, 0.55f, 1.f), Medium, 1.f);
-			Y += S(30.f);
+			Y += S(26.f);
 			Text(bPlayable ? Op.Location : Op.Location + TEXT("  (coming soon)"), PX + S(44.f), Y, FLinearColor(0.75f, 0.75f, 0.8f, 1.f), Small, 1.f);
 			Y += S(30.f);
 		}
 	}
 
-	Text(TEXT("Left-drag orbit   Right-drag / WASD pan   Wheel / Q E zoom   Click select   1-3 launch operation   H home (Sol)   G whole galaxy"),
+	Text(TEXT("Left-drag orbit   Right-drag / WASD pan   Wheel / Q E zoom   Click select   1-8 launch operation   H home (Sol)   G whole galaxy"),
 		W * 0.5f, H - S(46.f), FLinearColor(0.7f, 0.75f, 0.85f, 0.85f), Small, 1.f, true);
 }

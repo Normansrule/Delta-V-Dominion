@@ -164,14 +164,19 @@ def build():
            "Gaia, cradle of humanity and capital of the Terran Accord. Mars has fallen to CINDER's foundries; "
            "the TAS Kestrel fights to retake the inner system before the machines reach Gaia itself.",
            (1.0, 0.92, 0.7), 3.0,
-           [op("Red Tide", "Tharsis Ridge, Mars", "/Game/Maps/Outpost"),
+           [op("Kestrel (home base)", "TAS Kestrel, hangar deck", "/Game/Maps/Kestrel"),
+            op("Red Tide", "Tharsis Ridge, Mars", "/Game/Maps/Outpost"),
+            op("Glass Ocean", "Conamara Chaos, Europa", "/Game/Maps/Europa"),
+            op("Forgefall", "Loki Patera, Io", "/Game/Maps/Io"),
+            op("Ghost Signal", "Occator District, Ceres", "/Game/Maps/Ceres"),
+            op("Gaia Falls", "Lagos Arcology outskirts, Gaia", "/Game/Maps/Gaia"),
             op("Boot Camp", "Copernicus Range, Luna", "/Game/Maps/BootCamp"),
             op("Cold Burn", "Phobos shipyard")], home=True)
 
     # --- Local bubble (real data; drawn magnified) -------------------------------------------
     system("Alpha Centauri", galactic(4.37, 315.7, -0.7), "Local Bubble", 4.37, CONTESTED,
            "The Accord's forward shipyards at Rigil and the Proxima colony. CINDER-controlled freighters went dark on the approach two days ago.",
-           (1.0, 0.85, 0.6), 1.4, [op("Cold Wake", "Proxima b orbital ring")])
+           (1.0, 0.85, 0.6), 1.4, [op("Cold Wake", "New Albion Colony, Proxima b", "/Game/Maps/Proxima")])
     system("Barnard's Star", galactic(5.96, 31.0, 14.1), "Local Bubble", 5.96, CINDER,
            "Automated mining relay seized in the first hour of the uprising. Skitter drones roll off its lines by the thousand.",
            (1.0, 0.45, 0.25), 1.0)

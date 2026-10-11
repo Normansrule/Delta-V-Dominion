@@ -85,6 +85,19 @@ loss is permanent (see the roster system).
 4. **Sandbox encounters** — wide arenas with multiple approaches, vehicles and verticality (Halo).
 5. **Attrition** — named soldiers who can die forever; the after-action report and memorial wall carry the story's emotional weight.
 
+## Playable now
+
+| Map | Operation | Where |
+|---|---|---|
+| Kestrel | Home base | Hangar deck: war table, memorial wall, boardable vehicles |
+| Outpost | Red Tide | Tharsis Ridge, Mars |
+| Europa | Glass Ocean | Conamara Chaos, Europa (Jupiter overhead) |
+| Io | Forgefall | Loki Patera, Io (lava fields) |
+| Proxima | Cold Wake | New Albion Colony, Proxima b |
+| Ceres | Ghost Signal | Occator District, Ceres (neon mining town) |
+| Gaia | Gaia Falls | Lagos Arcology outskirts, Earth |
+| BootCamp | Boot Camp | Copernicus Range, Luna |
+
 ## Campaign structure
 
 The Kestrel is the hub. Between missions you walk its decks, talk to the crew, choose side
