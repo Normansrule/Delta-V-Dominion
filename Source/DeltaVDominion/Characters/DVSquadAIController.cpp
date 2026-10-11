@@ -188,7 +188,7 @@ void ADVSquadAIController::UpdateTarget()
 	for (AActor* Actor : Seen)
 	{
 		const ADVSoldierCharacter* Other = Cast<ADVSoldierCharacter>(Actor);
-		if (!Other || Other->IsDead() || Soldier->GetTeamAttitudeTowards(*Other) != ETeamAttitude::Hostile)
+		if (!Other || Other->IsDead() || Other->IsHidden() || Soldier->GetTeamAttitudeTowards(*Other) != ETeamAttitude::Hostile)
 		{
 			continue;
 		}

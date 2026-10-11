@@ -11,7 +11,8 @@ UDVWeaponData::UDVWeaponData()
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> Sparks(TEXT("/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst.DirectionalBurst"));
 	DisplayName = NSLOCTEXT("DeltaV", "M9Bastion", "M9 Bastion");
 	Mesh = RifleMesh.Object;
-	ImpactFX = Sparks.Object;
+	ImpactFX = nullptr;	// default impacts are a brief light flash (DVWeaponBase); assign Niagara per weapon in the art pass
+	(void)Sparks;
 	FirstPersonAttachSocket = TEXT("HandGrip_R");
 	ThirdPersonAttachSocket = TEXT("HandGrip_R");
 	MuzzleSocket = TEXT("Muzzle");

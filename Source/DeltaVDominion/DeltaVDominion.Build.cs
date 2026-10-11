@@ -1,4 +1,4 @@
-using UnrealBuildTool;
+﻿using UnrealBuildTool;
 
 public class DeltaVDominion : ModuleRules
 {
@@ -23,7 +23,9 @@ public class DeltaVDominion : ModuleRules
 			"NavigationSystem",
 			"NetCore",
 			"UMG",
-			"Niagara"
+			"Niagara",
+			"ChaosVehicles",		// drivable LTV and tank (Chaos wheeled vehicles)
+			"PhysicsCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

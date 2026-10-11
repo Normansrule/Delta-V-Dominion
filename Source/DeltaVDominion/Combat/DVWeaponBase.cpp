@@ -9,6 +9,7 @@
 #include "Materials/MaterialInterface.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
+#include "Core/DVFx.h"
 #include "Components/PointLightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
@@ -307,6 +308,10 @@ void ADVWeaponBase::SpawnShotEffects(const TArray<FVector>& ImpactPoints) const
 		if (GetData()->ImpactFX)
 		{
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, GetData()->ImpactFX, Impact);
+		}
+		else
+		{
+			DVFx::Flash(GetWorld(), Impact, FLinearColor(1.f, 0.7f, 0.4f), 300.f, 250.f, 0.04f);
 		}
 	}
 }

@@ -38,6 +38,22 @@ public:
 	UFUNCTION(Exec)
 	void DVOrbitalStrike(float Delay = 0.f);
 
+	/** Console (dev): "DVDebugPawns" logs every pawn's class, location and visibility. */
+	UFUNCTION(Exec)
+	void DVDebugPawns();
+
+	/** Console / capture: "DVInteract [Delay]" boards the nearest vehicle or climbs out (same as Z). */
+	UFUNCTION(Exec)
+	void DVInteract(float Delay = 0.f);
+
+	/** Console (dev): "DVBoard tank|ltv|gunship [Delay]" walks you to that vehicle and boards it. */
+	UFUNCTION(Exec)
+	void DVBoard(const FString& Which, float Delay = 0.f);
+
+	/** Console / capture: "DVAutopilot Delay Throttle Steer Up Fire" drives or flies the current vehicle hands-free. */
+	UFUNCTION(Exec)
+	void DVAutopilot(float Delay, float Throttle, float Steer, float Up = 0.f, int32 Fire = 0);
+
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void SetupInputComponent() override;
 
@@ -63,6 +79,10 @@ private:
 	void OnRedeployPressed();
 	void OnOrbitalPressed();
 	void OnMapPressed();
+	void OnInteractPressed();
+
+	UFUNCTION(Server, Reliable) void ServerEnterVehicle(APawn* Vehicle);
+	UFUNCTION(Server, Reliable) void ServerExitVehicle();
 	void ShowcaseOrderFlank();
 	void CaptureTick();
 	void StartCapture();

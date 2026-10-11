@@ -6,6 +6,9 @@
 #include "Combat/DVWeaponData.h"
 #include "Core/DVGameState.h"
 #include "Core/DVPlayerController.h"
+#include "Vehicles/DVVehicleKit.h"
+#include "Vehicles/DVGroundVehicle.h"
+#include "Vehicles/DVGunship.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -59,8 +62,22 @@ void ADVHUD::DrawHUD()
 		return;
 	}
 
+	APawn* OwningPawn = GetOwningPawn();
+	if (OwningPawn && OwningPawn->FindComponentByClass<UDVSeatComponent>())
+	{
+		DrawVehicle(OwningPawn);
+		DrawSquad(nullptr);
+		DrawObjective(GS);
+		DrawKillFeed(GS);
+		DrawOrbital(GS);
+		DrawRadio(GS);
+		DrawTitleCard(GS);
+		return;
+	}
+
 	if (bViewingSoldier && !Soldier->IsDead())
 	{
+		DrawVehiclePrompt(Soldier);
 		BindOrders(Soldier);
 		DrawSuppression(Soldier);
 		DrawCrosshair(Soldier);
@@ -501,4 +518,53 @@ void ADVHUD::DrawOrbital(const ADVGameState* GS)
 			Text(FString::Printf(TEXT("IMPACT %.1f"), T), Screen.X, Screen.Y, FLinearColor(1.f, 0.2f, 0.1f, 1.f), GEngine->GetMediumFont(), 1.1f, true);
 		}
 	}
+}
+
+void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
+{
+	if (const UDVSeatComponent* Seat = UDVSeatComponent::FindNear(Soldier))
+	{
+		Text(FString::Printf(TEXT("[Z]  Board %s"), *Seat->VehicleName), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Friendly, GEngine->GetMediumFont(), 1.1f, true);
+	}
+}
+
+void ADVHUD::DrawVehicle(APawn* Vehicle)
+{
+	const UDVSeatComponent* Seat = Vehicle->FindComponentByClass<UDVSeatComponent>();
+	const float CX = Canvas->ClipX * 0.5f;
+	const float CY = Canvas->ClipY * 0.5f;
+
+	// Reticle: a box for vehicle weapons.
+	const float R = S(16.f);
+	const float Thick = FMath::Max(1.f, S(2.f));
+	const FLinearColor C(1.f, 1.f, 1.f, 0.85f);
+	DrawLine(CX - R, CY - R, CX + R, CY - R, C, Thick);
+	DrawLine(CX - R, CY + R, CX + R, CY + R, C, Thick);
+	DrawLine(CX - R, CY - R, CX - R, CY + R, C, Thick);
+	DrawLine(CX + R, CY - R, CX + R, CY + R, C, Thick);
+	DrawRect(C, CX - Thick, CY - Thick, Thick * 2.f, Thick * 2.f);
+
+	float Speed = 0.f;
+	FString Extra;
+	float Ready = 1.f;
+	if (const ADVGroundVehicle* Ground = Cast<ADVGroundVehicle>(Vehicle))
+	{
+		Speed = Ground->GetSpeedKph();
+		Ready = Ground->GetReloadFraction();
+	}
+	else if (const ADVGunship* Air = Cast<ADVGunship>(Vehicle))
+	{
+		Speed = Air->GetSpeedKph();
+		Ready = Air->GetRocketReadyFraction();
+		Extra = FString::Printf(TEXT("ALT %d m"), FMath::RoundToInt(Air->GetAltitude()));
+	}
+
+	const float X = S(40.f);
+	const float Y = Canvas->ClipY - S(150.f);
+	DrawRect(DVHudColors::Panel, X - S(14.f), Y - S(14.f), S(470.f), S(124.f));
+	Text(Seat ? Seat->VehicleName.ToUpper() : FString(), X, Y, DVHudColors::Text, GEngine->GetMediumFont(), 1.f);
+	Text(FString::Printf(TEXT("%d km/h   %s"), FMath::RoundToInt(Speed), *Extra), X, Y + S(32.f), DVHudColors::Friendly, GEngine->GetMediumFont(), 1.f);
+	Text(Seat ? Seat->WeaponName : FString(), X, Y + S(64.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.05f);
+	Bar(X, Y + S(92.f), S(430.f), S(5.f), Ready, Ready >= 1.f ? DVHudColors::Health : DVHudColors::Warn);
+	Text(TEXT("WASD drive  |  mouse aim  |  LMB fire  |  Z exit"), CX, Canvas->ClipY - S(40.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, true);
 }

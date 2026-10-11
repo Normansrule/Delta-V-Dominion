@@ -2,9 +2,13 @@
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCommandComponent.h"
 #include "Core/DVGameMode.h"
+#include "Vehicles/DVVehicleKit.h"
+#include "Vehicles/DVGroundVehicle.h"
+#include "Vehicles/DVGunship.h"
 #include "Core/DVGameState.h"
 
 #include "Camera/CameraActor.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "GameFramework/HUD.h"
 #include "Components/InputComponent.h"
@@ -140,6 +144,7 @@ void ADVPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
+	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
 }
 
 void ADVPlayerController::OnRedeployPressed()
@@ -224,4 +229,93 @@ void ADVPlayerController::OnMapPressed()
 	{
 		UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Galaxy")));	// back to the Kestrel's strategic map
 	}
+}
+
+void ADVPlayerController::OnInteractPressed()
+{
+	APawn* MyPawn = GetPawn();
+	if (!MyPawn)
+	{
+		return;
+	}
+	if (MyPawn->FindComponentByClass<UDVSeatComponent>())
+	{
+		ServerExitVehicle();
+	}
+	else if (UDVSeatComponent* Seat = UDVSeatComponent::FindNear(Cast<ADVSoldierCharacter>(MyPawn)))
+	{
+		ServerEnterVehicle(Cast<APawn>(Seat->GetOwner()));
+	}
+}
+
+void ADVPlayerController::ServerEnterVehicle_Implementation(APawn* Vehicle)
+{
+	UDVSeatComponent* Seat = Vehicle ? Vehicle->FindComponentByClass<UDVSeatComponent>() : nullptr;
+	if (Seat)
+	{
+		Seat->Enter(Cast<ADVSoldierCharacter>(GetPawn()), this);
+	}
+}
+
+void ADVPlayerController::ServerExitVehicle_Implementation()
+{
+	if (UDVSeatComponent* Seat = GetPawn() ? GetPawn()->FindComponentByClass<UDVSeatComponent>() : nullptr)
+	{
+		Seat->Exit(this);
+	}
+}
+
+void ADVPlayerController::DVDebugPawns()
+{
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const USkeletalMeshComponent* Skel = It->FindComponentByClass<USkeletalMeshComponent>();
+		UE_LOG(LogTemp, Log, TEXT("DVPAWN %s %s loc=%s hidden=%d skel=%s skelVisible=%d sim=%d"), *It->GetName(), *It->GetClass()->GetName(),
+			*It->GetActorLocation().ToCompactString(), It->IsHidden(), Skel ? *GetNameSafe(Skel->GetSkeletalMeshAsset()) : TEXT("-"),
+			Skel ? Skel->IsVisible() : 0, Skel ? Skel->IsSimulatingPhysics() : 0);
+	}
+}
+
+void ADVPlayerController::DVInteract(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { OnInteractPressed(); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::DVAutopilot(float Delay, float Throttle, float Steer, float Up, int32 Fire)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Throttle, Steer, Up, Fire]()
+	{
+		if (ADVGroundVehicle* Ground = Cast<ADVGroundVehicle>(GetPawn()))
+		{
+			Ground->SetAutopilot(Throttle, Steer, Fire != 0);
+		}
+		else if (ADVGunship* Air = Cast<ADVGunship>(GetPawn()))
+		{
+			Air->SetAutopilot(FVector(Throttle, 0.f, Up), Steer * 30.f, Fire == 1 || Fire == 3, Fire >= 2);
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::DVBoard(const FString& Which, float Delay)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Which]()
+	{
+		for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+		{
+			const bool bMatch = (Which.Equals(TEXT("tank"), ESearchCase::IgnoreCase) && It->IsA<ADVTank>())
+				|| (Which.Equals(TEXT("ltv"), ESearchCase::IgnoreCase) && It->IsA<ADVGroundVehicle>() && !It->IsA<ADVTank>())
+				|| (Which.Equals(TEXT("gunship"), ESearchCase::IgnoreCase) && It->IsA<ADVGunship>());
+			if (bMatch && GetPawn())
+			{
+				GetPawn()->TeleportTo(It->GetActorLocation() + FVector(0.f, -300.f, 120.f), GetPawn()->GetActorRotation());
+				ServerEnterVehicle(*It);
+				return;
+			}
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+#endif
 }

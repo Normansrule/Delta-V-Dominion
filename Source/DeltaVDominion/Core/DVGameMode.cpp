@@ -8,6 +8,8 @@
 #include "Characters/DVCommandComponent.h"
 #include "Combat/DVAttributeSet.h"
 #include "DeltaVDominion.h"
+#include "Core/DVFx.h"
+#include "Vehicles/DVVehicleKit.h"
 #include "AbilitySystemComponent.h"
 #include "DVGameplayTags.h"
 #include "Combat/DVCombatEffects.h"
@@ -135,31 +137,19 @@ void ADVGameMode::RequestOrbitalStrike(APlayerController* Caller, const FVector&
 
 void ADVGameMode::ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target)
 {
+	// Friendly fire is on for orbital strikes: that's what "danger close" means.
 	ADVSoldierCharacter* Shooter = Cast<ADVSoldierCharacter>(Caller.Get());
-	UAbilitySystemComponent* SourceASC = Shooter ? Shooter->GetAbilitySystemComponent() : nullptr;
-	if (!SourceASC)
+	if (!Shooter)
 	{
-		return;
-	}
-	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
-	{
-		ADVSoldierCharacter* Victim = *It;
-		const float Dist = FVector::Dist(Victim->GetActorLocation(), Target);
-		if (Victim->IsDead() || Dist > OrbitalRadius)
+		if (const APawn* Vehicle = Caller.Get())
 		{
-			continue;
-		}
-		// Friendly fire is on for orbital strikes: that's what "danger close" means.
-		FGameplayEffectContextHandle Context = SourceASC->MakeEffectContext();
-		Context.AddInstigator(Shooter, Shooter);
-		FGameplayEffectSpecHandle Spec = SourceASC->MakeOutgoingSpec(UDVDamageEffect::StaticClass(), 1.f, Context);
-		if (Spec.IsValid())
-		{
-			const float Falloff = 1.f - 0.7f * (Dist / OrbitalRadius);
-			Spec.Data->SetSetByCallerMagnitude(DVTags::SetByCaller_Damage, OrbitalDamage * Falloff);
-			SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), Victim->GetAbilitySystemComponent());
+			if (const UDVSeatComponent* Seat = Vehicle->FindComponentByClass<UDVSeatComponent>())
+			{
+				Shooter = Seat->Driver;
+			}
 		}
 	}
+	DVCombat::RadialDamage(Shooter, Target, OrbitalRadius, OrbitalDamage, true);
 }
 
 ADVGameState* ADVGameMode::GetDVGameState() const

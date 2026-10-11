@@ -43,6 +43,8 @@ private:
 	void DrawDeathScreen();
 	void DrawAfterAction(const ADVGameState* GS);
 	void DrawTitleCard(const ADVGameState* GS);
+	void DrawVehicle(APawn* Vehicle);
+	void DrawVehiclePrompt(const ADVSoldierCharacter* Soldier);
 	void DrawRadio(const ADVGameState* GS);
 	void DrawOrbital(const ADVGameState* GS);
 	void BindOrders(ADVSoldierCharacter* Soldier);

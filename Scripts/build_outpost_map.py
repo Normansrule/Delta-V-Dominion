@@ -534,6 +534,21 @@ def build():
         e = spawn(soldier, "Hearthbound_%02d" % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
         e.set_editor_property("team_id", 2)
 
+    # --- Accord vehicles at the landing zone, and the Kestrel overhead ------------------------------
+    ltv = unreal.load_class(None, "/Script/DeltaVDominion.DVGroundVehicle")
+    tank = unreal.load_class(None, "/Script/DeltaVDominion.DVTank")
+    gunship = unreal.load_class(None, "/Script/DeltaVDominion.DVGunship")
+    kestrel = unreal.load_class(None, "/Script/DeltaVDominion.DVKestrel")
+    spawn(ltv, "LTV_Jackal", (-3700, 950, ground(-3700, 950) + 120), rot(yaw=10), "Vehicles")
+    spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
+    px, py = -5000, 2300
+    pz = ground(px, py)
+    block("LZ_Pad", (px, py, pz + 15), (1600, 1600, 40), mats["concrete_dark"], folder="Vehicles")
+    for i, (ox, oy) in enumerate([(-740, -740), (740, -740), (-740, 740), (740, 740)]):
+        block("LZ_Light%d" % i, (px + ox, py + oy, pz + 40), (40, 40, 20), mats["strip_cyan"], folder="Vehicles")
+    spawn(gunship, "Gunship_Raven", (px, py, pz + 200), rot(yaw=30), "Vehicles")
+    spawn(kestrel, "TAS_Kestrel", (230000, 70000, 50000), rot(yaw=110), "Vehicles")   # 2.4 km east, 500 m up: on the horizon over the compound
+
     nav = spawn(unreal.NavMeshBoundsVolume, "NavMeshBounds", (0, 0, 300), folder="Navigation")
     ext = nav.get_actor_bounds(False)[1]
     if ext.x > 1.0:
@@ -544,7 +559,8 @@ def build():
     shots = [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
              ((-2200, -1500, 220), (2600, 300, 220)),        # 1: low, behind the boulders, looking at the bunker
              ((5600, 2600, 900), (-800, -400, 0)),           # 2: reverse from behind the compound, sun in the lens
-             ((bx - 1700, by - 700, 170), (bx - 600, by + 100, 250))]  # 3: close on the bunker doorway
+             ((bx - 1700, by - 700, 170), (bx - 600, by + 100, 250)),  # 3: close on the bunker doorway
+             ((-2500, 1900, 170), (-4200, 300, 140))]          # 4: the landing zone: LTV, tank and gunship up close
     for i, (eye, target) in enumerate(shots):
         cam = spawn(unreal.CameraActor, "ShowcaseCam_%d" % i, (eye[0], eye[1], eye[2] + ground(eye[0], eye[1])), folder="Cameras")
         cam.set_actor_rotation(unreal.MathLibrary.find_look_at_rotation(unreal.Vector(eye[0], eye[1], eye[2] + ground(eye[0], eye[1])),
