@@ -342,8 +342,38 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 	Text(FString::Printf(TEXT("%s  -  %s"), *GS->MissionName.ToUpper(), *Clock), CX, Y, DVHudColors::Dim, GEngine->GetSmallFont(), 1.1f, true);
 	Text(GS->ObjectiveText, CX, Y + S(26.f), DVHudColors::Text, GEngine->GetMediumFont(), 1.f, true);
 	const int32 Down = GS->EnemiesTotal - GS->EnemiesRemaining;
-	Bar(CX - S(200.f), Y + S(62.f), S(400.f), S(4.f), GS->EnemiesTotal > 0 ? static_cast<float>(Down) / GS->EnemiesTotal : 0.f, DVHudColors::Hostile);
-	Text(FString::Printf(TEXT("%d / %d"), Down, GS->EnemiesTotal), CX + S(310.f), Y + S(52.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, false, true);
+	if (!GS->bMultiStage || GS->Stage == EDVMissionStage::Clear)
+	{
+		Bar(CX - S(200.f), Y + S(62.f), S(400.f), S(4.f), GS->EnemiesTotal > 0 ? static_cast<float>(Down) / GS->EnemiesTotal : 0.f, DVHudColors::Hostile);
+		Text(FString::Printf(TEXT("%d / %d"), Down, GS->EnemiesTotal), CX + S(310.f), Y + S(52.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, false, true);
+	}
+	else
+	{
+		const FLinearColor Amber(1.f, 0.6f, 0.15f, 1.f);
+		const FLinearColor Cyan(0.3f, 0.85f, 1.f, 1.f);
+		FString Right;
+		FLinearColor Color = Amber;
+		switch (GS->Stage)
+		{
+		case EDVMissionStage::Sabotage: Right = FString::Printf(TEXT("PLANTING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
+		case EDVMissionStage::Defend: Right = FString::Printf(TEXT("DETONATION %ds"), FMath::Max(0, FMath::CeilToInt(GS->StageEndTime - GetWorld()->GetTimeSeconds()))); Color = DVHudColors::Hostile; break;
+		case EDVMissionStage::Extract: Right = GS->StageProgress < 1.f ? FString(TEXT("RAVEN INBOUND")) : FString(TEXT("RAVEN ON THE PAD")); Color = Cyan; break;
+		default: break;
+		}
+		Bar(CX - S(200.f), Y + S(62.f), S(400.f), S(4.f), GS->StageProgress, Color);
+		Text(Right, CX + S(310.f), Y + S(52.f), Color, GEngine->GetSmallFont(), 1.f, false, true);
+
+		// Waypoint: the target while planting/holding, the landing zone for extraction.
+		const bool bLZ = GS->Stage == EDVMissionStage::Extract;
+		const FVector Where = bLZ ? FVector(GS->ExtractLocation) : FVector(GS->ObjectiveLocation);
+		const FVector Screen = Project(Where + FVector(0.f, 0.f, 220.f));
+		const APawn* Viewer = GetOwningPawn();
+		const float Meters = Viewer ? FVector::Dist(Viewer->GetActorLocation(), Where) / 100.f : 0.f;
+		if (Screen.Z > 0.f)
+		{
+			Text(FString::Printf(TEXT("%s  %dm"), bLZ ? TEXT("EXTRACT") : TEXT("TARGET"), FMath::RoundToInt(Meters)), Screen.X, Screen.Y, bLZ ? Cyan : Amber, GEngine->GetSmallFont(), 1.1f, true);
+		}
+	}
 }
 
 void ADVHUD::DrawKillFeed(const ADVGameState* GS)

@@ -12,6 +12,16 @@ enum class EDVMissionPhase : uint8
 	Failure
 };
 
+/** Operation stages: clear the garrison, plant charges on the target, hold until they blow, extract. */
+UENUM(BlueprintType)
+enum class EDVMissionStage : uint8
+{
+	Clear,
+	Sabotage,
+	Defend,
+	Extract
+};
+
 /** One row of the after-action report. */
 USTRUCT(BlueprintType)
 struct FDVAfterActionLine
@@ -67,6 +77,13 @@ public:
 	/** Server times when the supply drop and the Raven strafing run can be called again. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float SupplyReadyTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float StrafeReadyTime = 0.f;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bMultiStage = false;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") EDVMissionStage Stage = EDVMissionStage::Clear;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FVector_NetQuantize ObjectiveLocation;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FVector_NetQuantize ExtractLocation;
+	/** 0..1 for the current stage (charges planted, hold timer, Raven inbound). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float StageProgress = 0.f;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float StageEndTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 EnemiesTotal = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 EnemiesRemaining = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") TArray<FDVAfterActionLine> AfterAction;

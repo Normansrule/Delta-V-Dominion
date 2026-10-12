@@ -47,6 +47,11 @@ public:
 	/** Console (dev builds): "DVReadyCallIns" recharges the orbital strike, supply drop and strafing run. */
 	UFUNCTION(Exec)
 	void DVReadyCallIns();
+	/** Console (dev builds): "DVSkipStage [Delay]" advances the operation (clear > plant > hold > extract). */
+	UFUNCTION(Exec)
+	void DVSkipStage(float Delay = 0.f);
+	UFUNCTION(Server, Reliable)
+	void ServerSkipStage();
 	UFUNCTION(Server, Reliable)
 	void ServerReadyCallIns();
 

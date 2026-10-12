@@ -1,5 +1,6 @@
 ﻿#include "Core/DVCallIns.h"
 #include "Core/DVFx.h"
+#include "Core/DVGameState.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Combat/DVAttributeSet.h"
 #include "Combat/DVWeaponBase.h"
@@ -232,4 +233,68 @@ void ADVStrafeRun::Destroyed()
 		Aircraft->Destroy();
 	}
 	Super::Destroyed();
+}
+
+// ---------------------------------------------------------------------------
+// Objective beacon
+// ---------------------------------------------------------------------------
+
+ADVObjectiveBeacon::ADVObjectiveBeacon()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
+	bAlwaysRelevant = true;
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	UMaterialInterface* Glow = DVKit::Material(TEXT("Glow"));
+	Column = DVKit::Part(this, RootComponent, TEXT("Column"), DVKit::Cylinder(), Glow, FVector(0.f, 0.f, 4000.f), FRotator::ZeroRotator, FVector(70.f, 70.f, 8000.f));
+	Column->CastShadow = false;
+	Ring = DVKit::Part(this, RootComponent, TEXT("Ring"), DVKit::Cylinder(), Glow, FVector(0.f, 0.f, 6.f), FRotator::ZeroRotator, FVector(800.f, 800.f, 6.f));
+	Ring->CastShadow = false;
+	Light = CreateDefaultSubobject<UPointLightComponent>(TEXT("Light"));
+	Light->SetupAttachment(RootComponent);
+	Light->SetRelativeLocation(FVector(0.f, 0.f, 250.f));
+	Light->SetIntensityUnits(ELightUnits::Candelas);
+	Light->SetAttenuationRadius(1500.f);
+}
+
+void ADVObjectiveBeacon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ADVObjectiveBeacon, bExtraction);
+}
+
+void ADVObjectiveBeacon::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
+	if (!GS)
+	{
+		return;
+	}
+	const bool bActive = GS->Phase == EDVMissionPhase::InProgress && (bExtraction
+		? GS->Stage == EDVMissionStage::Extract
+		: (GS->Stage == EDVMissionStage::Sabotage || GS->Stage == EDVMissionStage::Defend));
+	SetActorHiddenInGame(!bActive);
+	if (!bActive)
+	{
+		return;
+	}
+	// Amber target while planting, pulsing red while the charges count down, cyan landing zone.
+	const float T = GetWorld()->GetTimeSeconds();
+	FLinearColor Color(1.f, 0.6f, 0.15f);
+	float Strength = 6.f;
+	if (bExtraction)
+	{
+		Color = FLinearColor(0.2f, 0.85f, 1.f);
+		Strength = 3.f;
+	}
+	else if (GS->Stage == EDVMissionStage::Defend)
+	{
+		Color = FLinearColor(1.f, 0.12f, 0.05f);
+		Strength = 6.f + 5.f * (0.5f + 0.5f * FMath::Sin(T * (4.f + 10.f * GS->StageProgress)));
+	}
+	DVKit::SetGlow(Column, Color, Strength * 0.5f);
+	DVKit::SetGlow(Ring, Color, Strength);
+	Light->SetLightColor(Color);
+	Light->SetIntensity(800.f * Strength);
 }

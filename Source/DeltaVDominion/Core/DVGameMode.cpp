@@ -11,6 +11,8 @@
 #include "Core/DVFx.h"
 #include "Core/DVCallIns.h"
 #include "Characters/DVBulwark.h"
+#include "Vehicles/DVGunship.h"
+#include "GameFramework/PlayerStart.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "AbilitySystemComponent.h"
 #include "DVGameplayTags.h"
@@ -67,6 +69,7 @@ void ADVGameMode::StartPlay()
 		GS->StrafeReadyTime = GS->MissionStartTime + 20.f;
 	}
 	SetupMissionForMap();
+	SetupOperation();
 }
 
 void ADVGameMode::SetupMissionForMap()
@@ -220,6 +223,268 @@ void ADVGameMode::ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Tar
 		}
 	}
 	DVCombat::RadialDamage(Shooter, Target, OrbitalRadius, OrbitalDamage, true);
+}
+
+void ADVGameMode::SetupOperation()
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || bIsHub || bIsTrainingMap || GS->EnemiesTotal == 0)
+	{
+		return;	// Boot Camp and the hangar keep the simple rules
+	}
+	// The target sits at the heart of the garrison: the hostile closest to their centre of mass.
+	FVector Centre = FVector::ZeroVector;
+	TArray<FVector> Positions;
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		if (It->TeamId != PlayerTeamId)
+		{
+			Positions.Add(It->GetActorLocation());
+			Centre += It->GetActorLocation();
+		}
+	}
+	Centre /= FMath::Max(1, Positions.Num());
+	FVector Target = Centre;
+	float Best = TNumericLimits<float>::Max();
+	for (const FVector& P : Positions)
+	{
+		if (FVector::DistSquared(P, Centre) < Best)
+		{
+			Best = FVector::DistSquared(P, Centre);
+			Target = P;
+		}
+	}
+	FHitResult Hit;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Target + FVector(0.f, 0.f, 200.f), Target - FVector(0.f, 0.f, 2000.f), ECC_Visibility))
+	{
+		Target = Hit.ImpactPoint;
+	}
+	// The landing zone is behind the drop point: after the charges blow, the squad turns around and runs for it.
+	FVector LZ = Target;
+	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	{
+		const FVector Back = It->GetActorLocation() - It->GetActorForwardVector().GetSafeNormal2D() * 1600.f;
+		LZ = Back - FVector(0.f, 0.f, 90.f);
+		if (GetWorld()->LineTraceSingleByChannel(Hit, Back + FVector(0.f, 0.f, 1500.f), Back - FVector(0.f, 0.f, 3000.f), ECC_Visibility))
+		{
+			LZ = Hit.ImpactPoint;
+		}
+		break;
+	}
+	GS->bMultiStage = true;
+	GS->Stage = EDVMissionStage::Clear;
+	GS->ObjectiveLocation = Target;
+	GS->ExtractLocation = LZ;
+
+	const FString Map = GetWorld()->GetMapName();
+	struct FNoun { const TCHAR* Key; const TCHAR* Noun; };
+	static const FNoun Nouns[] = {
+		{ TEXT("Europa"), TEXT("the drill head") }, { TEXT("Io"), TEXT("the forge core") }, { TEXT("Proxima"), TEXT("the jammer") },
+		{ TEXT("Ceres"), TEXT("the signal mast") }, { TEXT("Gaia"), TEXT("the uplink") }, { TEXT("Outpost"), TEXT("the relay") } };
+	TargetNoun = TEXT("the target");
+	for (const FNoun& N : Nouns)
+	{
+		if (Map.Contains(N.Key))
+		{
+			TargetNoun = N.Noun;
+			break;
+		}
+	}
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	GetWorld()->SpawnActor<ADVObjectiveBeacon>(ADVObjectiveBeacon::StaticClass(), Target, FRotator::ZeroRotator, Params);
+	if (ADVObjectiveBeacon* Pad = GetWorld()->SpawnActor<ADVObjectiveBeacon>(ADVObjectiveBeacon::StaticClass(), LZ, FRotator::ZeroRotator, Params))
+	{
+		Pad->bExtraction = true;
+	}
+	GetWorldTimerManager().SetTimer(StageTimer, this, &ADVGameMode::TickStage, 0.25f, true);
+}
+
+void ADVGameMode::DevAdvanceStage()
+{
+#if !UE_BUILD_SHIPPING
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || !GS->bMultiStage || bMissionEnded)
+	{
+		return;
+	}
+	switch (GS->Stage)
+	{
+	case EDVMissionStage::Clear: StartSabotage(); break;
+	case EDVMissionStage::Sabotage: StartDefend(); break;
+	case EDVMissionStage::Defend: StartExtract(); break;
+	default: break;
+	}
+#endif
+}
+
+bool ADVGameMode::AnyPlayerNear(const FVector& Location, float Radius) const
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		const APawn* P = It->Get() ? It->Get()->GetPawn() : nullptr;
+		const ADVSoldierCharacter* S = Cast<ADVSoldierCharacter>(P);
+		if (P && !(S && S->IsDead()) && FVector::Dist2D(P->GetActorLocation(), Location) <= Radius
+			&& FMath::Abs(P->GetActorLocation().Z - Location.Z) < 600.f)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ADVGameMode::StartSabotage()
+{
+	ADVGameState* GS = GetDVGameState();
+	GS->Stage = EDVMissionStage::Sabotage;
+	GS->StageProgress = 0.f;
+	GS->ObjectiveText = FString::Printf(TEXT("Plant demolition charges on %s"), *TargetNoun);
+	StageStartTime = GetWorld()->GetTimeSeconds();
+	Radio(TEXT("Gny. Sgt. Halloran"), FString::Printf(TEXT("Area's clear! Get to %s and plant the charges. Move!"), *TargetNoun), 1.5f);
+}
+
+void ADVGameMode::StartDefend()
+{
+	ADVGameState* GS = GetDVGameState();
+	GS->Stage = EDVMissionStage::Defend;
+	GS->StageProgress = 0.f;
+	StageStartTime = GetWorld()->GetTimeSeconds();
+	GS->StageEndTime = StageStartTime + HoldSeconds;
+	GS->ObjectiveText = TEXT("Hold until the charges blow");
+	WavesSpawned = 0;
+	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Charges set! Forty-five seconds. Dig in, they'll want it back."));
+	Radio(TEXT("CINDER"), TEXT("YOU HAVE TOUCHED SOMETHING OF MINE."), 5.f);
+}
+
+void ADVGameMode::StartExtract()
+{
+	ADVGameState* GS = GetDVGameState();
+	DVFx::Explosion(GetWorld(), GS->ObjectiveLocation, 1.2f);
+	DVCombat::RadialDamage(SquadLeader.Get(), GS->ObjectiveLocation, 1400.f, 500.f, false);	// the squad's charges: credit the leader
+	GS->Stage = EDVMissionStage::Extract;
+	GS->StageProgress = 0.f;
+	GS->ObjectiveText = TEXT("Get to the landing zone for extraction");
+	StageStartTime = GetWorld()->GetTimeSeconds();
+	Radio(TEXT("Capt. Vance (Kestrel)"), FString::Printf(TEXT("Good kill on %s, Delta. Raven Two-One is inbound to your LZ. Get out of there."), *TargetNoun), 1.f);
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	const FVector From = FVector(GS->ExtractLocation) + FVector(-6000.f, 0.f, 4000.f);
+	if (ADVGunship* Raven = GetWorld()->SpawnActor<ADVGunship>(ADVGunship::StaticClass(), From, FRotator::ZeroRotator, Params))
+	{
+		Raven->SetScriptedFlight(true);
+		ExtractRaven = Raven;
+	}
+}
+
+void ADVGameMode::SpawnWave(int32 Count)
+{
+	ADVGameState* GS = GetDVGameState();
+	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
+	const FVector Target = GS->ObjectiveLocation;
+	int32 Spawned = 0;
+	const float Base = FMath::FRandRange(0.f, 360.f);
+	for (int32 i = 0; i < Count * 3 && Spawned < Count; ++i)
+	{
+		const FVector Dir = FRotator(0.f, Base + FMath::FRandRange(-50.f, 50.f), 0.f).Vector();
+		FVector Loc = Target + Dir * FMath::FRandRange(3500.f, 5000.f);
+		FNavLocation OnNav;
+		if (!Nav || !Nav->ProjectPointToNavigation(Loc, OnNav, FVector(1200.f, 1200.f, 3000.f)))
+		{
+			continue;
+		}
+		Loc = OnNav.Location + FVector(0.f, 0.f, 100.f);
+		const FTransform SpawnTransform((Target - Loc).Rotation(), Loc);
+		ADVSoldierCharacter* Frame = GetWorld()->SpawnActorDeferred<ADVSoldierCharacter>(ADVSoldierCharacter::StaticClass(), SpawnTransform,
+			nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+		if (!Frame)
+		{
+			continue;
+		}
+		Frame->TeamId = 2;
+		Frame->FinishSpawning(SpawnTransform);
+		if (!Frame->GetController())
+		{
+			Frame->SpawnDefaultController();
+		}
+		if (ADVSquadAIController* AI = Cast<ADVSquadAIController>(Frame->GetController()))
+		{
+			FDVSquadOrderData Order;
+			Order.Order = EDVSquadOrder::MoveTo;
+			Order.Location = Target;
+			AI->ReceiveOrder(Order);
+		}
+		++Spawned;
+	}
+	GS->EnemiesTotal += Spawned;
+	GS->EnemiesRemaining += Spawned;
+}
+
+void ADVGameMode::TickStage()
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || bMissionEnded)
+	{
+		GetWorldTimerManager().ClearTimer(StageTimer);
+		return;
+	}
+	const double Now = GetWorld()->GetTimeSeconds();
+	switch (GS->Stage)
+	{
+	case EDVMissionStage::Sabotage:
+		if (AnyPlayerNear(GS->ObjectiveLocation, 450.f))
+		{
+			GS->StageProgress = FMath::Min(1.f, GS->StageProgress + 0.25f / PlantSeconds);
+			if (GS->StageProgress >= 1.f)
+			{
+				StartDefend();
+			}
+		}
+		break;
+	case EDVMissionStage::Defend:
+	{
+		const float Elapsed = Now - StageStartTime;
+		GS->StageProgress = FMath::Clamp(Elapsed / HoldSeconds, 0.f, 1.f);
+		// Counter-attacks: one right away, a heavier one halfway through.
+		if (WavesSpawned == 0 && Elapsed > 3.f)
+		{
+			SpawnWave(3);
+			++WavesSpawned;
+		}
+		else if (WavesSpawned == 1 && Elapsed > HoldSeconds * 0.45f)
+		{
+			SpawnWave(4);
+			++WavesSpawned;
+			Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Second wave! Make every round count!"));
+		}
+		if (Now >= GS->StageEndTime)
+		{
+			StartExtract();
+		}
+		break;
+	}
+	case EDVMissionStage::Extract:
+	{
+		const float T = FMath::Clamp((Now - StageStartTime) / RavenInboundSeconds, 0.f, 1.f);
+		GS->StageProgress = T;
+		if (ADVGunship* Raven = ExtractRaven.Get())
+		{
+			// Swoop in and settle into a low hover over the pad.
+			const FVector Pad = FVector(GS->ExtractLocation) + FVector(0.f, 0.f, 260.f);
+			const FVector From = FVector(GS->ExtractLocation) + FVector(-6000.f, 0.f, 4000.f);
+			const float E = 1.f - FMath::Pow(1.f - T, 3.f);
+			Raven->SetActorLocationAndRotation(FMath::Lerp(From, Pad, E), FRotator(-8.f * (1.f - T), 0.f, 0.f));
+		}
+		if (T >= 1.f && AnyPlayerNear(GS->ExtractLocation, 900.f))
+		{
+			Radio(TEXT("Raven Two-One"), TEXT("Everybody's aboard. Dust off!"));
+			EndMission(true);
+		}
+		break;
+	}
+	default:
+		break;
+	}
 }
 
 void ADVGameMode::SpawnBulwarks()
@@ -494,7 +759,14 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 				Radio(TEXT("CINDER"), TEXT("YOUR LOSSES ARE ACCEPTABLE. MINE ARE IRRELEVANT."));
 			}
 			GS->EnemiesRemaining = FMath::Max(0, GS->EnemiesRemaining - 1);
-			if (GS->EnemiesRemaining == 0)
+			if (GS->EnemiesRemaining == 0 && GS->bMultiStage)
+			{
+				if (GS->Stage == EDVMissionStage::Clear)
+				{
+					StartSabotage();
+				}
+			}
+			else if (GS->EnemiesRemaining == 0)
 			{
 				// Let the last kill land before the after-action screen.
 				FTimerHandle Handle;

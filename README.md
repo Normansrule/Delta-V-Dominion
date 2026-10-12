@@ -35,6 +35,18 @@ Launch any of them from the galaxy map.
 | ![Ceres](Docs/media/planet_ceres.png) | ![Gaia](Docs/media/planet_gaia.png) | ![Mars](Docs/media/outpost.png) |
 | **Ghost Signal**: a night mining town on Ceres under sodium and neon | **Gaia Falls**: the hills outside the capital on Earth | **Red Tide**: Tharsis Ridge on Mars at dusk |
 
+## Every mission is an operation
+
+Clear the garrison, then the radio gives you the real job: **plant charges on the target** (stand on the amber
+beacon), **hold for 45 seconds** while CINDER throws two counter-attack waves at you, watch it blow, then **run for
+the landing zone** behind your drop point where a Raven settles in to extract you. Die on the way out and you were
+never extracted.
+
+| | |
+|---|---|
+| ![Hold the line](Docs/media/operation_hold.png) | ![Extraction](Docs/media/extraction.png) |
+| **Hold until the charges blow**: the target beacon pulses red, the countdown runs, waves come in | **Extraction**: Raven Two-One comes down on the cyan landing-zone beacon |
+
 ## Call in the Kestrel, and the Bulwark
 
 <p align="center">
@@ -303,7 +315,8 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [x] Six planets (Mars, Europa, Io, Proxima b, Ceres, Gaia) and the Kestrel hangar as home base
 - [x] Armoury with five weapon profiles that carry into missions
 - [ ] Lag-compensated rewind (replaces the tolerance check), EOS sessions + EAC
-- [ ] First story mission: briefing, dialogue, multi-stage objectives, extraction
+- [x] Multi-stage operations: clear, plant charges, hold against waves, extract on a Raven
+- [ ] Story missions: cinematic briefings, unique set pieces per planet
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame

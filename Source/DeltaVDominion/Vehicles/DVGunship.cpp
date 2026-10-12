@@ -1,4 +1,4 @@
-#include "Vehicles/DVGunship.h"
+﻿#include "Vehicles/DVGunship.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Core/DVFx.h"
@@ -112,6 +112,15 @@ float ADVGunship::GetAltitude() const
 float ADVGunship::GetRocketReadyFraction() const
 {
 	return FMath::Clamp(static_cast<float>((GetWorld()->GetTimeSeconds() - LastRocket) / RocketInterval), 0.f, 1.f);
+}
+
+void ADVGunship::SetScriptedFlight(bool bOn)
+{
+	bScriptedFlight = bOn;
+	if (Seat)
+	{
+		Seat->EnterRadius = bOn ? 0.f : 900.f;	// AI-flown Ravens (strafing, extraction) can't be boarded
+	}
 }
 
 void ADVGunship::Tick(float DeltaSeconds)

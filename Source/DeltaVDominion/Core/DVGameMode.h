@@ -42,7 +42,13 @@ public:
 	/** Kestrel orbital strike on Target, called in by a player. Shared cooldown for the whole squad. */
 	void RequestOrbitalStrike(APlayerController* Caller, const FVector& Target);
 	void RequestSupplyDrop(APlayerController* Caller, const FVector& Target);
+	/** Dev builds: jump the operation to its next stage (tests and trailer captures). */
+	void DevAdvanceStage();
 	void RequestStrafeRun(APlayerController* Caller, const FVector& Target);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float PlantSeconds = 4.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float HoldSeconds = 45.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float RavenInboundSeconds = 12.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|CallIns") float SupplyCooldown = 45.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|CallIns") float StrafeCooldown = 60.f;
@@ -71,6 +77,18 @@ private:
 	bool AnySquadmateAlive() const;
 	void SetupMissionForMap();
 	void SpawnBulwarks();
+	void SetupOperation();
+	void TickStage();
+	void StartSabotage();
+	void StartDefend();
+	void StartExtract();
+	void SpawnWave(int32 Count);
+	bool AnyPlayerNear(const FVector& Location, float Radius) const;
+	FString TargetNoun;
+	FTimerHandle StageTimer;
+	double StageStartTime = 0.0;
+	int32 WavesSpawned = 0;
+	TWeakObjectPtr<class ADVGunship> ExtractRaven;
 	bool CanCallIn(APlayerController* Caller, const FVector& Target, float ReadyTime) const;
 	void Radio(const FString& Speaker, const FString& Text, float Delay = 0.f);
 	void ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target);

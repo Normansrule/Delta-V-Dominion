@@ -308,6 +308,20 @@ void ADVPlayerController::DVReadyCallIns()
 #endif
 }
 
+void ADVPlayerController::DVSkipStage(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { ServerSkipStage(); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::ServerSkipStage_Implementation()
+{
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->DevAdvanceStage();
+	}
+}
+
 void ADVPlayerController::ServerReadyCallIns_Implementation()
 {
 #if !UE_BUILD_SHIPPING

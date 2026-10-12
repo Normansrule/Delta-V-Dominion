@@ -33,7 +33,7 @@ public:
 	float GetRocketReadyFraction() const;
 
 	/** Moved by script (strafing runs): skips its own flight model. */
-	void SetScriptedFlight(bool bOn) { bScriptedFlight = bOn; }
+	void SetScriptedFlight(bool bOn);
 
 	/** Scripted input for trailers and tests: local move (fwd, right, up), yaw rate deg/s, fire cannon/rockets. */
 	void SetAutopilot(const FVector& Move, float YawRate, bool bCannon, bool bRockets) { AutoMove = Move; AutoYawRate = YawRate; bAutoCannon = bCannon; bAutoRockets = bRockets; }

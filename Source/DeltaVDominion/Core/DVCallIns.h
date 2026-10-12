@@ -83,3 +83,23 @@ protected:
 	double NextShot = 0.0;
 	int32 Shots = 0;
 };
+
+/** A tall light column over the operation's target / extraction point; colour follows the mission stage. */
+UCLASS()
+class DELTAVDOMINION_API ADVObjectiveBeacon : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	ADVObjectiveBeacon();
+	virtual void Tick(float DeltaSeconds) override;
+
+	/** Which stages this beacon shows in (target: Sabotage/Defend; landing zone: Extract). */
+	UPROPERTY(Replicated) bool bExtraction = false;
+
+protected:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Column;
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Ring;
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UPointLightComponent> Light;
+};

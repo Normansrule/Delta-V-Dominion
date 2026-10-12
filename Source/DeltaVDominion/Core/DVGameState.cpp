@@ -41,6 +41,12 @@ void ADVGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ADVGameState, MissionSubtitle);
 	DOREPLIFETIME(ADVGameState, OrbitalReadyTime);
 	DOREPLIFETIME(ADVGameState, SupplyReadyTime);
+	DOREPLIFETIME(ADVGameState, bMultiStage);
+	DOREPLIFETIME(ADVGameState, Stage);
+	DOREPLIFETIME(ADVGameState, ObjectiveLocation);
+	DOREPLIFETIME(ADVGameState, ExtractLocation);
+	DOREPLIFETIME(ADVGameState, StageProgress);
+	DOREPLIFETIME(ADVGameState, StageEndTime);
 	DOREPLIFETIME(ADVGameState, StrafeReadyTime);
 }
 
