@@ -1,4 +1,4 @@
-#include "Core/DVPlayerController.h"
+﻿#include "Core/DVPlayerController.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCommandComponent.h"
 #include "Core/DVGameMode.h"
@@ -314,6 +314,36 @@ void ADVPlayerController::DVSkipStage(float Delay)
 {
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { ServerSkipStage(); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::DVHurtVehicle(float Amount, float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Amount]() { ServerHurtVehicle(Amount); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::ServerHurtVehicle_Implementation(float Amount)
+{
+#if !UE_BUILD_SHIPPING
+	const APawn* MyPawn = GetPawn();
+	UDVSeatComponent* Best = MyPawn ? MyPawn->FindComponentByClass<UDVSeatComponent>() : nullptr;
+	float BestDist = TNumericLimits<float>::Max();
+	const bool bInVehicle = Best != nullptr;
+	for (TActorIterator<APawn> It(GetWorld()); It && !bInVehicle; ++It)
+	{
+		UDVSeatComponent* Seat = It->FindComponentByClass<UDVSeatComponent>();
+		const float Dist = MyPawn ? FVector::Dist(It->GetActorLocation(), MyPawn->GetActorLocation()) : 0.f;
+		if (Seat && !Seat->bWrecked && Dist < BestDist)
+		{
+			BestDist = Dist;
+			Best = Seat;
+		}
+	}
+	if (Best)
+	{
+		Best->ApplyHullDamage(Amount, nullptr, true);
+	}
+#endif
 }
 
 void ADVPlayerController::ServerSkipStage_Implementation()

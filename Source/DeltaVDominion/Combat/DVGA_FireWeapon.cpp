@@ -1,6 +1,7 @@
 #include "Combat/DVGA_FireWeapon.h"
 #include "Combat/DVWeaponBase.h"
 #include "Combat/DVWeaponData.h"
+#include "Vehicles/DVVehicleKit.h"
 #include "Combat/DVCombatEffects.h"
 #include "Combat/DVAttributeSet.h"
 #include "Characters/DVSoldierCharacter.h"
@@ -257,6 +258,12 @@ void UDVGA_FireWeapon::ProcessShotOnServer(const FGameplayAbilityTargetDataHandl
 					SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
 				}
 			}
+		}
+
+		// Vehicles: hull damage instead of GAS (they have no ability system).
+		if (UDVSeatComponent* Seat = UDVSeatComponent::FindOn(HitActor))
+		{
+			Seat->ApplyHullDamage(WeaponData->Damage, Soldier);
 		}
 
 		ApplySuppressionAlongShot(Hit->TraceStart, Hit->ImpactPoint, HitActor);

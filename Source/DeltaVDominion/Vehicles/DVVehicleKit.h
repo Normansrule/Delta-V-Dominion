@@ -31,6 +31,20 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Vehicle") TObjectPtr<ADVSoldierCharacter> Driver;
 
+	/** Hull points and the fraction of each hit the armour stops. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Vehicle|Damage") float MaxHealth = 600.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Vehicle|Damage") float ArmourFraction = 0.3f;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Vehicle|Damage") float Health = 600.f;
+	UPROPERTY(ReplicatedUsing = OnRep_Wrecked, BlueprintReadOnly, Category = "Vehicle|Damage") bool bWrecked = false;
+
+	/** Server: Instigator's shot/blast hits the hull. Friendly fire is off; empty vehicles belong to the Accord (team 1). */
+	void ApplyHullDamage(float Amount, ADVSoldierCharacter* Instigator, bool bFriendlyFire = false);
+	uint8 GetTeam() const;
+	float GetHealthFraction() const { return MaxHealth > 0.f ? FMath::Clamp(Health / MaxHealth, 0.f, 1.f) : 0.f; }
+
+	/** Seat on Actor (or on the vehicle Actor is part of), if any. */
+	static UDVSeatComponent* FindOn(AActor* Actor);
+
 	/** Server: Soldier (possessed by PC) climbs in and PC takes the controls. */
 	bool Enter(ADVSoldierCharacter* Soldier, APlayerController* PC);
 	/** Server: the driver climbs out and PC gets the soldier back. */
@@ -38,6 +52,13 @@ public:
 
 	/** Closest boardable vehicle within reach of Soldier, or null. */
 	static UDVSeatComponent* FindNear(const ADVSoldierCharacter* Soldier);
+
+	virtual void BeginPlay() override;
+
+protected:
+	UFUNCTION() void OnRep_Wrecked();
+	void Wreck(ADVSoldierCharacter* Instigator);
+	void ApplyWreckVisuals();
 };
 
 /** Kit-bash helpers: build vehicles and ships out of primitive meshes in constructors. */

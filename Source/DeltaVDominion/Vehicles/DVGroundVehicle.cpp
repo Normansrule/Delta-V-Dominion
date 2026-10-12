@@ -117,6 +117,8 @@ ADVGroundVehicle::ADVGroundVehicle()
 	Seat = CreateDefaultSubobject<UDVSeatComponent>(TEXT("Seat"));
 	Seat->VehicleName = TEXT("M-14 Jackal LTV");
 	Seat->WeaponName = TEXT("Roof HMG");
+	Seat->MaxHealth = 500.f;
+	Seat->ArmourFraction = 0.25f;
 
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	CameraArm->SetupAttachment(GetMesh());
@@ -151,6 +153,8 @@ ADVTank::ADVTank()
 	Seat->WeaponName = TEXT("120 mm main gun");
 	Seat->ExitOffset = FVector(0.f, -420.f, 160.f);
 	Seat->EnterRadius = 700.f;
+	Seat->MaxHealth = 2400.f;
+	Seat->ArmourFraction = 0.65f;
 	FireInterval = 3.f;
 	Damage = 450.f;
 	SplashRadius = 650.f;

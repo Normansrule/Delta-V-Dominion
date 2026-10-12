@@ -91,6 +91,7 @@ if (-not $GifsOnly -and -not $FirefightOnly) {
     Save-MapStill "supply_drop" "/Game/Maps/Outpost" "DVReadyCallIns, DVSupplyDrop 1 1100, " 4 1
     Save-MapStill "operation_hold" "/Game/Maps/Outpost" "DVSkipStage 2, DVSkipStage 5, " 10 1
     Save-MapStill "extraction" "/Game/Maps/Outpost" "DVSkipStage 2, DVSkipStage 3, DVSkipStage 4, DVShowcase 2, " 13.5 1
+    Save-MapStill "vehicle_wreck" "/Game/Maps/Outpost" "DVShowcase 4, DVHurtVehicle 99999 2, " 6.1
     Save-GalaxyStill "galaxy" "" 9                                        # start screen: the Milky Way
     Save-GalaxyStill "galaxy_sol" "DVGalaxyView 1, " 5                    # Sol, Gaia and the local bubble
     Save-GalaxyStill "galaxy_arm" "DVGalaxyView 3, DVSelectSystem Eagle, " 6

@@ -58,6 +58,11 @@ never extracted.
 | ![Supply drop](Docs/media/supply_drop.png) | ![Bulwark](Docs/media/bulwark.png) |
 | **Supply drop (N)**: a pod falls from orbit onto your crosshair; stand next to it to refill ammo, health and armour (8 refills) | **The Bulwark**: a heavy war-frame with 700 HP, 60% armour and a rotary cannon that pins your squad. Flank it, focus fire or paint it for the Kestrel |
 
+Vehicles are not invulnerable: the LTV, Sabre tank and Raven each have hull armour (watch HULL on the vehicle
+HUD), enemy frames shoot at crewed vehicles, and a destroyed one throws its crew clear and burns out.
+
+<p align="center"><img src="Docs/media/vehicle_wreck.png" width="560" alt="A wrecked LTV burning on Mars"></p>
+
 Three call-ins, each on its own recharge: **orbital strike (B)**, **supply drop (N)** and **Raven strafing run (H)**,
 which walks 30 mm cannon fire through the painted spot along your line of sight (no friendly fire).
 
@@ -323,5 +328,6 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
-- [ ] Smoke call-in, Skitter drones, destructible vehicles
+- [x] Destructible vehicles: hull armour, enemies target crewed vehicles, wrecks burn and throw the crew clear
+- [ ] Smoke call-in, Skitter drones, enemy vehicles
 - [ ] Vehicles, space segments, campaign map and story missions

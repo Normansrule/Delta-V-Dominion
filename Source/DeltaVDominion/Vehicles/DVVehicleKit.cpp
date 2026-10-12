@@ -1,5 +1,11 @@
 #include "Vehicles/DVVehicleKit.h"
 #include "Characters/DVSoldierCharacter.h"
+#include "Core/DVFx.h"
+#include "Vehicles/DVGunship.h"
+#include "Components/AudioComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "TimerManager.h"
 
 #include "Components/CapsuleComponent.h"
 #include "EngineUtils.h"
@@ -19,6 +25,8 @@ void UDVSeatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UDVSeatComponent, Driver);
+	DOREPLIFETIME(UDVSeatComponent, Health);
+	DOREPLIFETIME(UDVSeatComponent, bWrecked);
 }
 
 bool UDVSeatComponent::Enter(ADVSoldierCharacter* Soldier, APlayerController* PC)
@@ -61,6 +69,132 @@ void UDVSeatComponent::Exit(APlayerController* PC)
 	PC->Possess(Soldier);
 }
 
+void UDVSeatComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	Health = MaxHealth;
+}
+
+uint8 UDVSeatComponent::GetTeam() const
+{
+	return Driver ? Driver->TeamId : 1;
+}
+
+UDVSeatComponent* UDVSeatComponent::FindOn(AActor* Actor)
+{
+	for (AActor* A = Actor; A; A = A->GetAttachParentActor())
+	{
+		if (UDVSeatComponent* Seat = A->FindComponentByClass<UDVSeatComponent>())
+		{
+			return Seat;
+		}
+	}
+	return nullptr;
+}
+
+void UDVSeatComponent::ApplyHullDamage(float Amount, ADVSoldierCharacter* Instigator, bool bFriendlyFire)
+{
+	AActor* Vehicle = GetOwner();
+	if (!Vehicle || !Vehicle->HasAuthority() || bWrecked || Amount <= 0.f)
+	{
+		return;
+	}
+	if (!bFriendlyFire && Instigator && Instigator->TeamId == GetTeam())
+	{
+		return;
+	}
+	Health = FMath::Max(0.f, Health - Amount * (1.f - ArmourFraction));
+	if (Health <= 0.f)
+	{
+		Wreck(Instigator);
+	}
+}
+
+void UDVSeatComponent::Wreck(ADVSoldierCharacter* Instigator)
+{
+	APawn* Vehicle = Cast<APawn>(GetOwner());
+	bWrecked = true;
+	EnterRadius = 0.f;
+	// Throw the crew clear, singed.
+	if (Driver)
+	{
+		ADVSoldierCharacter* Crew = Driver;
+		if (APlayerController* PC = Cast<APlayerController>(Vehicle->GetController()))
+		{
+			Exit(PC);
+		}
+		if (Instigator)
+		{
+			DVCombat::ApplyDamage(Instigator, Crew, 35.f, true);
+		}
+	}
+	if (ADVGunship* Air = Cast<ADVGunship>(Vehicle))
+	{
+		Air->SetScriptedFlight(true);	// no pilot input; gravity takes it from here
+	}
+	if (UPrimitiveComponent* Root = Cast<UPrimitiveComponent>(Vehicle->GetRootComponent()))
+	{
+		Root->SetSimulatePhysics(true);
+		Root->AddImpulse(FVector(FMath::FRandRange(-300.f, 300.f), FMath::FRandRange(-300.f, 300.f), 500.f), NAME_None, true);
+	}
+	ApplyWreckVisuals();
+}
+
+void UDVSeatComponent::OnRep_Wrecked()
+{
+	if (bWrecked)
+	{
+		ApplyWreckVisuals();
+	}
+}
+
+void UDVSeatComponent::ApplyWreckVisuals()
+{
+	AActor* Vehicle = GetOwner();
+	UWorld* World = GetWorld();
+	if (!Vehicle || !World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	const FVector Where = Vehicle->GetActorLocation();
+	DVFx::Explosion(World, Where, 0.6f);
+	// Burnt-out hull: every part goes to scorched metal, lights die, the engine stops.
+	UMaterialInstanceDynamic* Char = UMaterialInstanceDynamic::Create(DVKit::Material(TEXT("Rust")), Vehicle);
+	if (Char)
+	{
+		Char->SetVectorParameterValue(TEXT("TintColor"), FLinearColor(0.018f, 0.014f, 0.012f));
+	}
+	TArray<UMeshComponent*> Meshes;
+	Vehicle->GetComponents(Meshes);
+	for (UMeshComponent* M : Meshes)
+	{
+		for (int32 i = 0; Char && i < M->GetNumMaterials(); ++i)
+		{
+			M->SetMaterial(i, Char);
+		}
+	}
+	TArray<UAudioComponent*> Sounds;
+	Vehicle->GetComponents(Sounds);
+	for (UAudioComponent* A : Sounds)
+	{
+		A->Stop();
+	}
+	// Fire in the hull for a while: flickering light plus small cook-offs.
+	for (int32 i = 0; i < 6; ++i)
+	{
+		FTimerHandle Handle;
+		World->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(Vehicle, [Vehicle, i]()
+		{
+			const FVector At = Vehicle->GetActorLocation() + FVector(FMath::FRandRange(-150.f, 150.f), FMath::FRandRange(-150.f, 150.f), 120.f);
+			DVFx::Flash(Vehicle->GetWorld(), At, FLinearColor(1.f, 0.45f, 0.12f), 8000.f, 1600.f, 1.6f);
+			if (i % 2 == 1)
+			{
+				DVFx::Explosion(Vehicle->GetWorld(), At, 0.12f);
+			}
+		}), 0.6f + i * 1.4f, false);
+	}
+}
+
 UDVSeatComponent* UDVSeatComponent::FindNear(const ADVSoldierCharacter* Soldier)
 {
 	if (!Soldier)
@@ -74,7 +208,7 @@ UDVSeatComponent* UDVSeatComponent::FindNear(const ADVSoldierCharacter* Soldier)
 		if (UDVSeatComponent* Seat = It->FindComponentByClass<UDVSeatComponent>())
 		{
 			const float Dist = FVector::Dist(It->GetActorLocation(), Soldier->GetActorLocation());
-			if (!Seat->Driver && Dist < Seat->EnterRadius && Dist < BestDist)
+			if (!Seat->Driver && !Seat->bWrecked && Dist < Seat->EnterRadius && Dist < BestDist)
 			{
 				Best = Seat;
 				BestDist = Dist;

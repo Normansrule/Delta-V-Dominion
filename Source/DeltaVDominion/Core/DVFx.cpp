@@ -1,4 +1,5 @@
 #include "Core/DVFx.h"
+#include "Vehicles/DVVehicleKit.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundAttenuation.h"
 #include "Components/AudioComponent.h"
@@ -212,6 +213,14 @@ void DVFx::Explosion(UWorld* World, const FVector& Location, float Scale)
 
 void DVCombat::ApplyDamage(ADVSoldierCharacter* Shooter, AActor* Target, float Damage, bool bFriendlyFire)
 {
+	if (!Cast<ADVSoldierCharacter>(Target))
+	{
+		if (UDVSeatComponent* Seat = UDVSeatComponent::FindOn(Target))
+		{
+			Seat->ApplyHullDamage(Damage, Shooter, bFriendlyFire);
+		}
+		return;
+	}
 	ADVSoldierCharacter* Victim = Cast<ADVSoldierCharacter>(Target);
 	UAbilitySystemComponent* SourceASC = Shooter ? Shooter->GetAbilitySystemComponent() : nullptr;
 	if (!Victim || !SourceASC || Victim->IsDead() || !Shooter->HasAuthority())
@@ -244,6 +253,18 @@ void DVCombat::RadialDamage(ADVSoldierCharacter* Shooter, const FVector& Center,
 		if (Dist <= Radius)
 		{
 			ApplyDamage(Shooter, *It, Damage * (1.f - 0.7f * Dist / Radius), bFriendlyFire);
+		}
+	}
+	// Vehicles take blast damage on their hulls (measured to the hull, which is bigger than a soldier).
+	for (TActorIterator<APawn> It(Shooter->GetWorld()); It; ++It)
+	{
+		if (UDVSeatComponent* Seat = It->FindComponentByClass<UDVSeatComponent>())
+		{
+			const float Dist = FMath::Max(0.f, FVector::Dist(It->GetActorLocation(), Center) - 200.f);
+			if (Dist <= Radius)
+			{
+				Seat->ApplyHullDamage(Damage * (1.f - 0.7f * Dist / Radius), Shooter, bFriendlyFire);
+			}
 		}
 	}
 }

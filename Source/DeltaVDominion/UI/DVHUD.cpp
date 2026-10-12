@@ -626,6 +626,12 @@ void ADVHUD::DrawVehicle(APawn* Vehicle)
 	Text(FString::Printf(TEXT("%d km/h   %s"), FMath::RoundToInt(Speed), *Extra), X, Y + S(32.f), DVHudColors::Friendly, GEngine->GetMediumFont(), 1.f);
 	Text(Seat ? Seat->WeaponName : FString(), X, Y + S(64.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.05f);
 	Bar(X, Y + S(92.f), S(430.f), S(5.f), Ready, Ready >= 1.f ? DVHudColors::Health : DVHudColors::Warn);
+	if (Seat)
+	{
+		const float Hull = Seat->GetHealthFraction();
+		Text(FString::Printf(TEXT("HULL %d%%"), FMath::RoundToInt(Hull * 100.f)), X + S(430.f), Y, Hull < 0.3f ? DVHudColors::Hostile : DVHudColors::Dim, GEngine->GetSmallFont(), 1.1f, false, true);
+		Bar(X + S(250.f), Y + S(26.f), S(180.f), S(5.f), Hull, Hull < 0.3f ? DVHudColors::Hostile : DVHudColors::Health);
+	}
 	Text(TEXT("WASD drive  |  mouse aim  |  LMB fire  |  Z exit"), CX, Canvas->ClipY - S(40.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, true);
 }
 

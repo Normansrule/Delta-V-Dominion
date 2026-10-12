@@ -50,6 +50,11 @@ public:
 	/** Console (dev builds): "DVSkipStage [Delay]" advances the operation (clear > plant > hold > extract). */
 	UFUNCTION(Exec)
 	void DVSkipStage(float Delay = 0.f);
+	/** Console (dev builds): "DVHurtVehicle Amount [Delay]" damages the nearest vehicle's hull (wreck tests). */
+	UFUNCTION(Exec)
+	void DVHurtVehicle(float Amount, float Delay = 0.f);
+	UFUNCTION(Server, Reliable)
+	void ServerHurtVehicle(float Amount);
 	UFUNCTION(Server, Reliable)
 	void ServerSkipStage();
 	UFUNCTION(Server, Reliable)

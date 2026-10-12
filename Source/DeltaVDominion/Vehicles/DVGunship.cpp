@@ -37,6 +37,8 @@ ADVGunship::ADVGunship()
 	Seat->VehicleName = TEXT("AV-41 Raven gunship");
 	Seat->WeaponName = TEXT("30 mm cannon  |  RMB rockets");
 	Seat->EnterRadius = 900.f;
+	Seat->MaxHealth = 1100.f;
+	Seat->ArmourFraction = 0.4f;
 	Seat->ExitOffset = FVector(0.f, -650.f, 0.f);
 
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));

@@ -1,5 +1,6 @@
 #include "Characters/DVSquadAIController.h"
 #include "Characters/DVSoldierCharacter.h"
+#include "Vehicles/DVVehicleKit.h"
 #include "Characters/DVCoverQuery.h"
 #include "Combat/DVAttributeSet.h"
 #include "Combat/DVWeaponBase.h"
@@ -188,7 +189,16 @@ void ADVSquadAIController::UpdateTarget()
 	for (AActor* Actor : Seen)
 	{
 		const ADVSoldierCharacter* Other = Cast<ADVSoldierCharacter>(Actor);
-		if (!Other || Other->IsDead() || Other->IsHidden() || Soldier->GetTeamAttitudeTowards(*Other) != ETeamAttitude::Hostile)
+		if (!Other)
+		{
+			// A vehicle counts as a target while a hostile is driving it.
+			const UDVSeatComponent* Seat = Actor ? Actor->FindComponentByClass<UDVSeatComponent>() : nullptr;
+			if (!Seat || Seat->bWrecked || !Seat->Driver || Soldier->GetTeamAttitudeTowards(*Seat->Driver) != ETeamAttitude::Hostile)
+			{
+				continue;
+			}
+		}
+		else if (Other->IsDead() || Other->IsHidden() || Soldier->GetTeamAttitudeTowards(*Other) != ETeamAttitude::Hostile)
 		{
 			continue;
 		}
