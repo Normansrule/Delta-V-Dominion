@@ -82,7 +82,9 @@ protected:
 	float MaxPitch = 35.f;
 	float MinPitch = -12.f;
 	bool bExplosiveRounds = false;
+	float FlippedTime = 0.f;	// seconds spent on its side or roof (server)
 	UPROPERTY() TObjectPtr<class UAudioComponent> EngineSound;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> ApcParts;
 
 	UPROPERTY(Replicated) FRotator AimRotation = FRotator::ZeroRotator;	// relative to the vehicle
 	double LastShotTime = -100.0;

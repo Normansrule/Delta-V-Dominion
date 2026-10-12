@@ -11,6 +11,7 @@
 #include "Engine/GameInstance.h"
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
+#include "Vehicles/DVHoverbike.h"
 #include "Core/DVGameState.h"
 #include "Core/DVFx.h"
 #include "Characters/DVBulwark.h"
@@ -635,6 +636,18 @@ void ADVPlayerController::DVMoveDemo(int32 Mode, float Delay)
 	}), FMath::Max(Delay, 0.001f), false);
 }
 
+void ADVPlayerController::DVRavenMode(int32 bJet, int32 bCockpit, float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, bJet, bCockpit]()
+	{
+		if (ADVGunship* Air = Cast<ADVGunship>(GetPawn()))
+		{
+			Air->DebugSetModes(bJet != 0, bCockpit != 0);
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
 void ADVPlayerController::DVLocker(int32 Field, int32 Times)
 {
 	if (!bShowLocker)
@@ -723,6 +736,10 @@ void ADVPlayerController::DVAutopilot(float Delay, float Throttle, float Steer, 
 		{
 			Air->SetAutopilot(FVector(Throttle, 0.f, Up), Steer * 30.f, Fire == 1 || Fire == 3, Fire >= 2);
 		}
+		else if (ADVHoverbike* Bike = Cast<ADVHoverbike>(GetPawn()))
+		{
+			Bike->SetAutopilot(Throttle, Steer * 40.f, Fire != 0);
+		}
 	}), FMath::Max(Delay, 0.001f), false);
 }
 
@@ -736,7 +753,8 @@ void ADVPlayerController::DVBoard(const FString& Which, float Delay)
 		{
 			const bool bMatch = (Which.Equals(TEXT("tank"), ESearchCase::IgnoreCase) && It->IsA<ADVTank>())
 				|| (Which.Equals(TEXT("ltv"), ESearchCase::IgnoreCase) && It->IsA<ADVGroundVehicle>() && !It->IsA<ADVTank>())
-				|| (Which.Equals(TEXT("gunship"), ESearchCase::IgnoreCase) && It->IsA<ADVGunship>());
+				|| (Which.Equals(TEXT("gunship"), ESearchCase::IgnoreCase) && It->IsA<ADVGunship>())
+				|| (Which.Equals(TEXT("bike"), ESearchCase::IgnoreCase) && It->IsA<ADVHoverbike>());
 			if (bMatch && GetPawn())
 			{
 				GetPawn()->TeleportTo(It->GetActorLocation() + FVector(0.f, -300.f, 120.f), GetPawn()->GetActorRotation());

@@ -10,6 +10,7 @@
 #include "Components/InputComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Net/UnrealNetwork.h"
 
 namespace
 {
@@ -51,6 +52,12 @@ ADVGunship::ADVGunship()
 	CameraArm->bDoCollisionTest = false;
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraArm);
+	CockpitCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("CockpitCamera"));
+	CockpitCamera->SetupAttachment(Collision);
+	CockpitCamera->SetRelativeLocation(FVector(420.f, 0.f, 150.f));
+	CockpitCamera->bUsePawnControlRotation = true;
+	CockpitCamera->SetFieldOfView(100.f);
+	CockpitCamera->SetAutoActivate(false);
 
 	// Kit-bashed airframe: armoured fuselage, cockpit glass, stub wings with tilting engine pods, tail booms.
 	UMaterialInterface* Hull = DVKit::Material(TEXT("Navy"));
@@ -70,7 +77,7 @@ ADVGunship::ADVGunship()
 	for (int32 Side = -1; Side <= 1; Side += 2)
 	{
 		const TCHAR* S = Side < 0 ? TEXT("L") : TEXT("R");
-		DVKit::Part(this, Body, *FString::Printf(TEXT("Pod%s"), S), DVKit::Cylinder(), Metal, FVector(-40.f, Side * 560.f, 40.f), FRotator(90.f, 0.f, 0.f), FVector(150.f, 150.f, 330.f));
+		EnginePods.Add(DVKit::Part(this, Body, *FString::Printf(TEXT("Pod%s"), S), DVKit::Cylinder(), Metal, FVector(-40.f, Side * 560.f, 40.f), FRotator(90.f, 0.f, 0.f), FVector(150.f, 150.f, 330.f)));
 		EngineGlows.Add(DVKit::Part(this, Body, *FString::Printf(TEXT("Exhaust%s"), S), DVKit::Cylinder(), Glow, FVector(-40.f, Side * 560.f, -40.f), FRotator::ZeroRotator, FVector(120.f, 120.f, 12.f)));
 		DVKit::Part(this, Body, *FString::Printf(TEXT("RocketPod%s"), S), DVKit::Cylinder(), Metal, FVector(60.f, Side * 330.f, -10.f), FRotator(90.f, 0.f, 0.f), FVector(55.f, 55.f, 180.f));
 		NavLights.Add(DVKit::Part(this, Body, *FString::Printf(TEXT("Nav%s"), S), DVKit::Sphere(), Glow, FVector(-40.f, Side * 650.f, 50.f), FRotator::ZeroRotator, FVector(22.f, 22.f, 22.f)));
@@ -82,6 +89,7 @@ void ADVGunship::BeginPlay()
 {
 	Super::BeginPlay();
 	EngineSound = DVSound::Loop(GetWorld(), GetRootComponent(), TEXT("SW_EngineGunship"), 0.6f);
+	BaseArmour = Seat->ArmourFraction;
 	TargetYaw = GetActorRotation().Yaw;
 	TArray<UStaticMeshComponent*> Parts;
 	GetComponents(Parts);
@@ -111,6 +119,65 @@ float ADVGunship::GetAltitude() const
 	const FVector Start = GetActorLocation();
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(DVGunshipAlt), false, this);
 	return GetWorld()->LineTraceSingleByChannel(Hit, Start, Start - FVector(0.f, 0.f, 100000.f), ECC_Visibility, Params) ? Hit.Distance / 100.f : 999.f;
+}
+
+void ADVGunship::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ADVGunship, bJetMode);
+	DOREPLIFETIME(ADVGunship, FlaresUntil);
+	DOREPLIFETIME(ADVGunship, FlareReadyTime);
+}
+
+float ADVGunship::GetFlareReadyFraction() const
+{
+	const float Left = FlareReadyTime - GetWorld()->GetTimeSeconds();
+	return Left <= 0.f ? 1.f : 1.f - Left / 12.f;
+}
+
+bool ADVGunship::AreFlaresActive() const
+{
+	return GetWorld()->GetTimeSeconds() < FlaresUntil;
+}
+
+void ADVGunship::SetCockpitView(bool bCockpit)
+{
+	bCockpitView = bCockpit;
+	Camera->SetActive(!bCockpit);
+	CockpitCamera->SetActive(bCockpit);
+}
+
+void ADVGunship::ServerSetJetMode_Implementation(bool bJet)
+{
+	bJetMode = bJet;
+}
+
+void ADVGunship::ServerFlares_Implementation()
+{
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Now < FlareReadyTime)
+	{
+		return;
+	}
+	FlareReadyTime = Now + 12.f;
+	FlaresUntil = Now + 3.f;
+	MulticastFlares();
+}
+
+void ADVGunship::MulticastFlares_Implementation()
+{
+	// Eight burning decoys kicked out behind and below, falling and fading.
+	for (int32 i = 0; i < 8; ++i)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, i]()
+		{
+			const FVector At = GetActorTransform().TransformPosition(FVector(-500.f - i * 120.f, (i % 2 ? 1.f : -1.f) * (200.f + i * 60.f), -150.f - i * 90.f));
+			DVFx::Flash(GetWorld(), At, FLinearColor(1.f, 0.6f, 0.25f), 30000.f, 2500.f, 0.9f);
+			DVFx::Beam(GetWorld(), At, At - FVector(0.f, 0.f, 500.f), FLinearColor(60.f, 30.f, 8.f), 18.f, 0.6f);
+		}), 0.05f + i * 0.09f, false);
+	}
+	DVSound::At(GetWorld(), TEXT("SW_Thruster"), GetActorLocation(), 1.f, 1);
 }
 
 float ADVGunship::GetRocketReadyFraction() const
@@ -160,6 +227,25 @@ void ADVGunship::Tick(float DeltaSeconds)
 			TargetYaw = View.Yaw;
 		}
 
+		// Toggles: F flight mode, V cockpit view, X flares.
+		const bool bF = PC->IsInputKeyDown(EKeys::F), bV = PC->IsInputKeyDown(EKeys::V), bX = PC->IsInputKeyDown(EKeys::X);
+		if (bF && !bWasF)
+		{
+			ServerSetJetMode(!bJetMode);
+			DVSound::UI(GetWorld(), TEXT("SW_UIClick"), 0.6f);
+		}
+		if (bV && !bWasV)
+		{
+			SetCockpitView(!bCockpitView);
+		}
+		if (bX && !bWasX)
+		{
+			ServerFlares();
+		}
+		bWasF = bF;
+		bWasV = bV;
+		bWasX = bX;
+
 		const double Now = GetWorld()->GetTimeSeconds();
 		if ((PC->IsInputKeyDown(EKeys::LeftMouseButton) || bAutoCannon) && Now - LastCannon >= CannonInterval)
 		{
@@ -173,19 +259,35 @@ void ADVGunship::Tick(float DeltaSeconds)
 		}
 	}
 
+	if (HasAuthority())
+	{
+		// Flares harden the hull briefly (incoming fire chases the decoys).
+		Seat->ArmourFraction = AreFlaresActive() ? 0.85f : BaseArmour;
+	}
 	if (HasAuthority() && !bScriptedFlight)
 	{
-		// Arcade VTOL: accelerate toward the commanded velocity in the heading frame; hover when idle.
 		const FRotator Heading(0.f, GetActorRotation().Yaw, 0.f);
-		const FVector Desired = Heading.RotateVector(FVector(MoveInput.X * 4200.f, MoveInput.Y * 2400.f, 0.f)) + FVector(0.f, 0.f, MoveInput.Z * 1600.f);
-		Velocity = FMath::VInterpTo(Velocity, Desired, DeltaSeconds, 1.6f);
+		FVector Desired;
+		if (bJetMode && GetController())
+		{
+			// Jet: always flying forward along where the mouse points; W is afterburner, S air-brakes.
+			const FRotator Flight(FMath::Clamp(TargetPitch > 180.f ? TargetPitch - 360.f : TargetPitch, -45.f, 45.f), GetActorRotation().Yaw, 0.f);
+			const float Speed = 3600.f + 5200.f * FMath::Max(MoveInput.X, 0.f) - 1800.f * FMath::Max(-MoveInput.X, 0.f);
+			Desired = Flight.Vector() * Speed;
+		}
+		else
+		{
+			// Arcade VTOL: accelerate toward the commanded velocity in the heading frame; hover when idle.
+			Desired = Heading.RotateVector(FVector(MoveInput.X * 4200.f, MoveInput.Y * 2400.f, 0.f)) + FVector(0.f, 0.f, MoveInput.Z * 1600.f);
+		}
+		Velocity = FMath::VInterpTo(Velocity, Desired, DeltaSeconds, bJetMode ? 0.9f : 1.6f);
 		FHitResult Hit;
 		AddActorWorldOffset(Velocity * DeltaSeconds, true, &Hit);
 		if (Hit.bBlockingHit)
 		{
 			Velocity = FVector::VectorPlaneProject(Velocity, Hit.Normal) * 0.5f;	// slide along terrain instead of sticking
 		}
-		const float NewYaw = FMath::FixedTurn(GetActorRotation().Yaw, TargetYaw, 70.f * DeltaSeconds);
+		const float NewYaw = FMath::FixedTurn(GetActorRotation().Yaw, TargetYaw, (bJetMode ? 50.f : 70.f) * DeltaSeconds);
 		SetActorRotation(FRotator(0.f, NewYaw, 0.f));
 	}
 
@@ -193,7 +295,20 @@ void ADVGunship::Tick(float DeltaSeconds)
 	const FVector LocalVel = GetActorRotation().UnrotateVector(Velocity);
 	const float YawDelta = FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, TargetYaw);
 	const FRotator Tilt(-FMath::Clamp(LocalVel.X / 4200.f, -1.f, 1.f) * 12.f, 0.f, FMath::Clamp(LocalVel.Y / 2400.f + YawDelta / 60.f, -1.f, 1.f) * 18.f);
-	Body->SetRelativeRotation(FMath::RInterpTo(Body->GetRelativeRotation(), Tilt, DeltaSeconds, 3.f));
+	FRotator Want = Tilt;
+	if (bJetMode)
+	{
+		// Nose follows the flight path; bank hard into turns.
+		Want.Pitch = FMath::RadiansToDegrees(FMath::Atan2(Velocity.Z, FMath::Max(Velocity.Size2D(), 1.f)));
+		Want.Roll = FMath::Clamp(YawDelta / 30.f, -1.f, 1.f) * 55.f;
+	}
+	Body->SetRelativeRotation(FMath::RInterpTo(Body->GetRelativeRotation(), Want, DeltaSeconds, 3.f));
+	// Engines swing vertical for hover, aft for jet flight.
+	for (UStaticMeshComponent* Pod : EnginePods)
+	{
+		const FRotator PodWant(bJetMode ? 90.f : 0.f, 0.f, 0.f);
+		Pod->SetRelativeRotation(FMath::RInterpTo(Pod->GetRelativeRotation(), PodWant, DeltaSeconds, 2.5f));
+	}
 
 	// Engine glow pulses with thrust.
 	const float Thrust = 15.f + 25.f * FMath::Clamp(Velocity.Size() / 3000.f + FMath::Abs(MoveInput.Z), 0.f, 1.5f);

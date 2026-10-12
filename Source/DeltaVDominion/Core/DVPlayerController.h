@@ -53,6 +53,9 @@ public:
 	/** Console (tests): "DVMoveDemo 0|1|2 [Delay]" 0 = jump + thruster boost, 1 = sprint slide, 2 = ground dash. */
 	UFUNCTION(Exec)
 	void DVMoveDemo(int32 Mode, float Delay = 0.f);
+	/** Console (tests): "DVRavenMode Jet Cockpit [Delay]" sets the Raven's flight mode and camera. */
+	UFUNCTION(Exec)
+	void DVRavenMode(int32 bJet, int32 bCockpit, float Delay = 0.f);
 	/** Console (dev builds): "DVSkipStage [Delay]" advances the operation (clear > plant > hold > extract). */
 	UFUNCTION(Exec)
 	void DVSkipStage(float Delay = 0.f);

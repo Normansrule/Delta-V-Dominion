@@ -274,6 +274,9 @@ def build():
         spawn(gunship, "Raven_%d" % i, (-3000, y, 190), rot(yaw=180), "Vehicles")
     spawn(tank, "Sabre", (3000, -1700, 140), rot(yaw=180), "Vehicles")
     spawn(ltv, "Jackal", (3000, 1700, 120), rot(yaw=200), "Vehicles")
+    bike = unreal.load_class(None, "/Script/DeltaVDominion.DVHoverbike")
+    for i, y in enumerate((700, 1000)):
+        spawn(bike, "Skiff_%d" % i, (4300, y, 160), rot(yaw=180), "Vehicles")
 
     # --- War table, memorial wall, armoury ----------------------------------------------------------
     inter = unreal.load_class(None, "/Script/DeltaVDominion.DVInteractable")

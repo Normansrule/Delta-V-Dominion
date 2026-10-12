@@ -61,6 +61,7 @@ ADVGroundVehicle::ADVGroundVehicle()
 	GetMesh()->SetCollisionProfileName(UCollisionProfile::Vehicle_ProfileName);
 	GetMesh()->BodyInstance.bSimulatePhysics = true;
 	GetMesh()->BodyInstance.COMNudge = FVector(0.f, 0.f, -45.f);	// low centre of mass: no rollovers on the dunes
+	GetMesh()->BodyInstance.AngularDamping = 1.2f;	// resists the tip-over a hard turn starts
 	GetMesh()->BodyInstance.bNotifyRigidBodyCollision = true;
 	GetMesh()->SetGenerateOverlapEvents(true);
 	GetMesh()->SetCanEverAffectNavigation(false);
@@ -114,8 +115,31 @@ ADVGroundVehicle::ADVGroundVehicle()
 		Tires.Add(Tire);
 	}
 
+	// Up-armour kit (the Jackal reads as a six-wheeled APC): slab side skirts, a dozer-style ram, a troop
+	// compartment and a third, unpowered axle. Hidden on the tank, which uses the same chassis.
+	{
+		UMaterialInterface* Armour = DVKit::Material(TEXT("Concrete"));
+		UMaterialInterface* Dark = DVKit::Material(TEXT("Gunmetal"));
+		USkeletalMeshComponent* Chassis = GetMesh();
+		ApcParts.Add(DVKit::Part(this, Chassis, TEXT("ApcSkirtL"), DVKit::Box(), Armour, FVector(-10.f, -112.f, 78.f), FRotator(0.f, 0.f, -8.f), FVector(330.f, 10.f, 56.f)));
+		ApcParts.Add(DVKit::Part(this, Chassis, TEXT("ApcSkirtR"), DVKit::Box(), Armour, FVector(-10.f, 112.f, 78.f), FRotator(0.f, 0.f, 8.f), FVector(330.f, 10.f, 56.f)));
+		ApcParts.Add(DVKit::Part(this, Chassis, TEXT("ApcRam"), DVKit::Box(), Dark, FVector(232.f, 0.f, 62.f), FRotator(-20.f, 0.f, 0.f), FVector(14.f, 190.f, 62.f)));
+		ApcParts.Add(DVKit::Part(this, Chassis, TEXT("ApcTroop"), DVKit::Box(), Armour, FVector(-135.f, 0.f, 112.f), FRotator::ZeroRotator, FVector(170.f, 176.f, 78.f)));
+		ApcParts.Add(DVKit::Part(this, Chassis, TEXT("ApcTroopRoof"), DVKit::Box(), Dark, FVector(-135.f, 0.f, 154.f), FRotator::ZeroRotator, FVector(176.f, 182.f, 8.f)));
+		ApcParts.Add(DVKit::Part(this, Chassis, TEXT("ApcHatch"), DVKit::Box(), Dark, FVector(-222.f, 0.f, 100.f), FRotator::ZeroRotator, FVector(6.f, 90.f, 70.f)));
+		for (int32 Side = -1; Side <= 1; Side += 2)
+		{
+			UStaticMeshComponent* Mid = CreateDefaultSubobject<UStaticMeshComponent>(Side < 0 ? TEXT("ApcMidWheelL") : TEXT("ApcMidWheelR"));
+			Mid->SetupAttachment(Chassis);
+			Mid->SetStaticMesh(OffroadTire.Object);
+			Mid->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Mid->SetRelativeLocationAndRotation(FVector(-15.f, Side * 92.f, 38.f), FRotator(0.f, Side > 0 ? 180.f : 0.f, 0.f));
+			ApcParts.Add(Mid);
+		}
+	}
+
 	Seat = CreateDefaultSubobject<UDVSeatComponent>(TEXT("Seat"));
-	Seat->VehicleName = TEXT("M-14 Jackal LTV");
+	Seat->VehicleName = TEXT("M-14 Jackal APC");
 	Seat->WeaponName = TEXT("Roof HMG");
 	Seat->MaxHealth = 500.f;
 	Seat->ArmourFraction = 0.25f;
@@ -149,6 +173,8 @@ ADVGroundVehicle::ADVGroundVehicle()
 
 ADVTank::ADVTank()
 {
+	GetMesh()->BodyInstance.COMNudge = FVector(0.f, 0.f, -110.f);	// 60 tonnes sit low: a tank should never tip on a turn
+	GetMesh()->BodyInstance.AngularDamping = 2.5f;
 	Seat->VehicleName = TEXT("M9 Sabre MBT");
 	Seat->WeaponName = TEXT("120 mm main gun");
 	Seat->ExitOffset = FVector(0.f, -420.f, 160.f);
@@ -216,6 +242,10 @@ void ADVGroundVehicle::BeginPlay()
 	{
 		// Tank: hide the car body but keep its physics and wheels; the kit-bashed hull is what you see.
 		GetMesh()->SetVisibility(false, false);
+		for (UStaticMeshComponent* Part : ApcParts)
+		{
+			Part->SetVisibility(false);
+		}
 		BodyShell->SetVisibility(false);
 		for (UStaticMeshComponent* Tire : Tires)
 		{
@@ -259,6 +289,19 @@ float ADVGroundVehicle::GetSpeedKph() const
 void ADVGroundVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	// Arcade recovery: a vehicle left on its side or roof for two seconds is set back on its wheels.
+	if (HasAuthority() && !Seat->bWrecked)
+	{
+		const bool bFlipped = GetActorUpVector().Z < 0.35f;
+		FlippedTime = bFlipped ? FlippedTime + DeltaSeconds : 0.f;
+		if (FlippedTime > 2.f)
+		{
+			FlippedTime = 0.f;
+			GetMesh()->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			GetMesh()->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+			SetActorLocationAndRotation(GetActorLocation() + FVector(0.f, 0.f, 150.f), FRotator(0.f, GetActorRotation().Yaw, 0.f), false, nullptr, ETeleportType::TeleportPhysics);
+		}
+	}
 	if (EngineSound)
 	{
 		// Idle burble when parked, revving with speed, louder with someone at the wheel.

@@ -16,6 +16,7 @@
 #include "Engine/GameInstance.h"
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
+#include "Vehicles/DVHoverbike.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -637,7 +638,18 @@ void ADVHUD::DrawVehicle(APawn* Vehicle)
 	{
 		Speed = Air->GetSpeedKph();
 		Ready = Air->GetRocketReadyFraction();
-		Extra = FString::Printf(TEXT("ALT %d m"), FMath::RoundToInt(Air->GetAltitude()));
+		Extra = FString::Printf(TEXT("ALT %d m   %s   FLARES %s"), FMath::RoundToInt(Air->GetAltitude()), Air->IsJetMode() ? TEXT("JET") : TEXT("HOVER"),
+			Air->AreFlaresActive() ? TEXT("OUT") : Air->GetFlareReadyFraction() >= 1.f ? TEXT("READY") : TEXT("..."));
+		if (Air->IsCockpitView())
+		{
+			DrawCockpit(Air);
+		}
+	}
+	else if (const ADVHoverbike* Bike = Cast<ADVHoverbike>(Vehicle))
+	{
+		Speed = Bike->GetSpeedKph();
+		Ready = Bike->GetBoostFraction();
+		Extra = TEXT("BOOST");
 	}
 
 	const float X = S(40.f);
@@ -653,7 +665,10 @@ void ADVHUD::DrawVehicle(APawn* Vehicle)
 		Text(FString::Printf(TEXT("HULL %d%%"), FMath::RoundToInt(Hull * 100.f)), X + S(430.f), Y, Hull < 0.3f ? DVHudColors::Hostile : DVHudColors::Dim, GEngine->GetSmallFont(), 1.1f, false, true);
 		Bar(X + S(250.f), Y + S(26.f), S(180.f), S(5.f), Hull, Hull < 0.3f ? DVHudColors::Hostile : DVHudColors::Health);
 	}
-	Text(TEXT("WASD drive  |  mouse aim  |  LMB fire  |  Z exit"), CX, Canvas->ClipY - S(40.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, true);
+	const FString Help = Cast<ADVGunship>(Vehicle) ? TEXT("F hover/jet  |  V cockpit  |  X flares  |  LMB cannon  RMB rockets  |  Z exit")
+		: Cast<ADVHoverbike>(Vehicle) ? TEXT("W/S throttle  |  mouse steer  |  Shift boost  |  Space hop  |  LMB guns  |  Z exit")
+		: TEXT("WASD drive  |  mouse aim  |  LMB fire  |  Z exit");
+	Text(Help, CX, Canvas->ClipY - S(40.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, true);
 }
 
 void ADVHUD::DrawMemorial()
@@ -899,4 +914,49 @@ void ADVHUD::DrawProgression()
 			Text(FString::Printf(TEXT("Unlocked: %s"), *Perk), CX, Y + S(58.f), DVHudColors::Text, GEngine->GetMediumFont(), 1.f, true);
 		}
 	}
+}
+
+void ADVHUD::DrawCockpit(const ADVGunship* Air)
+{
+	// Flight HUD in the canopy glass: horizon and pitch ladder, heading tape, speed and altitude boxes.
+	const float W = Canvas->ClipX;
+	const float H = Canvas->ClipY;
+	const float CX = W * 0.5f;
+	const float CY = H * 0.5f;
+	const FLinearColor Green(0.35f, 1.f, 0.55f, 0.85f);
+	const FRotator View = PlayerOwner && PlayerOwner->PlayerCameraManager ? PlayerOwner->PlayerCameraManager->GetCameraRotation() : FRotator::ZeroRotator;
+	const float PxPerDeg = H / 70.f;
+	for (int32 Deg = -60; Deg <= 60; Deg += 10)
+	{
+		const float Y = CY + (View.Pitch - Deg) * PxPerDeg;
+		if (Y < H * 0.15f || Y > H * 0.85f)
+		{
+			continue;
+		}
+		const float Half = Deg == 0 ? S(260.f) : S(90.f);
+		DrawLine(CX - Half, Y, CX - S(40.f), Y, Green, Deg == 0 ? 2.f : 1.f);
+		DrawLine(CX + S(40.f), Y, CX + Half, Y, Green, Deg == 0 ? 2.f : 1.f);
+		if (Deg != 0)
+		{
+			Text(FString::FromInt(Deg), CX + Half + S(8.f), Y - S(10.f), Green, GEngine->GetSmallFont(), 0.9f);
+		}
+	}
+	// Heading tape.
+	const float Heading = FRotator::NormalizeAxis(View.Yaw) < 0.f ? FRotator::NormalizeAxis(View.Yaw) + 360.f : FRotator::NormalizeAxis(View.Yaw);
+	for (int32 Mark = -40; Mark <= 40; Mark += 10)
+	{
+		const int32 Deg = (FMath::RoundToInt(Heading / 10.f) * 10 + Mark + 360) % 360;
+		const float X = CX + (Deg - Heading + (Deg - Heading > 180.f ? -360.f : Deg - Heading < -180.f ? 360.f : 0.f)) * S(9.f);
+		DrawLine(X, H * 0.12f, X, H * 0.12f + S(10.f), Green, 1.f);
+		Text(FString::Printf(TEXT("%03d"), Deg), X, H * 0.12f + S(12.f), Green, GEngine->GetSmallFont(), 0.85f, true);
+	}
+	// Speed (left) and altitude (right) boxes.
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.3f), CX - S(420.f), CY - S(20.f), S(120.f), S(40.f));
+	Text(FString::Printf(TEXT("%d"), FMath::RoundToInt(Air->GetSpeedKph())), CX - S(360.f), CY - S(14.f), Green, GEngine->GetMediumFont(), 1.f, true);
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.3f), CX + S(300.f), CY - S(20.f), S(120.f), S(40.f));
+	Text(FString::Printf(TEXT("%d"), FMath::RoundToInt(Air->GetAltitude())), CX + S(360.f), CY - S(14.f), Green, GEngine->GetMediumFont(), 1.f, true);
+	Text(Air->IsJetMode() ? TEXT("JET") : TEXT("HOVER"), CX - S(360.f), CY + S(30.f), Green, GEngine->GetSmallFont(), 1.f, true);
+	Text(Air->AreFlaresActive() ? TEXT("FLARES OUT") : TEXT("ECM ARMED"), CX + S(360.f), CY + S(30.f), Air->AreFlaresActive() ? FLinearColor(1.f, 0.6f, 0.2f, 1.f) : Green, GEngine->GetSmallFont(), 1.f, true);
+	Text(TEXT("30MM"), CX - S(60.f), CY + S(120.f), Green, GEngine->GetSmallFont(), 0.95f, true);
+	Text(Air->GetRocketReadyFraction() >= 1.f ? TEXT("RKT RDY") : TEXT("RKT ..."), CX + S(60.f), CY + S(120.f), Green, GEngine->GetSmallFont(), 0.95f, true);
 }

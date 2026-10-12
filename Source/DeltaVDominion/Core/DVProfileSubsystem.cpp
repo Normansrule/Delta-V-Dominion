@@ -8,7 +8,7 @@ namespace
 	const TCHAR* CommanderSlot = TEXT("Commander");
 
 	struct FPaint { const TCHAR* Name; FLinearColor Color; };
-	const FPaint Paints[] = {
+	const FPaint CommanderPaints[] = {
 		{ TEXT("Accord Olive"), FLinearColor(0.16f, 0.2f, 0.13f) },
 		{ TEXT("Arctic"), FLinearColor(0.62f, 0.64f, 0.66f) },
 		{ TEXT("Tharsis Tan"), FLinearColor(0.42f, 0.3f, 0.18f) },
@@ -18,7 +18,7 @@ namespace
 		{ TEXT("Black Ops"), FLinearColor(0.02f, 0.02f, 0.025f) },
 		{ TEXT("Hazard Yellow"), FLinearColor(0.6f, 0.42f, 0.02f) },
 	};
-	const FPaint Optics[] = {
+	const FPaint CommanderOptics[] = {
 		{ TEXT("Cyan"), FLinearColor(0.2f, 0.7f, 1.f) },
 		{ TEXT("Amber"), FLinearColor(1.f, 0.55f, 0.08f) },
 		{ TEXT("Green"), FLinearColor(0.2f, 1.f, 0.35f) },
@@ -26,7 +26,7 @@ namespace
 		{ TEXT("Violet"), FLinearColor(0.6f, 0.25f, 1.f) },
 		{ TEXT("Gold"), FLinearColor(1.f, 0.8f, 0.3f) },
 	};
-	const TCHAR* Callsigns[] = { TEXT("Halcyon"), TEXT("Ghost"), TEXT("Nomad"), TEXT("Atlas"), TEXT("Saint"), TEXT("Kodiak"),
+	const TCHAR* CommanderCallsigns[] = { TEXT("Halcyon"), TEXT("Ghost"), TEXT("Nomad"), TEXT("Atlas"), TEXT("Saint"), TEXT("Kodiak"),
 		TEXT("Echo"), TEXT("Wraith"), TEXT("Lantern"), TEXT("Comet"), TEXT("Juniper"), TEXT("Anvil") };
 }
 
@@ -62,14 +62,14 @@ void UDVProfileSubsystem::Save()
 	UGameplayStatics::SaveGameToSlot(Data, CommanderSlot, 0);
 }
 
-int32 UDVProfileSubsystem::NumPaints() { return UE_ARRAY_COUNT(Paints); }
-int32 UDVProfileSubsystem::NumOptics() { return UE_ARRAY_COUNT(Optics); }
-int32 UDVProfileSubsystem::NumCallsigns() { return UE_ARRAY_COUNT(Callsigns); }
-FLinearColor UDVProfileSubsystem::PaintColor(int32 I) { return Paints[FMath::Clamp(I, 0, NumPaints() - 1)].Color; }
-FString UDVProfileSubsystem::PaintName(int32 I) { return Paints[FMath::Clamp(I, 0, NumPaints() - 1)].Name; }
-FLinearColor UDVProfileSubsystem::OpticsColor(int32 I) { return Optics[FMath::Clamp(I, 0, NumOptics() - 1)].Color; }
-FString UDVProfileSubsystem::OpticsName(int32 I) { return Optics[FMath::Clamp(I, 0, NumOptics() - 1)].Name; }
-FString UDVProfileSubsystem::CallsignName(int32 I) { return Callsigns[FMath::Clamp(I, 0, NumCallsigns() - 1)]; }
+int32 UDVProfileSubsystem::NumPaints() { return UE_ARRAY_COUNT(CommanderPaints); }
+int32 UDVProfileSubsystem::NumOptics() { return UE_ARRAY_COUNT(CommanderOptics); }
+int32 UDVProfileSubsystem::NumCallsigns() { return UE_ARRAY_COUNT(CommanderCallsigns); }
+FLinearColor UDVProfileSubsystem::PaintColor(int32 I) { return CommanderPaints[FMath::Clamp(I, 0, NumPaints() - 1)].Color; }
+FString UDVProfileSubsystem::PaintName(int32 I) { return CommanderPaints[FMath::Clamp(I, 0, NumPaints() - 1)].Name; }
+FLinearColor UDVProfileSubsystem::OpticsColor(int32 I) { return CommanderOptics[FMath::Clamp(I, 0, NumOptics() - 1)].Color; }
+FString UDVProfileSubsystem::OpticsName(int32 I) { return CommanderOptics[FMath::Clamp(I, 0, NumOptics() - 1)].Name; }
+FString UDVProfileSubsystem::CallsignName(int32 I) { return CommanderCallsigns[FMath::Clamp(I, 0, NumCallsigns() - 1)]; }
 
 int32 UDVProfileSubsystem::XPForLevel(int32 Level) const
 {

@@ -57,6 +57,13 @@ never extracted.
 | ![Hold the line](Docs/media/operation_hold.png) | ![Extraction](Docs/media/extraction.png) |
 | **Hold until the charges blow**: the target beacon pulses red, the countdown runs, waves come in | **Extraction**: Raven Two-One comes down on the cyan landing-zone beacon |
 
+## Vehicles
+
+| | | |
+|---|---|---|
+| ![Hoverbike](Docs/media/hoverbike.png) | ![Raven cockpit](Docs/media/raven_cockpit.png) | ![Jackal APC](Docs/media/jackal_apc.png) |
+| **VX-3 Skiff hoverbike**: four ducted fans, skims 1.5 m off the ground, Shift boost, Space hop, twin guns | **Raven cockpit (V)**: pitch ladder, heading tape, speed/altitude, weapon and ECM status; **F** swaps hover and jet flight, **X** dumps flares | **M-14 Jackal APC**: up-armoured, six-wheeled, roof HMG; plus the M9 Sabre tank |
+
 ## Call in the Kestrel, and the Bulwark
 
 <p align="center">
@@ -339,6 +346,7 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
+- [x] Hoverbike, Raven jet mode + cockpit HUD + flares, Jackal APC armour, vehicles that right themselves
 - [x] Movement: sprint-slide, thruster boost jump and dash (predicted, multiplayer-safe)
 - [x] Customisable commander (frame, paint, optics, callsign) and commander levels with perks
 - [x] Down, not dead: wounded soldiers bleed out for 30 s; squadmates (or you, holding Z) revive them

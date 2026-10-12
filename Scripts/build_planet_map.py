@@ -717,6 +717,9 @@ def build():
     kestrel = unreal.load_class(None, "/Script/DeltaVDominion.DVKestrel")
     spawn(ltv, "LTV_Jackal", (-3700, 950, ground(-3700, 950) + 120), rot(yaw=10), "Vehicles")
     spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
+    bike = unreal.load_class(None, "/Script/DeltaVDominion.DVHoverbike")
+    for i, (bx, by) in enumerate([(-3300, 300), (-3300, -300)]):
+        spawn(bike, "Hoverbike_%d" % i, (bx, by, ground(bx, by) + 160), rot(yaw=8), "Vehicles")
     px, py = -5000, 2300
     pz = ground(px, py)
     block("LZ_Pad", (px, py, pz + 15), (1600, 1600, 40), mats["concrete_dark"], folder="Vehicles")
