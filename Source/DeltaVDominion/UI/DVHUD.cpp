@@ -81,8 +81,18 @@ void ADVHUD::DrawHUD()
 		return;
 	}
 
+	if (bViewingSoldier && Soldier->IsDowned())
+	{
+		DrawDowned(Soldier);
+		DrawCasualties(Soldier);
+		DrawSquad(Soldier);
+		DrawObjective(GS);
+		DrawRadio(GS);
+		return;
+	}
 	if (bViewingSoldier && !Soldier->IsDead())
 	{
+		DrawCasualties(Soldier);
 		DrawVehiclePrompt(Soldier);
 		BindOrders(Soldier);
 		DrawSuppression(Soldier);
@@ -736,5 +746,49 @@ void ADVHUD::DrawHeavies()
 		const float W = S(160.f);
 		Text(TEXT("BULWARK"), Screen.X, Screen.Y - S(26.f), DVHudColors::Hostile, GEngine->GetSmallFont(), 1.1f, true);
 		Bar(Screen.X - W * 0.5f, Screen.Y, W, S(6.f), FMath::Clamp(It->GetHealth() / ADVBulwark::BulwarkHealth, 0.f, 1.f), DVHudColors::Hostile);
+	}
+}
+
+void ADVHUD::DrawDowned(const ADVSoldierCharacter* Soldier)
+{
+	const float W = Canvas->ClipX;
+	const float H = Canvas->ClipY;
+	const float Remaining = Soldier->GetBleedOutRemaining();
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(GetWorld()->GetRealTimeSeconds() * (3.f + 6.f * (1.f - Remaining / ADVSoldierCharacter::BleedOutSeconds)));
+	DrawRect(FLinearColor(0.35f, 0.f, 0.f, 0.25f + 0.2f * Pulse), 0.f, 0.f, W, H);
+	Text(TEXT("YOU ARE DOWN"), W * 0.5f, H * 0.38f, FLinearColor(1.f, 0.3f, 0.25f, 1.f), GEngine->GetLargeFont(), 1.6f, true);
+	Text(FString::Printf(TEXT("Bleeding out  %ds"), FMath::CeilToInt(Remaining)), W * 0.5f, H * 0.38f + S(56.f), DVHudColors::Text, GEngine->GetMediumFont(), 1.1f, true);
+	if (Soldier->GetReviveProgress() > 0.f)
+	{
+		Text(TEXT("A squadmate is working on you..."), W * 0.5f, H * 0.38f + S(96.f), DVHudColors::Friendly, GEngine->GetMediumFont(), 1.f, true);
+		Bar(W * 0.4f, H * 0.38f + S(130.f), W * 0.2f, S(6.f), Soldier->GetReviveProgress(), DVHudColors::Friendly);
+	}
+	else
+	{
+		Text(TEXT("Hold on. Your squad is coming."), W * 0.5f, H * 0.38f + S(96.f), DVHudColors::Dim, GEngine->GetMediumFont(), 1.f, true);
+	}
+}
+
+void ADVHUD::DrawCasualties(const ADVSoldierCharacter* Viewer)
+{
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		const ADVSoldierCharacter* Casualty = *It;
+		if (Casualty == Viewer || !Casualty->IsDowned() || Casualty->TeamId != Viewer->TeamId)
+		{
+			continue;
+		}
+		const FVector Screen = Project(Casualty->GetActorLocation() + FVector(0.f, 0.f, 110.f));
+		if (Screen.Z <= 0.f)
+		{
+			continue;
+		}
+		const float Dist = FVector::Dist(Casualty->GetActorLocation(), Viewer->GetActorLocation());
+		const bool bInReach = Dist < ADVSoldierCharacter::ReviveRange;
+		Text(FString::Printf(TEXT("+ %s  %ds"), *Casualty->GetSoldierName(), FMath::CeilToInt(Casualty->GetBleedOutRemaining())), Screen.X, Screen.Y - S(30.f),
+			FLinearColor(1.f, 0.35f, 0.3f, 1.f), GEngine->GetSmallFont(), 1.1f, true);
+		Bar(Screen.X - S(60.f), Screen.Y - S(4.f), S(120.f), S(5.f), Casualty->GetReviveProgress(), DVHudColors::Friendly);
+		Text(bInReach ? FString(TEXT("[hold Z] revive")) : FString::Printf(TEXT("%dm"), FMath::RoundToInt(Dist / 100.f)), Screen.X, Screen.Y + S(8.f),
+			bInReach ? DVHudColors::Friendly : DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, true);
 	}
 }

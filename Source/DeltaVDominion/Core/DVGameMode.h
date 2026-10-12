@@ -29,6 +29,8 @@ public:
 	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 
 	void NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCharacter* Killer, AController* KillerController);
+	void NotifySoldierDowned(ADVSoldierCharacter* Soldier);
+	void NotifySoldierRevived(ADVSoldierCharacter* Soldier);
 
 	UFUNCTION(BlueprintCallable, Category = "Mission")
 	void SpawnSquadFor(ADVSoldierCharacter* Leader);

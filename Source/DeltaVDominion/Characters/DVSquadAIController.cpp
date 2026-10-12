@@ -146,6 +146,35 @@ void ADVSquadAIController::Think()
 	{
 		return;
 	}
+	if (Soldier->IsDowned())
+	{
+		BurstRemaining = 0;
+		return;
+	}
+	// Bring your people home: the nearest Accord soldier goes to anyone down within reach.
+	if (Soldier->TeamId == 1)
+	{
+		ADVSoldierCharacter* Casualty = nullptr;
+		float Best = 3500.f;
+		for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+		{
+			const float Dist = FVector::Dist(It->GetActorLocation(), Soldier->GetActorLocation());
+			if (*It != Soldier && It->IsDowned() && It->TeamId == Soldier->TeamId && Dist < Best)
+			{
+				Best = Dist;
+				Casualty = *It;
+			}
+		}
+		if (Casualty)
+		{
+			LeaveCover();
+			BurstRemaining = 0;
+			SetFocus(Casualty);
+			MoveIfFar(Casualty->GetActorLocation(), ADVSoldierCharacter::ReviveRange * 0.6f, /*bSprint*/ Best > 600.f);
+			State = EDVSquadAIState::Moving;
+			return;
+		}
+	}
 
 	if (Leader.IsValid() && Leader->IsDead())
 	{
@@ -198,7 +227,7 @@ void ADVSquadAIController::UpdateTarget()
 				continue;
 			}
 		}
-		else if (Other->IsDead() || Other->IsHidden() || Soldier->GetTeamAttitudeTowards(*Other) != ETeamAttitude::Hostile)
+		else if (Other->IsOutOfAction() || Other->IsHidden() || Soldier->GetTeamAttitudeTowards(*Other) != ETeamAttitude::Hostile)
 		{
 			continue;
 		}

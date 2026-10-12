@@ -5,6 +5,8 @@
 #include "Combat/DVAttributeSet.h"
 #include "Combat/DVWeaponBase.h"
 #include "Combat/DVWeaponData.h"
+#include "AIController.h"
+#include "EngineUtils.h"
 #include "Combat/DVGA_FireWeapon.h"
 #include "Combat/DVGA_Reload.h"
 #include "Core/DVGameMode.h"
@@ -121,6 +123,9 @@ void ADVSoldierCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(ADVSoldierCharacter, SoldierName);
 	DOREPLIFETIME(ADVSoldierCharacter, TeamId);
 	DOREPLIFETIME(ADVSoldierCharacter, bIsDead);
+	DOREPLIFETIME(ADVSoldierCharacter, bDowned);
+	DOREPLIFETIME(ADVSoldierCharacter, BleedOutEndTime);
+	DOREPLIFETIME(ADVSoldierCharacter, ReviveProgress);
 	DOREPLIFETIME_CONDITION(ADVSoldierCharacter, bIsAiming, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(ADVSoldierCharacter, LeanAmount, COND_SkipOwner);
 }
@@ -434,7 +439,7 @@ float ADVSoldierCharacter::GetSuppression() const
 
 bool ADVSoldierCharacter::TryFire()
 {
-	if (bIsDead || !CurrentWeapon)
+	if (bIsDead || bDowned || !CurrentWeapon)
 	{
 		return false;
 	}
@@ -452,7 +457,7 @@ bool ADVSoldierCharacter::TryFire()
 
 bool ADVSoldierCharacter::TryReload()
 {
-	if (bIsDead)
+	if (bIsDead || bDowned)
 	{
 		return false;
 	}
@@ -535,6 +540,11 @@ void ADVSoldierCharacter::Tick(float DeltaSeconds)
 			bIsAiming = Move->bWantsToAim;
 		}
 
+		if (bDowned)
+		{
+			TickDowned(DeltaSeconds);
+		}
+
 		const float Suppression = AttributeSet->GetSuppression();
 		if (Suppression > 0.f && !bIsDead)
 		{
@@ -562,12 +572,17 @@ void ADVSoldierCharacter::Tick(float DeltaSeconds)
 
 	// Lean: side-step the camera (and arms) for peeking out of cover.
 	CurrentLeanVisual = FMath::FInterpTo(CurrentLeanVisual, LeanAmount, DeltaSeconds, 10.f);
-	FirstPersonCamera->SetRelativeLocation(CameraBaseOffset + FVector(0.f, CurrentLeanVisual * LeanOffset, -FMath::Abs(CurrentLeanVisual) * 4.f));
+	FirstPersonCamera->SetRelativeLocation(CameraBaseOffset + FVector(0.f, CurrentLeanVisual * LeanOffset, -FMath::Abs(CurrentLeanVisual) * 4.f - (bDowned ? 45.f : 0.f)));
 }
 
 // ---------------------------------------------------------------------------
 // Death
 // ---------------------------------------------------------------------------
+
+float ADVSoldierCharacter::GetBleedOutRemaining() const
+{
+	return bDowned ? FMath::Max(0.f, BleedOutEndTime - GetWorld()->GetTimeSeconds()) : 0.f;
+}
 
 void ADVSoldierCharacter::HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser)
 {
@@ -575,8 +590,113 @@ void ADVSoldierCharacter::HandleOutOfHealth(AActor* DamageInstigator, AActor* Da
 	{
 		return;
 	}
+	// Accord soldiers go down first; a downed soldier hit again (or a frame) dies.
+	if (TeamId == 1 && !bDowned)
+	{
+		EnterDowned(DamageInstigator);
+		return;
+	}
+	Die(DamageInstigator);
+}
 
+void ADVSoldierCharacter::EnterDowned(AActor* DamageInstigator)
+{
+	bDowned = true;
+	DownedBy = DamageInstigator;
+	BleedOutEndTime = GetWorld()->GetTimeSeconds() + BleedOutSeconds;
+	ReviveProgress = 0.f;
+	bReviveHeld = false;
+	AbilitySystemComponent->CancelAllAbilities();
+	AbilitySystemComponent->SetNumericAttributeBase(UDVAttributeSet::GetHealthAttribute(), DownedHealth);
+	AttributeSet->ResetOutOfHealth();
+	SetAiming(false);
+	SetSprinting(false);
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		AI->StopMovement();
+	}
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->NotifySoldierDowned(this);
+	}
+	OnRep_Downed();
+}
+
+void ADVSoldierCharacter::TickDowned(float DeltaSeconds)
+{
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Now >= BleedOutEndTime)
+	{
+		Die(DownedBy.Get());
+		return;
+	}
+	// Anyone on our side kneeling next to us patches us up: AI squadmates automatically, players by holding Z.
+	bool bBeingRevived = false;
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		const ADVSoldierCharacter* Medic = *It;
+		if (Medic == this || Medic->IsOutOfAction() || Medic->TeamId != TeamId || Medic->IsHidden()
+			|| FVector::Dist(Medic->GetActorLocation(), GetActorLocation()) > ReviveRange)
+		{
+			continue;
+		}
+		if (!Medic->IsPlayerControlled() || Medic->IsReviveHeld())
+		{
+			bBeingRevived = true;
+			break;
+		}
+	}
+	ReviveProgress = bBeingRevived ? ReviveProgress + DeltaSeconds / ReviveSeconds : FMath::Max(0.f, ReviveProgress - DeltaSeconds / ReviveSeconds);
+	if (ReviveProgress >= 1.f)
+	{
+		Revive();
+	}
+}
+
+void ADVSoldierCharacter::Revive()
+{
+	bDowned = false;
+	ReviveProgress = 0.f;
+	AbilitySystemComponent->SetNumericAttributeBase(UDVAttributeSet::GetHealthAttribute(), 35.f);
+	AttributeSet->ResetOutOfHealth();
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->NotifySoldierRevived(this);
+	}
+	OnRep_Downed();
+}
+
+void ADVSoldierCharacter::OnRep_Downed()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+	// Grey-box downed pose: knelt low, can't move or shoot, camera near the ground.
+	if (bDowned)
+	{
+		Crouch();
+		GetCharacterMovement()->DisableMovement();
+		FirstPersonCamera->SetRelativeLocation(CameraBaseOffset - FVector(0.f, 0.f, 45.f));
+		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, -55.f));
+	}
+	else
+	{
+		UnCrouch();
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		FirstPersonCamera->SetRelativeLocation(CameraBaseOffset);
+		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	}
+}
+
+void ADVSoldierCharacter::Die(AActor* DamageInstigator)
+{
+	if (bIsDead)
+	{
+		return;
+	}
 	bIsDead = true;
+	bDowned = false;
 	AbilitySystemComponent->CancelAllAbilities();
 	AbilitySystemComponent->AddLooseGameplayTag(DVTags::State_Dead);
 	SetAiming(false);
@@ -598,6 +718,7 @@ void ADVSoldierCharacter::HandleOutOfHealth(AActor* DamageInstigator, AActor* Da
 	{
 		GM->NotifySoldierKilled(this, Cast<ADVSoldierCharacter>(DamageInstigator), KillerController);
 	}
+	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 
 	// AI stops thinking; players keep their controller until the game mode respawns them.
 	if (AController* MyController = GetController(); MyController && !MyController->IsPlayerController())

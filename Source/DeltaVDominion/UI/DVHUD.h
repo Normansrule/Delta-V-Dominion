@@ -48,6 +48,8 @@ private:
 	void DrawMemorial();
 	void DrawCallIns(const class ADVGameState* GS);
 	void DrawHeavies();
+	void DrawCasualties(const class ADVSoldierCharacter* Viewer);
+	void DrawDowned(const class ADVSoldierCharacter* Soldier);
 	void DrawRadio(const ADVGameState* GS);
 	void DrawOrbital(const ADVGameState* GS);
 	void BindOrders(ADVSoldierCharacter* Soldier);

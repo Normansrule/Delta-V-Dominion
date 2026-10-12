@@ -77,6 +77,20 @@ public:
 	void EquipWeaponData(UDVWeaponData* Data);
 	UFUNCTION(BlueprintPure, Category = "Soldier") bool IsAiming() const { return bIsAiming; }
 	UFUNCTION(BlueprintPure, Category = "Soldier") bool IsDead() const { return bIsDead; }
+	/** Down, not dead: bleeding out until a squadmate revives them (Accord soldiers only). */
+	UFUNCTION(BlueprintPure, Category = "Soldier") bool IsDowned() const { return bDowned; }
+	bool IsOutOfAction() const { return bIsDead || bDowned; }
+	float GetBleedOutRemaining() const;
+	float GetReviveProgress() const { return ReviveProgress; }
+	/** Server: a player holding Z next to this soldier (AI squadmates revive automatically). */
+	void SetReviveHeld(bool bHeld) { bReviveHeld = bHeld; }
+	bool IsReviveHeld() const { return bReviveHeld; }
+
+	static constexpr float BleedOutSeconds = 30.f;
+	static constexpr float ReviveSeconds = 4.f;
+	static constexpr float ReviveRange = 190.f;
+	/** Extra damage a downed soldier can take before they are finished off. */
+	static constexpr float DownedHealth = 60.f;
 	UFUNCTION(BlueprintPure, Category = "Soldier") float GetLean() const { return LeanAmount; }
 	UFUNCTION(BlueprintPure, Category = "Soldier") float GetHealth() const;
 	UFUNCTION(BlueprintPure, Category = "Soldier") float GetSuppression() const;
@@ -151,9 +165,15 @@ protected:
 	UPROPERTY(Replicated) bool bIsAiming = false;
 	UPROPERTY(Replicated) float LeanAmount = 0.f;
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead) bool bIsDead = false;
+	UPROPERTY(ReplicatedUsing = OnRep_Downed) bool bDowned = false;
+	UPROPERTY(Replicated) float BleedOutEndTime = 0.f;
+	UPROPERTY(Replicated) float ReviveProgress = 0.f;
+	bool bReviveHeld = false;
+	TWeakObjectPtr<AActor> DownedBy;
 
 	UFUNCTION() void OnRep_CurrentWeapon();
 	UFUNCTION() void OnRep_IsDead();
+	UFUNCTION() void OnRep_Downed();
 
 	UFUNCTION(Server, Unreliable) void ServerSetLean(float Amount);
 
@@ -162,6 +182,10 @@ private:
 	void GrantDefaultAbilities();
 	void SpawnDefaultWeapon();
 	void HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser);
+	void Die(AActor* DamageInstigator);
+	void EnterDowned(AActor* DamageInstigator);
+	void Revive();
+	void TickDowned(float DeltaSeconds);
 	void EnterRagdoll();
 	void SetupPlaceholderBody();
 	void ApplyTeamAppearance();

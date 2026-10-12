@@ -328,6 +328,7 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
+- [x] Down, not dead: wounded soldiers bleed out for 30 s; squadmates (or you, holding Z) revive them
 - [x] Destructible vehicles: hull armour, enemies target crewed vehicles, wrecks burn and throw the crew clear
 - [ ] Smoke call-in, Skitter drones, enemy vehicles
 - [ ] Vehicles, space segments, campaign map and story missions

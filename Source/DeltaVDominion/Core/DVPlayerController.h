@@ -120,6 +120,8 @@ private:
 	bool DesignateTarget(FVector& OutTarget) const;
 	void OnMapPressed();
 	void OnInteractPressed();
+	void OnInteractReleased();
+	UFUNCTION(Server, Reliable) void ServerSetReviveHeld(bool bHeld);
 
 	UFUNCTION(Server, Reliable) void ServerEnterVehicle(APawn* Vehicle);
 	UFUNCTION(Server, Reliable) void ServerExitVehicle();

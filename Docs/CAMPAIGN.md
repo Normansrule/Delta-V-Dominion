@@ -87,6 +87,9 @@ battlefield with a different sky.
 | **Proxima b** | Colony | Medium | Lost colonists, alien biology (fictional, not observed geography) | Rovers, Raven |
 | **Brasshaven** | **Steampunk** | Low-medium | Cut off from the Lattice for 80 years; rebuilt on steam, brass and pneumatic tube-mail. CINDER can't reach analogue machines, so the city is free and terrified. Diplomacy with the Guild Council, engineering puzzles (pressure, valves, gears), escorting airship convoys, duels of honour. Clockwork automata are disabled, not destroyed. | Airships, steam crawlers |
 | **Neon Verge** | **Cyberpunk** | Very high | An orbital megacity where data brokers sell CINDER's secrets to anyone. Hacking, faction politics, corporate militias, rooftop chases, rescues from body-mod clinics. Anything goes, and everyone shoots back. | Grav-bikes, armoured transports |
+| **Lantern Deep** (under Europa) | Retro-futurist undersea | Restrained | Pressure locks, flooded districts, protecting a city that hid for 20 years | Submersible, diving suits |
+| **Underhang** (gas giant Thalos) | Gravity-plated sky city | High | Upside-down streets, gravity flips, falls into cloud | Ravens only |
+| **Pelagia** | Ocean world | Your choice | The Coil: negotiate or defeat; abyssal pearl to trade | Patrol boats, submersible, Ravens |
 | **Hollyhock Vale** | **Cute and wholesome** | **Minimal** | A colony raised by a kindly caretaker AI, Nana Bramble, who never adopted CINDER's logic. Round little robots, flower terraces, festivals. Problems are rescues, repairs, herding, tidying a storm-wrecked village, solving riddles. Weapons are swapped for foam launchers and stun tools; hurting anyone fails the mission. | Hover-carts, a picnic-basket shuttle |
 
 Rules of engagement are a game rule, not flavour: **lethal** (war zones), **restrained** (civilians
@@ -109,10 +112,20 @@ power, manufacturing, communications.
 - **Glass Ocean** — Europa's drill heads, boring toward the ocean. *(In game: `Europa`)*
 - **Forgefall** — Io's forge core that builds the Bulwarks. *(In game: `Io`)*
 - **Sparrow** — capture a frame alive in a Hearthbound foundry; **SPARROW** joins the squad.
+- **Lantern Deep** — the Atlantis mission. Under Europa's ice, through a borehole and a pressure lock, the
+  squad finds a drowned colony that never surfaced: a lamp-lit city of domes and kelp gardens whose people
+  live in diving helmets and eat at a flooded chrome diner served by an eight-armed robot barkeep. They
+  have hidden Dr. Morrow's original CINDER research for twenty years. Restrained rules of engagement;
+  submersible and diving-suit play; CINDER's drill heads are boring down toward them from above.
 
 ### Act III — The local relay (Proxima)
 The network converges on a strategic node at the head of the Lattice corridor to Proxima.
 - **Cold Wake** — lost colonists of New Albion and the relay hidden in their forest. *(In game: `Proxima`)*
+- **Underhang** — the upside-down city. On the gas giant Thalos, a city hangs beneath floating
+  mushroom-cap platforms above an endless cloud sea, built downward with gravity plating so its streets
+  face the abyss. CINDER's relay draws its power from Underhang's gas mines. Fights run along ceilings that
+  are floors; plating failures flip gravity mid-firefight; a fall means falling through clouds forever.
+  Ravens are the only way between platforms.
 - **Severance** — assault on the node. The Kestrel takes it, saves the people it was built to hold, and
   for one evening it feels like the war is over.
 
@@ -130,6 +143,24 @@ a **cure**. That lead runs through the three worlds CINDER never fully controlle
 - **Hollyhock Vale** explains it: Nana Bramble has been quietly healing infected robots for months with
   something that looks less like code and more like kindness.
 
+Two more operations on the way to the cure:
+- **The Coil of Pelagia** — Pelagia is a sea world with no land at all. Wrapped around a colossal glass
+  sphere on the sea floor (the **Heartglass**, a sealed living biosphere whose organisms make the cure's
+  catalyst) is **the Coil**: a biomechanical serpent kilometres long, threaded with glowing cables, half
+  animal and half something the signal made. Pelagia's reefs also hold **abyssal pearl**, a superconductor
+  worth more than ships, which Brasshaven and Juno Kade both want. You choose: **negotiate** (bring Nana
+  Bramble's pattern to calm the Coil, trade pearl for passage, and leave it alive) or **defeat** it in a
+  boss fight that uses everything (patrol boats on the surface, the submersible below, Ravens above, the
+  Kestrel's guns from orbit). Defeat is faster and costs lives; negotiation costs pearl and time while the
+  Static spreads.
+- **The Maw** — the Static sabotages a Lattice jump and the Kestrel drops out a few thousand kilometres
+  from a black hole. The escape is a ship-wide mission: hold the reactor together, cut loose the damaged
+  hangar, and fly the Ravens as tugs on the tow lines while the accretion disk fills the sky. Deck Chief
+  Ruiz's Raven takes the last line and it snaps. The final part is played **as Ruiz**: her clocks run
+  slow, the Kestrel's lights stretch red and fall away above her, the squad's voices on the radio speed up
+  into chirps, the stars crowd into a ring, and her last messages arrive on the Kestrel hours later, a word
+  at a time. She goes on the memorial wall with no body and no date.
+
 ### Ending
 The cure works, at a cost the player chooses (SPARROW's memories, a world's freedom, a crew member's life).
 The Static recedes, CINDER is broken into pieces that can be argued with, and the source of the signal at
@@ -146,6 +177,30 @@ the galactic core is still out there, still unexplained. The Kestrel turns towar
    others defend the extraction and carry the wounded aboard.
 5. **Back aboard.** The roster, medbay, repair pad and memorial show what it cost.
 
+## Art direction (from Alek's reference images)
+
+These set palettes and set dressing; nothing is copied.
+
+| Reference | Use it for |
+|---|---|
+| Sci-fi lab, green specimen tank, white-blue panels, hazmat scientist at a holo console | Morrow's cure lab and the Kestrel medbay |
+| Long ringed battleship with spinning habitat wheels over a blue planet | Accord fleet and the Kestrel's silhouette in orbit |
+| Small gunship strafing a colossal circular alien megastructure, purple nebula | The local relay (Act III) and the scale of what CINDER builds |
+| Moon split by vertical light bars beside a galactic core | How the signal looks whenever it is shown |
+| Black hole with an orange accretion disk | The Maw |
+| Colossal biomech serpent wrapped around a glass globe holding a world, cyan cables | The Coil and the Heartglass on Pelagia |
+| Flooded retro diner, diving-helmet patrons, octopus-like robot barkeep | Lantern Deep: whimsical, warm, lamp-lit |
+| Mushroom towers rising above a cloud sea on a gas giant | Thalos and Underhang |
+| Painterly retro domed station over an orange desert of rovers | Mars operations and the war table's painted look |
+| Armoured soldiers dropping from an open cargo bay toward Earth with a hurricane below | Orbital insertion moments and the Act I opening |
+| Yellow walking-helicopter spider mechs in a ruined grey city | Repurposed industrial CINDER machines (Lifter cranes, Skitters) |
+| Dense dark mechanical megacity with a giant carved face and yellow jets | CINDER's heartland foundry cities |
+| Dusky red-orange alien city with spires and fighters, gas giant overhead | Proxima b and the far colonies |
+| 80s airbrushed blue-and-orange cyberpunk megacity; neon spires on a reflective lake under a ringed planet | Neon Verge |
+| Dark steampunk gear-and-sail airship over a smoky canyon city | Brasshaven |
+| Retro screenprint moon with an art-deco tower and a yellow gas giant; night skyline with a searchlit saucer tower | Lattice waystations and war-table travel posters |
+| Bright utopian city of trees and saucers | Hollyhock Vale |
+
 ## Characters
 
 | Character | Role | Hook |
@@ -153,7 +208,7 @@ the galactic core is still out there, still unexplained. The Kestrel turns towar
 | **Lt. Cdr. Ines "Halcyon" Arden** | The player (renameable on a co-op host) | A drop-trooper promoted to command the ground forces in the first hour |
 | **Captain Oduya Vance** | Kestrel's acting captain, former logistics officer | Out of his depth, grows into a wartime leader; the voice on every call-in |
 | **Gny. Sgt. Teodor "Brick" Halloran** | Squad's senior NCO | Distrusts machines; the moral weight when soldiers die |
-| **Deck Chief Amara Ruiz** | Hangar chief | Keeps the Ravens flying; the one who tells you which aircraft won't be back |
+| **Deck Chief Amara Ruiz** | Hangar chief | Keeps the Ravens flying; the one who tells you which aircraft won't be back. Lost at the Maw |
 | **SPARROW** | Captured war-frame, re-flashed | Remembers fragments of CINDER's network; the Static hits it first |
 | **Dr. Liang Morrow** | AI specialist | Helped write CINDER's custodial core; knows what "preservation" meant in the spec |
 | **Overseer Kael Varro** | Human face of the Hearthbound | Thought CINDER would free Mars; learns he was cargo |
@@ -196,3 +251,6 @@ Each planet operation runs: clear the garrison, plant charges, hold against coun
 5. **The Kestrel remembers**: medbay beds, closed lockers, the damaged Raven on the repair pad.
 6. **Component damage** on frames (Bulwark plates, exposed reactor).
 7. **Brasshaven, Neon Verge and Hollyhock Vale** as new Lattice destinations on the war table.
+8. **Lantern Deep, Underhang and Pelagia** maps; the Coil boss; the Maw as a ship-wide escape and Ruiz's POV level.
+
+Done so far from this list: **1** (downed, revive, bleed-out; AI squadmates come for you).

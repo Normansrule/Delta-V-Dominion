@@ -153,6 +153,7 @@ void ADVPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::H, IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
+	InputComponent->BindKey(EKeys::Z, IE_Released, this, &ADVPlayerController::OnInteractReleased);
 }
 
 void ADVPlayerController::OnRedeployPressed()
@@ -421,12 +422,37 @@ void ADVPlayerController::OnMapPressed()
 	}
 }
 
+void ADVPlayerController::OnInteractReleased()
+{
+	ServerSetReviveHeld(false);
+}
+
+void ADVPlayerController::ServerSetReviveHeld_Implementation(bool bHeld)
+{
+	if (ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn()))
+	{
+		Soldier->SetReviveHeld(bHeld && !Soldier->IsOutOfAction());
+	}
+}
+
 void ADVPlayerController::OnInteractPressed()
 {
 	APawn* MyPawn = GetPawn();
 	if (!MyPawn)
 	{
 		return;
+	}
+	// A downed squadmate in reach takes priority over everything else Z does.
+	if (const ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(MyPawn))
+	{
+		for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+		{
+			if (*It != Me && It->IsDowned() && It->TeamId == Me->TeamId && FVector::Dist(It->GetActorLocation(), Me->GetActorLocation()) < ADVSoldierCharacter::ReviveRange)
+			{
+				ServerSetReviveHeld(true);
+				return;
+			}
+		}
 	}
 	if (MyPawn->FindComponentByClass<UDVSeatComponent>())
 	{

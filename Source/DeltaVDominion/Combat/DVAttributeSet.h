@@ -81,6 +81,10 @@ protected:
 	UFUNCTION() void OnRep_Morale(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Accuracy(const FGameplayAttributeData& OldValue);
 
+public:
+	/** Server: re-arm the out-of-health event (a downed soldier can still be finished off). */
+	void ResetOutOfHealth() { bOutOfHealth = false; }
+
 private:
 	bool bOutOfHealth = false;
 };

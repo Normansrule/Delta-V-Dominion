@@ -800,6 +800,30 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 	}
 }
 
+void ADVGameMode::NotifySoldierDowned(ADVSoldierCharacter* Soldier)
+{
+	if (bMissionEnded || !Soldier)
+	{
+		return;
+	}
+	const FString Name = Soldier->IsPlayerControlled() ? FString(TEXT("Commander")) : Soldier->GetSoldierName();
+	Radio(TEXT("Gny. Sgt. Halloran"), FString::Printf(TEXT("%s is down! Somebody get to them!"), *Name));
+	if (ADVGameState* GS = GetDVGameState())
+	{
+		GS->MulticastSound(TEXT("SW_RadioSquelch"), Soldier->GetActorLocation(), 1.f, 0);
+	}
+}
+
+void ADVGameMode::NotifySoldierRevived(ADVSoldierCharacter* Soldier)
+{
+	if (bMissionEnded || !Soldier)
+	{
+		return;
+	}
+	const FString Name = Soldier->IsPlayerControlled() ? FString(TEXT("Commander")) : Soldier->GetSoldierName();
+	Radio(TEXT("Gny. Sgt. Halloran"), FString::Printf(TEXT("%s is back up. Stay low!"), *Name));
+}
+
 void ADVGameMode::RespawnPlayer(TWeakObjectPtr<APlayerController> WeakPC)
 {
 	APlayerController* PC = WeakPC.Get();
