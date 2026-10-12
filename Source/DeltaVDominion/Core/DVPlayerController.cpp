@@ -1,9 +1,11 @@
 ﻿#include "Core/DVPlayerController.h"
 #include "Characters/DVSoldierCharacter.h"
+#include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
 #include "Core/DVGameMode.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
+#include "Core/DVProfileSubsystem.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Combat/DVLoadouts.h"
 #include "Engine/GameInstance.h"
@@ -114,6 +116,10 @@ void ADVPlayerController::StartCapture()
 void ADVPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+	if (IsLocalController())
+	{
+		TickProgression();
+	}
 	if (bCaptureEveryFrame)
 	{
 		CaptureTick();
@@ -150,6 +156,13 @@ void ADVPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
 	InputComponent->BindKey(EKeys::N, IE_Pressed, this, &ADVPlayerController::OnSupplyPressed);
+	const FKey LockerKeys[4] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four };
+	for (int32 Field = 0; Field < 4; ++Field)
+	{
+		FInputKeyBinding Binding(FInputChord(LockerKeys[Field]), IE_Pressed);
+		Binding.KeyDelegate.GetDelegateForManualSet().BindWeakLambda(this, [this, Field]() { OnLockerKey(Field); });
+		InputComponent->KeyBindings.Add(Binding);
+	}
 	InputComponent->BindKey(EKeys::H, IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
@@ -177,6 +190,10 @@ void ADVPlayerController::ClientHitConfirmed_Implementation(bool bKill, bool bHe
 {
 	LastHitTime = GetWorld()->GetTimeSeconds();
 	DVSound::UI(GetWorld(), bKill ? TEXT("SW_KillConfirm") : TEXT("SW_HitMarker"), bKill ? 0.6f : 0.4f);
+	if (bKill)
+	{
+		AwardXP(bHeadshot ? 35 : 25, bHeadshot ? TEXT("Headshot") : TEXT("Kill"));
+	}
 	bLastHitKill = bKill;
 	bLastHitHeadshot = bHeadshot;
 }
@@ -468,6 +485,9 @@ void ADVPlayerController::OnInteractPressed()
 		case EDVInteraction::Memorial:
 			bShowMemorial = !bShowMemorial;
 			break;
+		case EDVInteraction::Locker:
+			SetLockerOpen(!bShowLocker);
+			break;
 		case EDVInteraction::Armoury:
 			if (const UDVRosterSubsystem* Roster = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVRosterSubsystem>() : nullptr)
 			{
@@ -509,9 +529,145 @@ void ADVPlayerController::ServerEquipLoadout_Implementation(int32 Index)
 	}
 }
 
+void ADVPlayerController::AwardXP(int32 Amount, const FString& Reason)
+{
+	UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (!Profile)
+	{
+		return;
+	}
+	const int32 Before = Profile->GetLevel();
+	Profile->AddXP(Amount, Reason);
+	if (Profile->GetLevel() > Before)
+	{
+		DVSound::UI(GetWorld(), TEXT("SW_KillConfirm"), 0.9f);
+		if (ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn()))
+		{
+			Soldier->ServerSetCommanderLevel(Profile->GetLevel());
+		}
+	}
+}
+
+void ADVPlayerController::TickProgression()
+{
+	const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
+	if (!GS)
+	{
+		return;
+	}
+	// Each operation stage reached is worth XP; so is finishing (more for a win).
+	const uint8 Stage = static_cast<uint8>(GS->Stage);
+	if (GS->bMultiStage && Stage > SeenStage)
+	{
+		SeenStage = Stage;
+		AwardXP(100, Stage == 1 ? TEXT("Garrison cleared") : Stage == 2 ? TEXT("Charges planted") : TEXT("Target destroyed"));
+	}
+	if (!bMissionXPAwarded && GS->Phase != EDVMissionPhase::InProgress && !GetWorld()->GetMapName().Contains(TEXT("Kestrel")))
+	{
+		bMissionXPAwarded = true;
+		AwardXP(GS->Phase == EDVMissionPhase::Success ? 300 : 60, GS->Phase == EDVMissionPhase::Success ? TEXT("Mission accomplished") : TEXT("Survived to fight again"));
+	}
+}
+
+void ADVPlayerController::PushLookToPawn()
+{
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn()); Soldier && Profile)
+	{
+		Soldier->ServerSetLook(Profile->GetLook());
+		Soldier->ServerSetCommanderLevel(Profile->GetLevel());
+	}
+}
+
+void ADVPlayerController::SetLockerOpen(bool bOpen)
+{
+	bShowLocker = bOpen;
+	ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn());
+	if (!Soldier)
+	{
+		return;
+	}
+	Soldier->SetShowFullBody(bOpen);
+	if (bOpen)
+	{
+		// A mirror: look at yourself from a few metres in front.
+		const FVector Focus = Soldier->GetActorLocation() + FVector(0.f, 0.f, 30.f);
+		const FVector Eye = Focus + Soldier->GetActorForwardVector() * 300.f + Soldier->GetActorRightVector() * 60.f + FVector(0.f, 0.f, 40.f);
+		if (!MirrorCamera)
+		{
+			MirrorCamera = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), Eye, (Focus - Eye).Rotation());
+		}
+		MirrorCamera->SetActorLocationAndRotation(Eye, (Focus - Eye).Rotation());
+		SetViewTargetWithBlend(MirrorCamera, 0.35f);
+	}
+	else
+	{
+		SetViewTargetWithBlend(Soldier, 0.35f);
+	}
+}
+
+void ADVPlayerController::DVMoveDemo(int32 Mode, float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Mode]()
+	{
+		ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn());
+		UDVCharacterMovementComponent* Move = Soldier ? Cast<UDVCharacterMovementComponent>(Soldier->GetCharacterMovement()) : nullptr;
+		if (!Move)
+		{
+			return;
+		}
+		if (Mode == 0)
+		{
+			Soldier->Jump();
+			FTimerHandle Boost;
+			GetWorldTimerManager().SetTimer(Boost, FTimerDelegate::CreateWeakLambda(this, [Move]() { Move->bWantsToBoost = true; }), 0.35f, false);
+		}
+		else if (Mode == 1)
+		{
+			Move->Velocity = Soldier->GetActorForwardVector() * 700.f;	// as if sprinting
+			Move->bWantsToSlide = true;
+		}
+		else
+		{
+			Move->bWantsToBoost = true;
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::DVLocker(int32 Field, int32 Times)
+{
+	if (!bShowLocker)
+	{
+		SetLockerOpen(true);
+	}
+	for (int32 i = 0; i < Times; ++i)
+	{
+		OnLockerKey(Field);
+	}
+}
+
+void ADVPlayerController::OnLockerKey(int32 Field)
+{
+	if (!bShowLocker)
+	{
+		return;
+	}
+	if (UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+	{
+		Profile->Cycle(Field);
+		DVSound::UI(GetWorld(), TEXT("SW_UIClick"), 0.6f);
+		PushLookToPawn();
+	}
+}
+
 void ADVPlayerController::AcknowledgePossession(APawn* P)
 {
 	Super::AcknowledgePossession(P);
+	if (Cast<ADVSoldierCharacter>(P))
+	{
+		PushLookToPawn();	// your commander, the way you dressed them
+	}
 	// Carry the armoury pick into every mission (and onto a redeployed soldier).
 	const UDVRosterSubsystem* Roster = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVRosterSubsystem>() : nullptr;
 	if (Roster && Roster->PlayerLoadout > 0 && Cast<ADVSoldierCharacter>(P))

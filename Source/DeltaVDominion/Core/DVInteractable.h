@@ -12,7 +12,8 @@ enum class EDVInteraction : uint8
 {
 	WarTable,	// opens the galaxy map to pick the next operation
 	Memorial,	// shows the fallen and the living roster
-	Armoury,	// loadouts (placeholder)
+	Armoury,	// cycle weapon loadouts
+	Locker,		// commander customisation (look, optics, callsign)
 };
 
 /**

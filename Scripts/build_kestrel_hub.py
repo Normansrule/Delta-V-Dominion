@@ -302,6 +302,15 @@ def build():
                 g.set_actor_label("RackGun_%d_%d" % (i, k))
                 g.set_folder_path("Stations")
                 g.set_actor_scale3d(unreal.Vector(2.0, 2.0, 2.0))
+    # Barracks lockers: customise your commander (frame, paint, optics, callsign).
+    locker = spawn(inter, "Locker", (2300, W / 2 - 600, 0), folder="Stations")
+    locker.set_editor_property("interaction", unreal.DVInteraction.LOCKER)
+    locker.set_editor_property("prompt", "Barracks locker: customise your commander")
+    for i in range(8):
+        x = 1700 + i * 170
+        block("LockerUnit_%d" % i, (x, W / 2 - 160, 110), (150, 70, 220), steel if i % 2 else hull, folder="Stations")
+        block("LockerTag_%d" % i, (x, W / 2 - 198, 180), (60, 4, 14), mat("MI_Strip_Cyan"), folder="Stations")
+    light("LockerLight", (2300, W / 2 - 700, 900), (230, 200, 255), 2000.0, 2000.0, spot=True, pitch=-60.0)
     light("ArmouryLight", (-1000, W / 2 - 700, 900), (190, 255, 210), 2500.0, 2200.0, spot=True, pitch=-60.0)
 
     # --- Gameplay -------------------------------------------------------------------------------------

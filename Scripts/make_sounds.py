@@ -132,6 +132,15 @@ def main():
     tt = t_axis(alarm_d)
     save("SW_Alarm", np.sign(np.sin(2 * np.pi * (520 + 180 * (np.sin(2 * np.pi * 2.5 * tt) > 0)) * tt)) * 0.4 * env(alarm_d, 0.01, alarm_d, 0.8))
 
+    # Movement: suit thruster burst and a slide on grit
+    th_d = 0.7
+    burst = highpass(lowpass(noise(th_d), 3500), 200) * env(th_d, 0.01, 0.35, 3)
+    save("SW_Thruster", burst + 0.5 * sweep(240, 90, th_d, 4) * env(th_d, 0.005, 0.3, 3), 0.8)
+    sl_d = 0.9
+    tt = t_axis(sl_d)
+    grit = lowpass(noise(sl_d), 1800) * (0.6 + 0.4 * (rng.random(len(tt)) > 0.97)) * env(sl_d, 0.02, 0.6, 2.5)
+    save("SW_Slide", grit, 0.7)
+
     # Radio and UI
     sq_d = 0.22
     squelch = highpass(noise(sq_d), 1800) * env(sq_d, 0.001, 0.08, 4) * 0.6

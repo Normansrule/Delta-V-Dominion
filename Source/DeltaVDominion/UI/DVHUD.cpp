@@ -8,6 +8,7 @@
 #include "Core/DVPlayerController.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
+#include "Core/DVProfileSubsystem.h"
 #include "Characters/DVBulwark.h"
 #include "Core/DVCallIns.h"
 #include "Combat/DVLoadouts.h"
@@ -65,6 +66,14 @@ void ADVHUD::DrawHUD()
 	if (GS && GS->Phase != EDVMissionPhase::InProgress)
 	{
 		DrawAfterAction(GS);
+		DrawProgression();
+		return;
+	}
+	if (const ADVPlayerController* LockerPC = Cast<ADVPlayerController>(PlayerOwner); LockerPC && LockerPC->IsLockerOpen())
+	{
+		// Mirror view at the barracks locker: just the customisation and service record.
+		DrawLocker();
+		DrawProgression();
 		return;
 	}
 
@@ -99,6 +108,7 @@ void ADVHUD::DrawHUD()
 		DrawCrosshair(Soldier);
 		DrawHitMarker();
 		DrawVitals(Soldier);
+		DrawThrusters(Soldier);
 		DrawAmmo(Soldier);
 		DrawOrderToast();
 	}
@@ -583,6 +593,7 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 	{
 		DrawMemorial();
 	}
+	DrawProgression();
 	if (const ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner); PC && GetWorld()->GetTimeSeconds() - PC->GetArmouryTime() < 4.0)
 	{
 		const UDVWeaponData* Data = Soldier->GetCurrentWeapon() ? Soldier->GetCurrentWeapon()->GetData() : nullptr;
@@ -790,5 +801,102 @@ void ADVHUD::DrawCasualties(const ADVSoldierCharacter* Viewer)
 		Bar(Screen.X - S(60.f), Screen.Y - S(4.f), S(120.f), S(5.f), Casualty->GetReviveProgress(), DVHudColors::Friendly);
 		Text(bInReach ? FString(TEXT("[hold Z] revive")) : FString::Printf(TEXT("%dm"), FMath::RoundToInt(Dist / 100.f)), Screen.X, Screen.Y + S(8.f),
 			bInReach ? DVHudColors::Friendly : DVHudColors::Dim, GEngine->GetSmallFont(), 1.f, true);
+	}
+}
+
+void ADVHUD::DrawThrusters(const ADVSoldierCharacter* Soldier)
+{
+	const float Max = Soldier->GetMaxBoostCharges();
+	const float Charges = Soldier->GetBoostCharges();
+	const float X = S(40.f);
+	const float Y = Canvas->ClipY - S(160.f);
+	Text(TEXT("THRUST"), X, Y, DVHudColors::Dim, GEngine->GetSmallFont(), 1.f);
+	for (int32 i = 0; i < FMath::RoundToInt(Max); ++i)
+	{
+		const float Fill = FMath::Clamp(Charges - i, 0.f, 1.f);
+		const float PX = X + S(80.f) + i * S(46.f);
+		DrawRect(FLinearColor(0.1f, 0.12f, 0.15f, 0.8f), PX, Y + S(4.f), S(40.f), S(10.f));
+		DrawRect(Fill >= 1.f ? FLinearColor(0.35f, 0.75f, 1.f, 1.f) : FLinearColor(0.25f, 0.4f, 0.55f, 1.f), PX, Y + S(4.f), S(40.f) * Fill, S(10.f));
+	}
+}
+
+void ADVHUD::DrawLocker()
+{
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (!Profile)
+	{
+		return;
+	}
+	const FDVLook& L = Profile->GetLook();
+	const float X = Canvas->ClipX * 0.06f;
+	float Y = Canvas->ClipY * 0.22f;
+	DrawRect(FLinearColor(0.01f, 0.012f, 0.02f, 0.82f), X - S(20.f), Y - S(20.f), S(560.f), S(330.f));
+	Text(TEXT("BARRACKS LOCKER"), X, Y, FLinearColor(0.85f, 0.6f, 1.f, 1.f), GEngine->GetLargeFont(), 1.2f);
+	Y += S(60.f);
+	const FString Rows[4] = {
+		FString::Printf(TEXT("[1]  Frame          %s"), L.Body == 1 ? TEXT("Light (B)") : TEXT("Standard (A)")),
+		FString::Printf(TEXT("[2]  Armour paint   %s"), *UDVProfileSubsystem::PaintName(L.Paint)),
+		FString::Printf(TEXT("[3]  Optics         %s"), *UDVProfileSubsystem::OpticsName(L.Optics)),
+		FString::Printf(TEXT("[4]  Callsign       \"%s\""), *UDVProfileSubsystem::CallsignName(L.Callsign)) };
+	const FLinearColor Swatch[4] = { DVHudColors::Text, UDVProfileSubsystem::PaintColor(L.Paint) * 2.f, UDVProfileSubsystem::OpticsColor(L.Optics), DVHudColors::Text };
+	for (int32 i = 0; i < 4; ++i)
+	{
+		Text(Rows[i], X, Y, DVHudColors::Text, GEngine->GetMediumFont(), 1.05f);
+		if (i == 1 || i == 2)
+		{
+			DrawRect(FLinearColor(Swatch[i].R, Swatch[i].G, Swatch[i].B, 1.f), X + S(470.f), Y + S(6.f), S(30.f), S(22.f));
+		}
+		Y += S(48.f);
+	}
+	Text(TEXT("Saved automatically.   [Z] close"), X, Y + S(10.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.05f);
+
+	// Service record: level, XP to next, perks.
+	const float RX = X + S(600.f);
+	float RY = Canvas->ClipY * 0.22f;
+	const int32 Level = Profile->GetLevel();
+	DrawRect(FLinearColor(0.01f, 0.012f, 0.02f, 0.82f), RX - S(20.f), RY - S(20.f), S(480.f), S(330.f));
+	Text(FString::Printf(TEXT("COMMANDER LEVEL %d"), Level), RX, RY, FLinearColor(1.f, 0.8f, 0.35f, 1.f), GEngine->GetLargeFont(), 1.1f);
+	RY += S(52.f);
+	const int32 Cur = Profile->XPForLevel(Level);
+	const int32 Next = Profile->XPForLevel(Level + 1);
+	if (Level < DVPerks::MaxLevel)
+	{
+		Bar(RX, RY, S(420.f), S(6.f), float(Profile->GetXP() - Cur) / FMath::Max(1, Next - Cur), FLinearColor(1.f, 0.8f, 0.35f, 1.f));
+		Text(FString::Printf(TEXT("%d / %d XP"), Profile->GetXP(), Next), RX, RY + S(12.f), DVHudColors::Dim, GEngine->GetSmallFont(), 1.f);
+	}
+	RY += S(46.f);
+	for (int32 PerkLevel = DVPerks::ExtraThruster; PerkLevel <= DVPerks::KestrelFavour; ++PerkLevel)
+	{
+		const bool bHave = Level >= PerkLevel;
+		Text(FString::Printf(TEXT("%s  L%d  %s"), bHave ? TEXT("+") : TEXT("-"), PerkLevel, *UDVProfileSubsystem::PerkName(PerkLevel)), RX, RY,
+			bHave ? DVHudColors::Friendly : DVHudColors::Dim, GEngine->GetSmallFont(), 1.05f);
+		RY += S(32.f);
+	}
+}
+
+void ADVHUD::DrawProgression()
+{
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (!Profile)
+	{
+		return;
+	}
+	const double Now = GetWorld()->GetRealTimeSeconds();
+	if (Now - Profile->LastAwardTime < 2.5)
+	{
+		const float A = FMath::Clamp(float(2.5 - (Now - Profile->LastAwardTime)) / 0.6f, 0.f, 1.f);
+		Text(Profile->LastAward, Canvas->ClipX * 0.5f, Canvas->ClipY * 0.56f, FLinearColor(1.f, 0.8f, 0.35f, A), GEngine->GetSmallFont(), 1.15f, true);
+	}
+	if (Now - Profile->LastLevelUpTime < 5.0)
+	{
+		const float CX = Canvas->ClipX * 0.5f;
+		const float Y = Canvas->ClipY * 0.26f;
+		DrawRect(FLinearColor(0.02f, 0.015f, 0.005f, 0.75f), CX - S(330.f), Y - S(16.f), S(660.f), S(110.f));
+		Text(FString::Printf(TEXT("COMMANDER LEVEL %d"), Profile->LastLevelUp), CX, Y, FLinearColor(1.f, 0.8f, 0.35f, 1.f), GEngine->GetLargeFont(), 1.4f, true);
+		const FString Perk = UDVProfileSubsystem::PerkName(Profile->LastLevelUp);
+		if (!Perk.IsEmpty())
+		{
+			Text(FString::Printf(TEXT("Unlocked: %s"), *Perk), CX, Y + S(58.f), DVHudColors::Text, GEngine->GetMediumFont(), 1.f, true);
+		}
 	}
 }

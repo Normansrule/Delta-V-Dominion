@@ -5,6 +5,7 @@
 #include "Combat/DVAttributeSet.h"
 #include "Combat/DVWeaponBase.h"
 #include "Combat/DVWeaponData.h"
+#include "Core/DVFx.h"
 #include "AIController.h"
 #include "EngineUtils.h"
 #include "Combat/DVGA_FireWeapon.h"
@@ -75,6 +76,7 @@ ADVSoldierCharacter::ADVSoldierCharacter(const FObjectInitializer& ObjectInitial
 		GetMesh()->SetAnimInstanceClass(RifleAnim.Class);
 	}
 	HostileBodyMesh = QuinnMesh.Object;
+	DefaultBodyMesh = MannyMesh.Object;
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
 
 	// Grey-box stand-in so the game is playable before character art exists. Hidden in BeginPlay once a Mesh is set.
@@ -124,6 +126,8 @@ void ADVSoldierCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(ADVSoldierCharacter, TeamId);
 	DOREPLIFETIME(ADVSoldierCharacter, bIsDead);
 	DOREPLIFETIME(ADVSoldierCharacter, bDowned);
+	DOREPLIFETIME(ADVSoldierCharacter, Look);
+	DOREPLIFETIME(ADVSoldierCharacter, CommanderLevel);
 	DOREPLIFETIME(ADVSoldierCharacter, BleedOutEndTime);
 	DOREPLIFETIME(ADVSoldierCharacter, ReviveProgress);
 	DOREPLIFETIME_CONDITION(ADVSoldierCharacter, bIsAiming, COND_SkipOwner);
@@ -158,10 +162,27 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 		GetMesh()->SetSkeletalMeshAsset(HostileBodyMesh);
 	}
 	const bool bFriendly = TeamId == 1;
+	if (bFriendly && Look.bSet)
+	{
+		USkeletalMesh* Wanted = Look.Body == 1 ? HostileBodyMesh.Get() : DefaultBodyMesh.Get();
+		if (Wanted && GetMesh()->GetSkeletalMeshAsset() != Wanted)
+		{
+			GetMesh()->SetSkeletalMeshAsset(Wanted);
+		}
+	}
 	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
 	{
 		if (UMaterialInstanceDynamic* Mat = GetMesh()->CreateAndSetMaterialInstanceDynamic(i))
 		{
+			if (bFriendly && Look.bSet)
+			{
+				Mat->SetVectorParameterValue(TEXT("Paint Tint"), UDVProfileSubsystem::PaintColor(Look.Paint));
+				Mat->SetVectorParameterValue(TEXT("LogoTint"), UDVProfileSubsystem::OpticsColor(Look.Optics));
+				Mat->SetScalarParameterValue(TEXT("MetalPaintMetallic"), 0.35f);
+				Mat->SetScalarParameterValue(TEXT("MetalPaintRoughness"), 0.45f);
+				Mat->SetScalarParameterValue(TEXT("EmissivePower"), 14.f);
+				continue;
+			}
 			// Accord marines: matte olive armour, cyan unit markings.
 			// Hearthbound war-frames: black chrome chassis, hot red optics and seams.
 			Mat->SetVectorParameterValue(TEXT("Paint Tint"), bFriendly ? FriendlyPaint : HostilePaint);
@@ -186,7 +207,7 @@ void ADVSoldierCharacter::UpdateFirstPersonBody()
 	}
 	GetMesh()->SetOwnerNoSee(false);
 	FirstPersonMesh->SetVisibility(false);
-	if (bFirstPerson)
+	if (bFirstPerson && !bShowFullBody)
 	{
 		GetMesh()->HideBoneByName(TEXT("neck_01"), EPhysBodyOp::PBO_None);
 	}
@@ -632,6 +653,7 @@ void ADVSoldierCharacter::TickDowned(float DeltaSeconds)
 	}
 	// Anyone on our side kneeling next to us patches us up: AI squadmates automatically, players by holding Z.
 	bool bBeingRevived = false;
+	float ReviveRate = 1.f;
 	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
 	{
 		const ADVSoldierCharacter* Medic = *It;
@@ -643,10 +665,10 @@ void ADVSoldierCharacter::TickDowned(float DeltaSeconds)
 		if (!Medic->IsPlayerControlled() || Medic->IsReviveHeld())
 		{
 			bBeingRevived = true;
-			break;
+			ReviveRate = FMath::Max(ReviveRate, Medic->GetCommanderLevel() >= DVPerks::FieldMedic ? 1.8f : 1.f);
 		}
 	}
-	ReviveProgress = bBeingRevived ? ReviveProgress + DeltaSeconds / ReviveSeconds : FMath::Max(0.f, ReviveProgress - DeltaSeconds / ReviveSeconds);
+	ReviveProgress = bBeingRevived ? ReviveProgress + ReviveRate * DeltaSeconds / ReviveSeconds : FMath::Max(0.f, ReviveProgress - DeltaSeconds / ReviveSeconds);
 	if (ReviveProgress >= 1.f)
 	{
 		Revive();
@@ -687,6 +709,81 @@ void ADVSoldierCharacter::OnRep_Downed()
 		FirstPersonCamera->SetRelativeLocation(CameraBaseOffset);
 		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 	}
+}
+
+void ADVSoldierCharacter::OnThrusterBoost()
+{
+	const FVector Feet = GetActorLocation() - FVector(0.f, 0.f, 80.f);
+	DVSound::At(GetWorld(), TEXT("SW_Thruster"), Feet, 0.8f, 0);
+	DVFx::Flash(GetWorld(), Feet, FLinearColor(0.35f, 0.7f, 1.f), 4000.f, 600.f, 0.15f);
+	if (IsLocallyControlled())
+	{
+		FirstPersonCamera->SetFieldOfView(FirstPersonCamera->FieldOfView + 8.f);	// eases back in Tick
+	}
+}
+
+void ADVSoldierCharacter::OnSlideStarted()
+{
+	DVSound::At(GetWorld(), TEXT("SW_Slide"), GetActorLocation() - FVector(0.f, 0.f, 80.f), 0.7f, 0);
+	if (IsLocallyControlled())
+	{
+		FirstPersonCamera->SetFieldOfView(FirstPersonCamera->FieldOfView + 5.f);
+	}
+}
+
+float ADVSoldierCharacter::GetBoostCharges() const
+{
+	const UDVCharacterMovementComponent* Move = GetDVMovement();
+	return Move ? Move->GetBoostCharges() : 0.f;
+}
+
+float ADVSoldierCharacter::GetMaxBoostCharges() const
+{
+	const UDVCharacterMovementComponent* Move = GetDVMovement();
+	return Move ? Move->MaxBoostCharges : 0.f;
+}
+
+void ADVSoldierCharacter::ServerSetLook_Implementation(const FDVLook& NewLook)
+{
+	Look = NewLook;
+	Look.bSet = true;
+	SoldierName = FString::Printf(TEXT("Cdr. \"%s\""), *UDVProfileSubsystem::CallsignName(Look.Callsign));
+	OnRep_Look();
+}
+
+void ADVSoldierCharacter::ServerSetCommanderLevel_Implementation(int32 Level)
+{
+	CommanderLevel = FMath::Clamp(Level, 1, DVPerks::MaxLevel);
+	if (CommanderLevel >= DVPerks::Hardened)
+	{
+		AbilitySystemComponent->SetNumericAttributeBase(UDVAttributeSet::GetMaxHealthAttribute(), 125.f);
+		AbilitySystemComponent->SetNumericAttributeBase(UDVAttributeSet::GetHealthAttribute(), 125.f);
+	}
+	if (CommanderLevel >= DVPerks::PlateCarrier)
+	{
+		AbilitySystemComponent->SetNumericAttributeBase(UDVAttributeSet::GetArmorAttribute(), 40.f);
+	}
+	OnRep_CommanderLevel();
+}
+
+void ADVSoldierCharacter::OnRep_CommanderLevel()
+{
+	if (UDVCharacterMovementComponent* Move = GetDVMovement())
+	{
+		Move->MaxBoostCharges = CommanderLevel >= DVPerks::ExtraThruster ? 3.f : 2.f;
+	}
+}
+
+void ADVSoldierCharacter::OnRep_Look()
+{
+	ApplyTeamAppearance();
+	UpdateFirstPersonBody();
+}
+
+void ADVSoldierCharacter::SetShowFullBody(bool bShow)
+{
+	bShowFullBody = bShow;
+	UpdateFirstPersonBody();
 }
 
 void ADVSoldierCharacter::Die(AActor* DamageInstigator)
@@ -789,7 +886,8 @@ void ADVSoldierCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 	Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ADVSoldierCharacter::Input_Move);
 	Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADVSoldierCharacter::Input_Look);
-	Input->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+	Input->BindAction(JumpAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_Jump);
+	Input->BindAction(DashAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_Dash);
 	Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 	Input->BindAction(FireAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_FireStarted);
 	Input->BindAction(FireAction, ETriggerEvent::Completed, this, &ADVSoldierCharacter::Input_FireCompleted);
@@ -858,8 +956,40 @@ void ADVSoldierCharacter::Input_FireCompleted()
 	bFireHeld = false;
 }
 
+void ADVSoldierCharacter::Input_Jump()
+{
+	if (bDowned)
+	{
+		return;
+	}
+	UDVCharacterMovementComponent* Move = GetDVMovement();
+	if (Move && Move->IsFalling())
+	{
+		Move->bWantsToBoost = true;	// thruster boost jump
+		return;
+	}
+	Jump();
+}
+
+void ADVSoldierCharacter::Input_Dash()
+{
+	if (UDVCharacterMovementComponent* Move = GetDVMovement(); Move && !bDowned)
+	{
+		Move->bWantsToBoost = true;	// on the ground this is a thruster dash
+	}
+}
+
 void ADVSoldierCharacter::Input_Crouch()
 {
+	if (bDowned)
+	{
+		return;
+	}
+	if (UDVCharacterMovementComponent* Move = GetDVMovement(); Move && Move->IsSprinting() && Move->Velocity.Size2D() >= Move->SlideMinSpeed)
+	{
+		Move->bWantsToSlide = true;
+		return;
+	}
 	if (bIsCrouched)
 	{
 		UnCrouch();
@@ -897,6 +1027,7 @@ void ADVSoldierCharacter::CreateFallbackInput()
 	ReloadAction = MakeAction(TEXT("IA_Reload"), EInputActionValueType::Boolean);
 	SprintAction = MakeAction(TEXT("IA_Sprint"), EInputActionValueType::Boolean);
 	CrouchAction = MakeAction(TEXT("IA_Crouch"), EInputActionValueType::Boolean);
+	DashAction = MakeAction(TEXT("IA_Dash"), EInputActionValueType::Boolean);
 	LeanLeftAction = MakeAction(TEXT("IA_LeanLeft"), EInputActionValueType::Boolean);
 	LeanRightAction = MakeAction(TEXT("IA_LeanRight"), EInputActionValueType::Boolean);
 	OrderMoveAction = MakeAction(TEXT("IA_OrderMove"), EInputActionValueType::Boolean);
@@ -923,6 +1054,8 @@ void ADVSoldierCharacter::CreateFallbackInput()
 	Ctx->MapKey(ReloadAction, EKeys::R);
 	Ctx->MapKey(SprintAction, EKeys::LeftShift);
 	Ctx->MapKey(CrouchAction, EKeys::C);
+	Ctx->MapKey(CrouchAction, EKeys::LeftControl);
+	Ctx->MapKey(DashAction, EKeys::LeftAlt);
 	Ctx->MapKey(LeanLeftAction, EKeys::Q);
 	Ctx->MapKey(LeanRightAction, EKeys::E);
 	Ctx->MapKey(OrderMoveAction, EKeys::F);

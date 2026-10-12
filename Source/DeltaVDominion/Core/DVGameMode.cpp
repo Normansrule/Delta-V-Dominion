@@ -199,7 +199,9 @@ void ADVGameMode::RequestOrbitalStrike(APlayerController* Caller, const FVector&
 	{
 		return;	// out of designator range (also guards against spoofed targets)
 	}
-	GS->OrbitalReadyTime = Now + OrbitalCooldown + OrbitalDelay;
+	const ADVSoldierCharacter* Commander = Cast<ADVSoldierCharacter>(Caller->GetPawn());
+	const float Favour = Commander && Commander->GetCommanderLevel() >= DVPerks::KestrelFavour ? 0.75f : 1.f;
+	GS->OrbitalReadyTime = Now + OrbitalCooldown * Favour + OrbitalDelay;
 	GS->MulticastOrbitalStrike(Target, OrbitalDelay);
 	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Target painted. Rounds away, three seconds. Danger close!"));
 
@@ -549,7 +551,9 @@ void ADVGameMode::RequestSupplyDrop(APlayerController* Caller, const FVector& Ta
 	{
 		return;
 	}
-	GS->SupplyReadyTime = GetWorld()->GetTimeSeconds() + SupplyCooldown;
+	const ADVSoldierCharacter* Commander = Cast<ADVSoldierCharacter>(Caller->GetPawn());
+	const float Favour = Commander && Commander->GetCommanderLevel() >= DVPerks::KestrelFavour ? 0.75f : 1.f;
+	GS->SupplyReadyTime = GetWorld()->GetTimeSeconds() + SupplyCooldown * Favour;
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	if (ADVSupplyPod* Pod = GetWorld()->SpawnActor<ADVSupplyPod>(ADVSupplyPod::StaticClass(), Target + FVector(0.f, 0.f, 9000.f), FRotator::ZeroRotator, Params))
@@ -566,7 +570,9 @@ void ADVGameMode::RequestStrafeRun(APlayerController* Caller, const FVector& Tar
 	{
 		return;
 	}
-	GS->StrafeReadyTime = GetWorld()->GetTimeSeconds() + StrafeCooldown;
+	const ADVSoldierCharacter* Commander = Cast<ADVSoldierCharacter>(Caller->GetPawn());
+	const float Favour = Commander && Commander->GetCommanderLevel() >= DVPerks::KestrelFavour ? 0.75f : 1.f;
+	GS->StrafeReadyTime = GetWorld()->GetTimeSeconds() + StrafeCooldown * Favour;
 	APawn* CallerPawn = Caller->GetPawn();
 	ADVSoldierCharacter* Shooter = Cast<ADVSoldierCharacter>(CallerPawn);
 	if (!Shooter)

@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
 #include "Net/DVRateLimiter.h"
+#include "Core/DVProfileSubsystem.h"
 #include "DVSoldierCharacter.generated.h"
 
 class UCameraComponent;
@@ -80,6 +81,20 @@ public:
 	/** Down, not dead: bleeding out until a squadmate revives them (Accord soldiers only). */
 	UFUNCTION(BlueprintPure, Category = "Soldier") bool IsDowned() const { return bDowned; }
 	bool IsOutOfAction() const { return bIsDead || bDowned; }
+
+	/** Cosmetics for movement abilities (called by the movement component on the owning client and server). */
+	void OnThrusterBoost();
+	void OnSlideStarted();
+	float GetBoostCharges() const;
+	float GetMaxBoostCharges() const;
+
+	/** The commander's customised look (replicated; applied over the team paint). */
+	UFUNCTION(Server, Reliable) void ServerSetLook(const FDVLook& NewLook);
+	/** The commander's level (perks are applied on the server from it). */
+	UFUNCTION(Server, Reliable) void ServerSetCommanderLevel(int32 Level);
+	int32 GetCommanderLevel() const { return CommanderLevel; }
+	/** Show the whole body (head included) for the locker mirror view. */
+	void SetShowFullBody(bool bShow);
 	float GetBleedOutRemaining() const;
 	float GetReviveProgress() const { return ReviveProgress; }
 	/** Server: a player holding Z next to this soldier (AI squadmates revive automatically). */
@@ -141,6 +156,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> ReloadAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> SprintAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> CrouchAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> DashAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> LeanLeftAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> LeanRightAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> OrderMoveAction;
@@ -166,6 +182,10 @@ protected:
 	UPROPERTY(Replicated) float LeanAmount = 0.f;
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead) bool bIsDead = false;
 	UPROPERTY(ReplicatedUsing = OnRep_Downed) bool bDowned = false;
+	UPROPERTY(ReplicatedUsing = OnRep_Look) FDVLook Look;
+	UPROPERTY(ReplicatedUsing = OnRep_CommanderLevel) int32 CommanderLevel = 0;
+	UPROPERTY() TObjectPtr<USkeletalMesh> DefaultBodyMesh;
+	bool bShowFullBody = false;
 	UPROPERTY(Replicated) float BleedOutEndTime = 0.f;
 	UPROPERTY(Replicated) float ReviveProgress = 0.f;
 	bool bReviveHeld = false;
@@ -174,6 +194,8 @@ protected:
 	UFUNCTION() void OnRep_CurrentWeapon();
 	UFUNCTION() void OnRep_IsDead();
 	UFUNCTION() void OnRep_Downed();
+	UFUNCTION() void OnRep_Look();
+	UFUNCTION() void OnRep_CommanderLevel();
 
 	UFUNCTION(Server, Unreliable) void ServerSetLean(float Amount);
 
@@ -197,6 +219,8 @@ private:
 	// Input handlers
 	void Input_Move(const FInputActionValue& Value);
 	void Input_Look(const FInputActionValue& Value);
+	void Input_Jump();
+	void Input_Dash();
 	void Input_FireStarted();
 	void Input_FireCompleted();
 	void Input_AimStarted() { SetAiming(true); }

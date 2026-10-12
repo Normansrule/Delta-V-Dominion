@@ -47,6 +47,12 @@ public:
 	/** Console (dev builds): "DVReadyCallIns" recharges the orbital strike, supply drop and strafing run. */
 	UFUNCTION(Exec)
 	void DVReadyCallIns();
+	/** Console / capture: "DVLocker [Field] [Times]" opens the barracks locker mirror and optionally cycles a field. */
+	UFUNCTION(Exec)
+	void DVLocker(int32 Field = -1, int32 Times = 0);
+	/** Console (tests): "DVMoveDemo 0|1|2 [Delay]" 0 = jump + thruster boost, 1 = sprint slide, 2 = ground dash. */
+	UFUNCTION(Exec)
+	void DVMoveDemo(int32 Mode, float Delay = 0.f);
 	/** Console (dev builds): "DVSkipStage [Delay]" advances the operation (clear > plant > hold > extract). */
 	UFUNCTION(Exec)
 	void DVSkipStage(float Delay = 0.f);
@@ -89,6 +95,7 @@ public:
 
 	double GetLastHitTime() const { return LastHitTime; }
 	bool IsMemorialOpen() const { return bShowMemorial; }
+	bool IsLockerOpen() const { return bShowLocker; }
 	double GetArmouryTime() const { return ArmouryTime; }
 
 	/** Console / capture: "DVLoadout N" equips armoury weapon N (0 Bastion, 1 Kite, 2 Halberd, 3 Longreach, 4 Pulse). */
@@ -140,6 +147,16 @@ private:
 
 	double LastHitTime = -100.0;
 	bool bShowMemorial = false;
+	bool bShowLocker = false;
+	/** Progression bookkeeping on the owning client. */
+	uint8 SeenStage = 0;
+	bool bMissionXPAwarded = false;
+	void AwardXP(int32 Amount, const FString& Reason);
+	void TickProgression();
+	UPROPERTY() TObjectPtr<class ACameraActor> MirrorCamera;
+	void SetLockerOpen(bool bOpen);
+	void OnLockerKey(int32 Field);
+	void PushLookToPawn();
 	double ArmouryTime = -100.0;
 	bool bLastHitKill = false;
 	bool bLastHitHeadshot = false;

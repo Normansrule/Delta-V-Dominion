@@ -35,6 +35,16 @@ Launch any of them from the galaxy map.
 | ![Ceres](Docs/media/planet_ceres.png) | ![Gaia](Docs/media/planet_gaia.png) | ![Mars](Docs/media/outpost.png) |
 | **Ghost Signal**: a night mining town on Ceres under sodium and neon | **Gaia Falls**: the hills outside the capital on Earth | **Red Tide**: Tharsis Ridge on Mars at dusk |
 
+## Your commander
+
+Walk to the **barracks locker** on the Kestrel to customise your commander: body frame, armour paint, optics
+colour and callsign, previewed in a mirror view and saved between sessions. Kills, operation stages and
+missions earn **commander XP**; levels unlock perks (an extra thruster charge, faster revives, more health,
+a plate carrier, faster call-ins). Moving well matters: **slide** out of a sprint, **boost** with suit
+thrusters in the air, and **dash** on the ground.
+
+<p align="center"><img src="Docs/media/commander_locker.png" width="720" alt="The barracks locker: customising the commander, with the service record and perks"></p>
+
 ## Every mission is an operation
 
 Clear the garrison, then the radio gives you the real job: **plant charges on the target** (stand on the amber
@@ -138,11 +148,12 @@ Unreal games are Windows-native; on Linux use Steam Proton, on macOS a Windows V
 | LMB / RMB | Fire / aim down sights | G | Squad: hold position |
 | R | Reload | V | Squad: regroup on me |
 | Shift | Sprint | T | Squad: suppress target |
-| C | Crouch | X | Squad: flank target |
-| Q / E | Lean left / right | Space | Jump |
+| C / Ctrl | Crouch; **slide** while sprinting | X | Squad: flank target |
+| Q / E | Lean left / right | Space | Jump; in the air, **thruster boost** |
+| Left Alt | **Thruster dash** (charges shown as THRUST) | Z (hold) | Revive a downed squadmate |
 | B / N / H | Orbital strike (danger close) / supply drop / strafing run on the crosshair | Enter / M | Redeploy / back to the galaxy map (after a mission) |
 | **Galaxy map** | Left-drag orbit, right-drag or WASD pan, wheel zoom, click a system, **1-3** launch, H home, G galaxy | | |
-| Z | Board / exit vehicles; use the war table, memorial, armoury | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
+| Z | Board / exit vehicles; use the war table, memorial, armoury, barracks locker (1-4 customise) | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
 | **Driving** | W/S throttle, A/D steer, mouse aims, LMB fires, Space handbrake | **Flying** | W/S/A/D move, Space up, C down, LMB cannon, RMB rockets |
 
 ---
@@ -328,6 +339,8 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
+- [x] Movement: sprint-slide, thruster boost jump and dash (predicted, multiplayer-safe)
+- [x] Customisable commander (frame, paint, optics, callsign) and commander levels with perks
 - [x] Down, not dead: wounded soldiers bleed out for 30 s; squadmates (or you, holding Z) revive them
 - [x] Destructible vehicles: hull armour, enemies target crewed vehicles, wrecks burn and throw the crew clear
 - [ ] Smoke call-in, Skitter drones, enemy vehicles
