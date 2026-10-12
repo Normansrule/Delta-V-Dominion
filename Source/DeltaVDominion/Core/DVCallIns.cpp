@@ -110,6 +110,7 @@ void ADVSupplyPod::Tick(float DeltaSeconds)
 void ADVSupplyPod::MulticastLanded_Implementation(FVector_NetQuantize Location)
 {
 	DVFx::Explosion(GetWorld(), Location, 0.15f);
+	DVSound::At(GetWorld(), TEXT("SW_PodLanding"), Location, 1.f, 1);
 	DVFx::Flash(GetWorld(), Location + FVector(0.f, 0.f, 200.f), FLinearColor(0.4f, 1.f, 0.5f), 20000.f, 2500.f, 0.25f);
 }
 
@@ -220,6 +221,10 @@ void ADVStrafeRun::MulticastBurst_Implementation(FVector_NetQuantize From, FVect
 	DVFx::Beam(GetWorld(), From, To, FLinearColor(90.f, 40.f, 8.f), 8.f, 0.05f);
 	DVFx::Flash(GetWorld(), To + FVector(0.f, 0.f, 60.f), FLinearColor(1.f, 0.6f, 0.25f), 6000.f, 1200.f, 0.08f);
 	DVFx::Flash(GetWorld(), From, FLinearColor(1.f, 0.7f, 0.3f), 3000.f, 900.f, 0.04f);
+	if (bBig)
+	{
+		DVSound::At(GetWorld(), TEXT("SW_Cannon30"), From, 1.f, 1);	// one report per three rounds keeps the burst readable
+	}
 	if (bBig)
 	{
 		DVFx::Explosion(GetWorld(), To, 0.12f);

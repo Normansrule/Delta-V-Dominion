@@ -82,6 +82,7 @@ protected:
 	float MaxPitch = 35.f;
 	float MinPitch = -12.f;
 	bool bExplosiveRounds = false;
+	UPROPERTY() TObjectPtr<class UAudioComponent> EngineSound;
 
 	UPROPERTY(Replicated) FRotator AimRotation = FRotator::ZeroRotator;	// relative to the vehicle
 	double LastShotTime = -100.0;

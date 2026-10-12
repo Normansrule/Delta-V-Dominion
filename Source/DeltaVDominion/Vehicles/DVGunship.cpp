@@ -1,5 +1,6 @@
 ﻿#include "Vehicles/DVGunship.h"
 #include "Vehicles/DVVehicleKit.h"
+#include "Components/AudioComponent.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Core/DVFx.h"
 #include "DeltaVDominion.h"
@@ -78,6 +79,7 @@ ADVGunship::ADVGunship()
 void ADVGunship::BeginPlay()
 {
 	Super::BeginPlay();
+	EngineSound = DVSound::Loop(GetWorld(), GetRootComponent(), TEXT("SW_EngineGunship"), 0.6f);
 	TargetYaw = GetActorRotation().Yaw;
 	TArray<UStaticMeshComponent*> Parts;
 	GetComponents(Parts);
@@ -126,6 +128,12 @@ void ADVGunship::SetScriptedFlight(bool bOn)
 void ADVGunship::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (EngineSound)
+	{
+		const float Load = bScriptedFlight ? 0.8f : FMath::Clamp(GetSpeedKph() / 150.f, 0.f, 1.f);
+		EngineSound->SetPitchMultiplier(0.85f + 0.35f * Load);
+		EngineSound->SetVolumeMultiplier(GetController() || bScriptedFlight ? 0.8f : 0.25f);
+	}
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC && IsLocallyControlled())
@@ -256,6 +264,7 @@ void ADVGunship::MulticastShot_Implementation(FVector_NetQuantize Muzzle, FVecto
 {
 	UWorld* World = GetWorld();
 	DVFx::Flash(World, Muzzle, FLinearColor(1.f, 0.65f, 0.3f), bRocket ? 6000.f : 3000.f, 1200.f, 0.05f);
+	DVSound::At(World, bRocket ? TEXT("SW_ExplosionSmall") : TEXT("SW_Cannon30"), Muzzle, bRocket ? 0.6f : 0.9f, 1);
 	DVFx::Beam(World, Muzzle, Impact, bRocket ? FLinearColor(60.f, 40.f, 30.f) : FLinearColor(90.f, 40.f, 8.f), bRocket ? 12.f : 6.f, bRocket ? 0.2f : 0.05f);
 	if (bHit)
 	{

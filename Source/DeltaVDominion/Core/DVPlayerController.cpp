@@ -10,6 +10,7 @@
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
 #include "Core/DVGameState.h"
+#include "Core/DVFx.h"
 #include "Characters/DVBulwark.h"
 
 #include "Camera/CameraActor.h"
@@ -174,6 +175,7 @@ void ADVPlayerController::ServerRequestRedeploy_Implementation()
 void ADVPlayerController::ClientHitConfirmed_Implementation(bool bKill, bool bHeadshot)
 {
 	LastHitTime = GetWorld()->GetTimeSeconds();
+	DVSound::UI(GetWorld(), bKill ? TEXT("SW_KillConfirm") : TEXT("SW_HitMarker"), bKill ? 0.6f : 0.4f);
 	bLastHitKill = bKill;
 	bLastHitHeadshot = bHeadshot;
 }
@@ -437,6 +439,7 @@ void ADVPlayerController::DVLoadout(int32 Index)
 		Roster->PlayerLoadout = Index;
 	}
 	ArmouryTime = GetWorld()->GetTimeSeconds();
+	DVSound::UI(GetWorld(), TEXT("SW_UIClick"), 0.6f);
 	ServerEquipLoadout(Index);
 }
 

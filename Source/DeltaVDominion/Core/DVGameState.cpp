@@ -63,8 +63,37 @@ void ADVGameState::MulticastKillFeed_Implementation(const FString& Killer, const
 	}
 }
 
+void ADVGameState::BeginPlay()
+{
+	Super::BeginPlay();
+	// Ambience: hull hum and vents aboard the Kestrel, wind on every planet.
+	const FString Map = GetWorld()->GetMapName();
+	if (Map.Contains(TEXT("Kestrel")))
+	{
+		DVSound::Loop(GetWorld(), nullptr, TEXT("SW_AmbHangar"), 0.5f);
+	}
+	else if (!Map.Contains(TEXT("Galaxy")))
+	{
+		DVSound::Loop(GetWorld(), nullptr, TEXT("SW_AmbWind"), 0.4f);
+	}
+}
+
+void ADVGameState::MulticastSound_Implementation(FName Sound, FVector_NetQuantize Location, float Volume, uint8 Range)
+{
+	const FString Name = Sound.ToString();
+	if (FVector(Location).IsNearlyZero())
+	{
+		DVSound::UI(GetWorld(), *Name, Volume);
+	}
+	else
+	{
+		DVSound::At(GetWorld(), *Name, Location, Volume, Range, 0.f);
+	}
+}
+
 void ADVGameState::MulticastRadio_Implementation(const FString& Speaker, const FString& Text)
 {
+	DVSound::UI(GetWorld(), TEXT("SW_RadioSquelch"), 0.5f);
 	FDVRadioLine& Line = Radio.AddDefaulted_GetRef();
 	Line.Speaker = Speaker;
 	Line.Text = Text;

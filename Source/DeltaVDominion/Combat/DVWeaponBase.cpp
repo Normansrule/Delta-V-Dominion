@@ -306,6 +306,15 @@ void ADVWeaponBase::SpawnShotEffects(const TArray<FVector>& ImpactPoints) const
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, GetData()->FireSound, Muzzle);
 	}
+	else
+	{
+		// Built-in profiles: pick the synthesized report that matches the weapon.
+		const FString Name = GetData()->DisplayName.ToString();
+		const TCHAR* Sound = Name.Contains(TEXT("Kite")) ? TEXT("SW_SMG") : Name.Contains(TEXT("Halberd")) ? TEXT("SW_Shotgun")
+			: Name.Contains(TEXT("Longreach")) ? TEXT("SW_DMR") : Name.Contains(TEXT("Pulse")) ? TEXT("SW_Pulse")
+			: Name.Contains(TEXT("Hammerfall")) ? TEXT("SW_Rotary") : TEXT("SW_Rifle");
+		DVSound::At(GetWorld(), Sound, Muzzle, 0.8f, 0, 0.06f);
+	}
 
 	for (const FVector& Impact : ImpactPoints)
 	{
@@ -328,6 +337,7 @@ void ADVWeaponBase::SpawnShotEffects(const TArray<FVector>& ImpactPoints) const
 		{
 			DVFx::Flash(GetWorld(), Impact, FLinearColor(1.f, 0.7f, 0.4f), 300.f, 250.f, 0.04f);
 		}
+		DVSound::At(GetWorld(), TEXT("SW_Impact"), Impact, 0.35f, 0, 0.2f);
 	}
 }
 

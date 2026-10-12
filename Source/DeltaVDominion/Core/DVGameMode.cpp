@@ -354,6 +354,7 @@ void ADVGameMode::StartDefend()
 	GS->ObjectiveText = TEXT("Hold until the charges blow");
 	WavesSpawned = 0;
 	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Charges set! Forty-five seconds. Dig in, they'll want it back."));
+	GS->MulticastSound(TEXT("SW_Alarm"), GS->ObjectiveLocation, 0.6f, 1);
 	Radio(TEXT("CINDER"), TEXT("YOU HAVE TOUCHED SOMETHING OF MINE."), 5.f);
 }
 
@@ -435,6 +436,7 @@ void ADVGameMode::TickStage()
 		if (AnyPlayerNear(GS->ObjectiveLocation, 450.f))
 		{
 			GS->StageProgress = FMath::Min(1.f, GS->StageProgress + 0.25f / PlantSeconds);
+			GS->MulticastSound(TEXT("SW_PlantBeep"), GS->ObjectiveLocation, 0.8f, 0);
 			if (GS->StageProgress >= 1.f)
 			{
 				StartDefend();

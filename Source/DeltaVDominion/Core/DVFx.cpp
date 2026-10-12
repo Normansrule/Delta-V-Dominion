@@ -1,4 +1,9 @@
 #include "Core/DVFx.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "UObject/Package.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Combat/DVCombatEffects.h"
 #include "DVGameplayTags.h"
@@ -97,6 +102,18 @@ void DVFx::Flash(UWorld* World, const FVector& Location, const FLinearColor& Col
 
 void DVFx::Explosion(UWorld* World, const FVector& Location, float Scale)
 {
+	if (Scale >= 0.9f)
+	{
+		DVSound::At(World, TEXT("SW_OrbitalImpact"), Location, 1.f, 2, 0.03f);
+	}
+	else if (Scale >= 0.3f)
+	{
+		DVSound::At(World, TEXT("SW_Explosion"), Location, 0.9f, 1);
+	}
+	else
+	{
+		DVSound::At(World, TEXT("SW_ExplosionSmall"), Location, 0.55f, 1, 0.12f);
+	}
 	AActor* Host = SpawnHost(World, Location, 6.f);
 	if (!Host)
 	{
@@ -229,4 +246,94 @@ void DVCombat::RadialDamage(ADVSoldierCharacter* Shooter, const FVector& Center,
 			ApplyDamage(Shooter, *It, Damage * (1.f - 0.7f * Dist / Radius), bFriendlyFire);
 		}
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Sound
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	USoundAttenuation* Attenuation(int32 Range)
+	{
+		static TArray<USoundAttenuation*> Cache;
+		if (Cache.Num() == 0)
+		{
+			const float Falloff[3] = { 6000.f, 22000.f, 90000.f };
+			for (int32 i = 0; i < 3; ++i)
+			{
+				USoundAttenuation* A = NewObject<USoundAttenuation>(GetTransientPackage());
+				A->AddToRoot();
+				A->Attenuation.bAttenuate = true;
+				A->Attenuation.bSpatialize = true;
+				A->Attenuation.DistanceAlgorithm = EAttenuationDistanceModel::NaturalSound;
+				A->Attenuation.AttenuationShape = EAttenuationShape::Sphere;
+				A->Attenuation.AttenuationShapeExtents = FVector(Falloff[i] * 0.05f, 0.f, 0.f);
+				A->Attenuation.FalloffDistance = Falloff[i];
+				A->Attenuation.bAttenuateWithLPF = true;
+				A->Attenuation.LPFRadiusMin = Falloff[i] * 0.15f;
+				A->Attenuation.LPFRadiusMax = Falloff[i];
+				Cache.Add(A);
+			}
+		}
+		return Cache[FMath::Clamp(Range, 0, 2)];
+	}
+}
+
+USoundBase* DVSound::Get(const TCHAR* Name)
+{
+	static TMap<FString, TObjectPtr<USoundBase>> Loaded;
+	if (TObjectPtr<USoundBase>* Found = Loaded.Find(Name))
+	{
+		return *Found;
+	}
+	USoundBase* Sound = LoadObject<USoundBase>(nullptr, *FString::Printf(TEXT("/Game/Audio/%s.%s"), Name, Name));
+	if (Sound)
+	{
+		Sound->AddToRoot();
+	}
+	Loaded.Add(Name, Sound);
+	return Sound;
+}
+
+void DVSound::At(UWorld* World, const TCHAR* Name, const FVector& Location, float Volume, int32 Range, float PitchJitter)
+{
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	if (USoundBase* Sound = Get(Name))
+	{
+		UGameplayStatics::PlaySoundAtLocation(World, Sound, Location, FRotator::ZeroRotator, Volume, 1.f + FMath::FRandRange(-PitchJitter, PitchJitter), 0.f, Attenuation(Range));
+	}
+}
+
+void DVSound::UI(UWorld* World, const TCHAR* Name, float Volume)
+{
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	if (USoundBase* Sound = Get(Name))
+	{
+		UGameplayStatics::PlaySound2D(World, Sound, Volume);
+	}
+}
+
+UAudioComponent* DVSound::Loop(UWorld* World, USceneComponent* Attach, const TCHAR* Name, float Volume)
+{
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return nullptr;
+	}
+	USoundBase* Sound = Get(Name);
+	if (!Sound)
+	{
+		return nullptr;
+	}
+	if (Attach)
+	{
+		return UGameplayStatics::SpawnSoundAttached(Sound, Attach, NAME_None, FVector::ZeroVector, EAttachLocation::KeepRelativeOffset, false, Volume, 1.f, 0.f, Attenuation(1));
+	}
+	return UGameplayStatics::SpawnSound2D(World, Sound, Volume, 1.f, 0.f, nullptr, true);
 }

@@ -97,6 +97,12 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRadio(const FString& Speaker, const FString& Text);
 
+	/** Server -> everyone: play a DVSound by name (Location zero = 2D). */
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastSound(FName Sound, FVector_NetQuantize Location, float Volume, uint8 Range);
+
+	virtual void BeginPlay() override;
+
 	/** Cosmetics for an incoming orbital strike: target beam now, impact after Delay. */
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastOrbitalStrike(FVector_NetQuantize Location, float Delay);

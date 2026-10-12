@@ -8,7 +8,7 @@
 #   play       Launch the game in a window (galaxy start screen; or pass /Game/Maps/Outpost)
 #   watch      Spectator view of the Outpost fight with an orbital strike
 #   build      Compile the editor target (run after pulling C++ changes)
-#   map        Regenerate every map (galaxy, six planets, the Kestrel hangar, Boot Camp)
+#   map        Re-import sounds and regenerate every map (galaxy, six planets, the Kestrel hangar, Boot Camp)
 #   capture    Re-render README screenshots and GIFs into Docs/media
 #   package    Build the downloadable Windows game into Build/Release/DeltaVDominion-Win64.zip
 #   log        Follow the newest game/editor log
@@ -43,12 +43,12 @@ case "${1:-help}" in
   build)
     ps -Command "& '$build_bat' DeltaVDominionEditor Win64 Development '-Project=$(win "$UPROJECT")' -WaitMutex; exit \$LASTEXITCODE" ;;
   map)
-    for script in build_galaxy_map.py "build_planet_map.py -biome=all" build_kestrel_hub.py build_bootcamp_map.py; do
+    for script in build_audio.py build_galaxy_map.py "build_planet_map.py -biome=all" build_kestrel_hub.py build_bootcamp_map.py; do
       file=${script%% *}; args=${script#"$file"}
       tmp="/mnt/c/Users/Public/$file"   # Unreal's -ExecutePythonScript can't take paths with spaces
       cp "$SCRIPT_DIR/$file" "$tmp"
       "$editor_cmd" "$(win "$UPROJECT")" "-ExecutePythonScript=$(win "$tmp" | tr '\\' '/')$args -quit" -nullrhi -unattended -nosplash -stdout \
-        | grep -E "GALAXY|PLANET|KESTREL|BOOTCAMP|LogPython: Error" || true
+        | grep -E "AUDIO|GALAXY|PLANET|KESTREL|BOOTCAMP|LogPython: Error" || true
     done ;;
   capture)
     ps -File "$(win "$SCRIPT_DIR/capture_media.ps1")" ;;

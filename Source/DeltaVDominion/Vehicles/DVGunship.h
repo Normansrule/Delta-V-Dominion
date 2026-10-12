@@ -66,4 +66,5 @@ protected:
 	bool bAutoCannon = false;
 	bool bAutoRockets = false;
 	bool bScriptedFlight = false;
+	UPROPERTY() TObjectPtr<class UAudioComponent> EngineSound;
 };

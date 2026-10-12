@@ -1,5 +1,6 @@
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVVehicleKit.h"
+#include "Components/AudioComponent.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Core/DVFx.h"
 #include "DeltaVDominion.h"
@@ -203,6 +204,7 @@ ADVTank::ADVTank()
 void ADVGroundVehicle::BeginPlay()
 {
 	Super::BeginPlay();
+	EngineSound = DVSound::Loop(GetWorld(), GetRootComponent(), TEXT("SW_EngineGround"), 0.35f);
 	GetMesh()->SetSimulatePhysics(true);
 	DVKit::SetGlow(HeadlightL, FLinearColor(1.f, 0.95f, 0.8f), 30.f);
 	DVKit::SetGlow(HeadlightR, FLinearColor(1.f, 0.95f, 0.8f), 30.f);
@@ -253,6 +255,13 @@ float ADVGroundVehicle::GetSpeedKph() const
 void ADVGroundVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (EngineSound)
+	{
+		// Idle burble when parked, revving with speed, louder with someone at the wheel.
+		const float Rev = FMath::Clamp(FMath::Abs(GetSpeedKph()) / 90.f, 0.f, 1.f);
+		EngineSound->SetPitchMultiplier((bExplosiveRounds ? 0.65f : 0.85f) + 0.7f * Rev);
+		EngineSound->SetVolumeMultiplier((GetController() ? 0.5f : 0.15f) + 0.5f * Rev);
+	}
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC && IsLocallyControlled())
@@ -360,6 +369,7 @@ void ADVGroundVehicle::MulticastShot_Implementation(FVector_NetQuantize Muzzle, 
 {
 	UWorld* World = GetWorld();
 	DVFx::Flash(World, Muzzle, FLinearColor(1.f, 0.65f, 0.3f), bExplosiveRounds ? 20000.f : 2500.f, bExplosiveRounds ? 2500.f : 900.f, 0.06f);
+	DVSound::At(World, bExplosiveRounds ? TEXT("SW_TankGun") : TEXT("SW_Rotary"), Muzzle, bExplosiveRounds ? 1.f : 0.8f, bExplosiveRounds ? 1 : 0);
 	DVFx::Beam(World, Muzzle, Impact, bExplosiveRounds ? FLinearColor(120.f, 60.f, 15.f) : FLinearColor(80.f, 35.f, 6.f), bExplosiveRounds ? 14.f : 4.f, bExplosiveRounds ? 0.12f : 0.05f);
 	if (bExplosive)
 	{
