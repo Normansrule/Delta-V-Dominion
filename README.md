@@ -65,6 +65,11 @@ vehicle. Being spotted, or shot at, raises the alarm for every frame within ears
 **weapons tight** until the enemy knows you are there, so you choose when the fight starts. Get behind an unaware
 frame and press **F** for a silent takedown (extra commander XP).
 
+| | |
+|---|---|
+| ![Silent takedown](Docs/media/silent_takedown.png) | ![Swimming](Docs/media/swimming.png) |
+| A silent takedown: the sentries behind still have no idea | Swimming in Port Halden's harbour |
+
 ## Every mission is an operation
 
 Clear the garrison, then the radio gives you the real job: **plant charges on the target** (stand on the amber

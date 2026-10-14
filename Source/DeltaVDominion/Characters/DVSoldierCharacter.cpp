@@ -5,6 +5,7 @@
 #include "Combat/DVAttributeSet.h"
 #include "Combat/DVWeaponBase.h"
 #include "Combat/DVWeaponData.h"
+#include "Core/DVPlayerController.h"
 #include "Core/DVFx.h"
 #include "AIController.h"
 #include "EngineUtils.h"
@@ -729,9 +730,19 @@ void ADVSoldierCharacter::TickWater(float DeltaSeconds)
 			if (It->ActorHasTag(TEXT("DV_Water")))
 			{
 				WaterZ = It->GetActorLocation().Z;
+				// The surface is a sight-blocker only (hoverbikes skim it); bodies and vehicles pass through.
+				TArray<UPrimitiveComponent*> Prims;
+				It->GetComponents(Prims);
+				for (UPrimitiveComponent* Prim : Prims)
+				{
+					Prim->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+					Prim->SetCollisionResponseToAllChannels(ECR_Ignore);
+					Prim->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+				}
 				break;
 			}
 		}
+
 	}
 	UCharacterMovementComponent* Move = GetCharacterMovement();
 	if (WaterZ < -1.e8f || bIsDead || !Move || IsHidden())
@@ -740,7 +751,8 @@ void ADVSoldierCharacter::TickWater(float DeltaSeconds)
 	}
 	// Chest height under the surface means you are in the water: float up to it and swim slowly.
 	const float Chest = GetActorLocation().Z + 20.f;
-	const bool bNowInWater = Chest < WaterZ;
+	// Hysteresis: you are in once your chest goes under, and out only once you are well clear of the surface.
+	const bool bNowInWater = bInWater ? Chest < WaterZ + 70.f : Chest < WaterZ;
 	if (bNowInWater != bInWater)
 	{
 		bInWater = bNowInWater;
@@ -1103,6 +1115,10 @@ void ADVSoldierCharacter::Input_OrderMove()
 	// Context-sensitive: an unaware frame right in front of you gets a silent takedown instead of an order.
 	if (ADVSoldierCharacter* Victim = FindTakedownTarget())
 	{
+		if (ADVPlayerController* PC = Cast<ADVPlayerController>(GetController()))
+		{
+			PC->LastTakedownRequest = GetWorld()->GetTimeSeconds();
+		}
 		ServerTakedown(Victim);
 		return;
 	}

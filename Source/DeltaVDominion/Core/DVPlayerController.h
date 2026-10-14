@@ -160,6 +160,8 @@ private:
 public:
 	/** HUD notes when the takedown prompt was last shown (to label the kill as silent). */
 	double LastTakedownPrompt = -100.0;
+	/** Set when this player asks for a takedown, so the kill that follows is scored as silent. */
+	double LastTakedownRequest = -100.0;
 private:
 	/** Progression bookkeeping on the owning client. */
 	uint8 SeenStage = 0;

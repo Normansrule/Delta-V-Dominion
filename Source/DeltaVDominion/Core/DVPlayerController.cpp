@@ -194,8 +194,7 @@ void ADVPlayerController::ClientHitConfirmed_Implementation(bool bKill, bool bHe
 	DVSound::UI(GetWorld(), bKill ? TEXT("SW_KillConfirm") : TEXT("SW_HitMarker"), bKill ? 0.6f : 0.4f);
 	if (bKill)
 	{
-		const ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(GetPawn());
-		const bool bQuiet = Me && Me->FindTakedownTarget() == nullptr && GetWorld()->GetTimeSeconds() - LastTakedownPrompt < 0.5;
+		const bool bQuiet = GetWorld()->GetTimeSeconds() - LastTakedownRequest < 1.0;
 		AwardXP(bQuiet ? 40 : bHeadshot ? 35 : 25, bQuiet ? TEXT("Silent takedown") : bHeadshot ? TEXT("Headshot") : TEXT("Kill"));
 	}
 	bLastHitKill = bKill;
@@ -683,13 +682,14 @@ void ADVPlayerController::DVTakedownTest(float Delay)
 			bool bAlone = true;
 			for (TActorIterator<ADVSoldierCharacter> Other(GetWorld()); Other; ++Other)
 			{
-				bAlone &= *Other == *It || Other->TeamId == Me->TeamId || FVector::Dist(Other->GetActorLocation(), It->GetActorLocation()) > 700.f;
+				bAlone &= *Other == *It || Other->TeamId == Me->TeamId || FVector::Dist(Other->GetActorLocation(), It->GetActorLocation()) > 900.f;
 			}
 			if (bAlone && (!Best || FVector::Dist(It->GetActorLocation(), Me->GetActorLocation()) < FVector::Dist(Best->GetActorLocation(), Me->GetActorLocation())))
 			{
 				Best = *It;
 			}
 		}
+		UE_LOG(LogTemp, Log, TEXT("DVTakedownTest: sneaking up on %s"), Best ? *Best->GetName() : TEXT("nobody (no isolated sentry)"));
 		if (!Best)
 		{
 			return;
@@ -699,18 +699,22 @@ void ADVPlayerController::DVTakedownTest(float Delay)
 		const float Yaw = Best->GetActorRotation().Yaw;
 		SetControlRotation(FRotator(-10.f, Yaw, 0.f));
 		ServerWarp(Behind, Yaw);
+		Me->Crouch();	// sneaking, as a player would
 		// ...and take them down a moment later, as if F was pressed.
 		FTimerHandle Strike;
 		GetWorldTimerManager().SetTimer(Strike, FTimerDelegate::CreateWeakLambda(this, [this]()
 		{
 			if (ADVSoldierCharacter* Me2 = Cast<ADVSoldierCharacter>(GetPawn()))
 			{
-				if (ADVSoldierCharacter* Victim = Me2->FindTakedownTarget())
+				ADVSoldierCharacter* Victim = Me2->FindTakedownTarget();
+				UE_LOG(LogTemp, Log, TEXT("DVTakedownTest: target %s"), Victim ? *Victim->GetName() : TEXT("none in reach"));
+				if (Victim)
 				{
+					LastTakedownRequest = GetWorld()->GetTimeSeconds();
 					Me2->ServerTakedown(Victim);
 				}
 			}
-		}), 1.2f, false);
+		}), 0.3f, false);
 	}), FMath::Max(Delay, 0.001f), false);
 }
 

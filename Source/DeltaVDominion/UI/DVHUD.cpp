@@ -96,7 +96,6 @@ void ADVHUD::DrawHUD()
 	{
 		DrawDowned(Soldier);
 		DrawCasualties(Soldier);
-		DrawAwareness(Soldier);
 		DrawSquad(Soldier);
 		DrawObjective(GS);
 		DrawRadio(GS);
@@ -105,6 +104,7 @@ void ADVHUD::DrawHUD()
 	if (bViewingSoldier && !Soldier->IsDead())
 	{
 		DrawCasualties(Soldier);
+		DrawAwareness(Soldier);
 		DrawVehiclePrompt(Soldier);
 		BindOrders(Soldier);
 		DrawSuppression(Soldier);

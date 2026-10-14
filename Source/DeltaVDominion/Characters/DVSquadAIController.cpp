@@ -251,6 +251,7 @@ void ADVSquadAIController::UpdateTarget()
 	// Being shot at, or shot near, always gives you away.
 	if (ADVSoldierCharacter* Me = GetSoldier(); Me && Me->TeamId != 1 && !Me->IsAlerted() && (Me->GetSuppression() > 4.f || Me->GetHealth() < Me->GetMaxHealthValue() - 1.f))
 	{
+		UE_LOG(LogTemp, Log, TEXT("DVStealth: %s was hit (suppression %.0f, health %.0f)"), *Me->GetName(), Me->GetSuppression(), Me->GetHealth());
 		RaiseAlarm(Me->GetActorLocation());
 	}
 
@@ -299,6 +300,7 @@ void ADVSquadAIController::UpdateTarget()
 
 	if (Best && Soldier->TeamId != 1 && !Soldier->IsAlerted())
 	{
+		UE_LOG(LogTemp, Log, TEXT("DVStealth: %s spotted %s at %.0f cm"), *Soldier->GetName(), *Best->GetName(), FVector::Dist(Soldier->GetActorLocation(), Best->GetActorLocation()));
 		RaiseAlarm(Soldier->GetActorLocation());
 	}
 	if (Best)
