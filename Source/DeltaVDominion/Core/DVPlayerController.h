@@ -58,6 +58,9 @@ public:
 	void DVWarp(float X, float Y, float Z);
 	UFUNCTION(Exec)
 	void DVTakedownTest(float Delay = 0.f);
+	/** Console (tests): "DVSalvageTest [Delay]" warps you onto the nearest salvage contract. */
+	UFUNCTION(Exec)
+	void DVSalvageTest(float Delay = 0.f);
 	UFUNCTION(Server, Reliable) void ServerWarp(FVector_NetQuantize To, float Yaw);
 	/** Console (tests): "DVRavenMode Jet Cockpit [Delay]" sets the Raven's flight mode and camera. */
 	UFUNCTION(Exec)
@@ -112,6 +115,14 @@ public:
 	void DVLoadout(int32 Index);
 
 	virtual void AcknowledgePossession(APawn* P) override;
+
+	/** This player's faction standing, mirrored to the server (call-in bonuses read it there). */
+	void PushReputation();
+	UFUNCTION(Server, Reliable) void ServerSetReputation(int32 Accord, int32 Colonies, int32 FreePorts);
+	int32 GetServerRep(int32 Faction) const { return ServerRep.IsValidIndex(Faction) ? ServerRep[Faction] : 0; }
+	/** Which faction (if any) gates an armoury weapon, and how much standing it needs. */
+	static bool WeaponLock(int32 Index, int32& OutFaction, int32& OutNeeded);
+	FString ArmouryNote;
 	bool WasLastHitKill() const { return bLastHitKill; }
 	bool WasLastHitHeadshot() const { return bLastHitHeadshot; }
 
@@ -157,6 +168,7 @@ private:
 	double LastHitTime = -100.0;
 	bool bShowMemorial = false;
 	bool bShowLocker = false;
+	TArray<int32> ServerRep = { 0, 0, 0 };
 public:
 	/** HUD notes when the takedown prompt was last shown (to label the kill as silent). */
 	double LastTakedownPrompt = -100.0;

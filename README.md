@@ -57,6 +57,22 @@ water, then extract on a Raven. Launch it from the war table (Sol, second operat
 | ![The strait](Docs/media/breakwater_strait.png) | ![The docks](Docs/media/breakwater_docks.png) | ![The Marlin](Docs/media/breakwater_marlin.png) |
 | The strait at dawn, a transport moored in the channel | Cranes, quays and the barricaded bridge | At the Marlin's helm: deck gun, missiles (RMB) |
 
+## Reputation
+
+Three powers remember what Delta does, from Hostile to Allied (shown at the barracks locker):
+
+- **Accord Command**: completed operations raise it, failures and looting lower it. *Trusted* unlocks the Longreach DMR
+  at the armoury; *Allied* gets your orbital strikes priority on the battery.
+- **The Colonies**: the people you evacuate and defend (Port Halden, New Albion, the capital). *Trusted* means fuller
+  supply pods.
+- **The Free Ports**: smugglers and salvagers. Every planet hides three gold-lit **salvage contracts**; claim one for
+  Free Ports standing at a small cost with Command. *Trusted* unlocks the Pulse Carbine; *Allied* speeds up supply drops.
+
+| | |
+|---|---|
+| ![Salvage contract](Docs/media/salvage_contract.png) | ![Standing](Docs/media/standing.png) |
+| Claiming a salvage contract on Europa | Standing, perks and the commander's look at the locker |
+
 ## Stealth
 
 Hearthbound sentries start **unaware** (a grey "- -" marker). They notice you inside a cone in front of them,
@@ -372,6 +388,7 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
+- [x] Faction reputation (Accord Command, the Colonies, the Free Ports): salvage contracts, standing-gated weapons and call-in bonuses
 - [x] Stealth: unaware sentries, sight cones by stance, alarms, weapons-tight squad, silent takedowns; swimming
 - [x] Operation Breakwater: harbour map with water, missile boat, air-defence and dock-key objectives, transports that sail
 - [x] Hoverbike, Raven jet mode + cockpit HUD + flares, Jackal APC armour, vehicles that right themselves

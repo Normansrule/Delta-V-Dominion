@@ -5,9 +5,11 @@
 #include "Core/DVGameMode.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
+#include "Core/DVCallIns.h"
 #include "Core/DVProfileSubsystem.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Combat/DVLoadouts.h"
+#include "Combat/DVWeaponData.h"
 #include "Engine/GameInstance.h"
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
@@ -494,7 +496,23 @@ void ADVPlayerController::OnInteractPressed()
 		case EDVInteraction::Armoury:
 			if (const UDVRosterSubsystem* Roster = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVRosterSubsystem>() : nullptr)
 			{
-				DVLoadout((Roster->PlayerLoadout + 1) % DVLoadouts::Num());	// each press takes the next weapon off the rack
+				// Each press takes the next weapon off the rack; racks you haven't earned the standing for stay locked.
+				const UDVProfileSubsystem* Profile = GetGameInstance()->GetSubsystem<UDVProfileSubsystem>();
+				ArmouryNote.Reset();
+				int32 Next = Roster->PlayerLoadout;
+				for (int32 Tries = 0; Tries < DVLoadouts::Num(); ++Tries)
+				{
+					Next = (Next + 1) % DVLoadouts::Num();
+					int32 Faction = 0, Needed = 0;
+					if (WeaponLock(Next, Faction, Needed) && Profile && Profile->GetRep(Faction) < Needed)
+					{
+						ArmouryNote += FString::Printf(TEXT("%s locked: needs %s %s.  "), *DVLoadouts::Get(Next)->DisplayName.ToString(),
+							*UDVProfileSubsystem::FactionName(Faction), *UDVProfileSubsystem::TierName(Needed));
+						continue;
+					}
+					break;
+				}
+				DVLoadout(Next);
 			}
 			break;
 		default:
@@ -572,6 +590,29 @@ void ADVPlayerController::TickProgression()
 	}
 }
 
+bool ADVPlayerController::WeaponLock(int32 Index, int32& OutFaction, int32& OutNeeded)
+{
+	switch (Index)
+	{
+	case 3: OutFaction = DVFactions::Accord; OutNeeded = DVFactions::Trusted; return true;		// Longreach DMR: Accord issue, earned
+	case 4: OutFaction = DVFactions::FreePorts; OutNeeded = DVFactions::Trusted; return true;	// Pulse Carbine: black-market tech
+	default: return false;
+	}
+}
+
+void ADVPlayerController::PushReputation()
+{
+	if (const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+	{
+		ServerSetReputation(Profile->GetRep(DVFactions::Accord), Profile->GetRep(DVFactions::Colonies), Profile->GetRep(DVFactions::FreePorts));
+	}
+}
+
+void ADVPlayerController::ServerSetReputation_Implementation(int32 Accord, int32 Colonies, int32 FreePorts)
+{
+	ServerRep = { FMath::Clamp(Accord, -100, 100), FMath::Clamp(Colonies, -100, 100), FMath::Clamp(FreePorts, -100, 100) };
+}
+
 void ADVPlayerController::PushLookToPawn()
 {
 	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
@@ -579,6 +620,7 @@ void ADVPlayerController::PushLookToPawn()
 	{
 		Soldier->ServerSetLook(Profile->GetLook());
 		Soldier->ServerSetCommanderLevel(Profile->GetLevel());
+		PushReputation();
 	}
 }
 
@@ -663,6 +705,19 @@ void ADVPlayerController::ServerWarp_Implementation(FVector_NetQuantize To, floa
 		P->TeleportTo(To, FRotator(0.f, Yaw, 0.f));
 	}
 #endif
+}
+
+void ADVPlayerController::DVSalvageTest(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		for (TActorIterator<ADVSalvage> It(GetWorld()); It; ++It)
+		{
+			ServerWarp(It->GetActorLocation() + FVector(-120.f, 0.f, 100.f), 0.f);
+			return;
+		}
+	}), FMath::Max(Delay, 0.001f), false);
 }
 
 void ADVPlayerController::DVTakedownTest(float Delay)

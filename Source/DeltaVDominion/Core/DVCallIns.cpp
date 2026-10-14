@@ -303,3 +303,56 @@ void ADVObjectiveBeacon::Tick(float DeltaSeconds)
 	Light->SetLightColor(Color);
 	Light->SetIntensity(800.f * Strength);
 }
+
+// ---------------------------------------------------------------------------
+// Salvage contract
+// ---------------------------------------------------------------------------
+
+ADVSalvage::ADVSalvage()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	UMaterialInterface* Rust = DVKit::Material(TEXT("Rust"));
+	UMaterialInterface* Metal = DVKit::Material(TEXT("Gunmetal"));
+	UMaterialInterface* Glow = DVKit::Material(TEXT("Glow"));
+	DVKit::Part(this, RootComponent, TEXT("Crate"), DVKit::Box(), Rust, FVector(0.f, 0.f, 45.f), FRotator::ZeroRotator, FVector(140.f, 90.f, 90.f));
+	DVKit::Part(this, RootComponent, TEXT("Bands"), DVKit::Box(), Metal, FVector(0.f, 0.f, 45.f), FRotator::ZeroRotator, FVector(144.f, 94.f, 14.f));
+	DVKit::Part(this, RootComponent, TEXT("Lid"), DVKit::Box(), Metal, FVector(0.f, 0.f, 94.f), FRotator::ZeroRotator, FVector(150.f, 96.f, 8.f));
+	Beacon = DVKit::Part(this, RootComponent, TEXT("Beacon"), DVKit::Sphere(), Glow, FVector(0.f, 0.f, 112.f), FRotator::ZeroRotator, FVector(22.f, 22.f, 22.f));
+	Light = CreateDefaultSubobject<UPointLightComponent>(TEXT("Light"));
+	Light->SetupAttachment(RootComponent);
+	Light->SetRelativeLocation(FVector(0.f, 0.f, 140.f));
+	Light->SetIntensityUnits(ELightUnits::Candelas);
+	Light->SetIntensity(500.f);
+	Light->SetAttenuationRadius(700.f);
+	Light->SetLightColor(FLinearColor(1.f, 0.75f, 0.2f));
+}
+
+void ADVSalvage::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	// Free Ports gold: a slow pulse that reads at distance without screaming "objective".
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(GetWorld()->GetTimeSeconds() * 2.f);
+	DVKit::SetGlow(Beacon, FLinearColor(1.f, 0.7f, 0.15f), 6.f + 10.f * Pulse);
+	Light->SetIntensity(300.f + 400.f * Pulse);
+	if (!HasAuthority() || bClaimed)
+	{
+		return;
+	}
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		const ADVSoldierCharacter* Soldier = It->Get() ? Cast<ADVSoldierCharacter>(It->Get()->GetPawn()) : nullptr;
+		if (Soldier && !Soldier->IsOutOfAction() && FVector::Dist(Soldier->GetActorLocation(), GetActorLocation()) < 200.f)
+		{
+			bClaimed = true;
+			if (ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>())
+			{
+				GS->MulticastReputation(2, 6, TEXT("Salvage contract claimed"));
+				GS->MulticastReputation(0, -2, TEXT("Command frowns on looting"));
+			}
+			Destroy();
+			return;
+		}
+	}
+}

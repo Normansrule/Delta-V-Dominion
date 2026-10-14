@@ -99,6 +99,10 @@ public:
 	void MulticastRadio(const FString& Speaker, const FString& Text);
 
 	/** Server -> everyone: play a DVSound by name (Location zero = 2D). */
+	/** Server -> everyone: Delta's standing with a faction changes (each player's profile records it). */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastReputation(uint8 Faction, int32 Delta, const FString& Reason);
+
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastSound(FName Sound, FVector_NetQuantize Location, float Volume, uint8 Range);
 

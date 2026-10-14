@@ -858,6 +858,21 @@ def build():
         e = spawn(soldier, "Hearthbound_%02d" % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
         e.set_editor_property("team_id", 2)
 
+    # --- Free Ports salvage contracts: optional, off the main path ------------------------------------
+    salvage = unreal.load_class(None, "/Script/DeltaVDominion.DVSalvage")
+    placed = 0
+    for i in range(60):
+        ang = random.uniform(0, 2 * math.pi)
+        q = random.uniform(0.45, 0.85)
+        x, y = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
+        if not clear_of_gameplay(x, y) or ("harbour" in B["extras"] and abs(x) < 1500):
+            continue
+        spawn(salvage, "Salvage_%d" % placed, (x, y, ground(x, y) + 5), rot(yaw=random.uniform(0, 360)), "Contracts")
+        placed += 1
+        if placed >= 3:
+            break
+    log("salvage contracts %d" % placed)
+
     # --- Accord vehicles at the landing zone, and the Kestrel overhead ------------------------------
     ltv = unreal.load_class(None, "/Script/DeltaVDominion.DVGroundVehicle")
     tank = unreal.load_class(None, "/Script/DeltaVDominion.DVTank")

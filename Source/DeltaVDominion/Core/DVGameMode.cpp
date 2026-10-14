@@ -207,7 +207,10 @@ void ADVGameMode::RequestOrbitalStrike(APlayerController* Caller, const FVector&
 	}
 	const ADVSoldierCharacter* Commander = Cast<ADVSoldierCharacter>(Caller->GetPawn());
 	const float Favour = Commander && Commander->GetCommanderLevel() >= DVPerks::KestrelFavour ? 0.75f : 1.f;
-	GS->OrbitalReadyTime = Now + OrbitalCooldown * Favour + OrbitalDelay;
+	// Command gives its most trusted ground commander priority on the battery.
+	const ADVPlayerController* Trusted = Cast<ADVPlayerController>(Caller);
+	const float Priority = Trusted && Trusted->GetServerRep(DVFactions::Accord) >= DVFactions::Allied ? 0.8f : 1.f;
+	GS->OrbitalReadyTime = Now + OrbitalCooldown * Favour * Priority + OrbitalDelay;
 	GS->MulticastOrbitalStrike(Target, OrbitalDelay);
 	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Target painted. Rounds away, three seconds. Danger close!"));
 
@@ -616,12 +619,21 @@ void ADVGameMode::RequestSupplyDrop(APlayerController* Caller, const FVector& Ta
 	}
 	const ADVSoldierCharacter* Commander = Cast<ADVSoldierCharacter>(Caller->GetPawn());
 	const float Favour = Commander && Commander->GetCommanderLevel() >= DVPerks::KestrelFavour ? 0.75f : 1.f;
-	GS->SupplyReadyTime = GetWorld()->GetTimeSeconds() + SupplyCooldown * Favour;
+	// Free Ports runners slip extra drops through the blockade for friends.
+	const ADVPlayerController* Runner = Cast<ADVPlayerController>(Caller);
+	const float Smugglers = Runner && Runner->GetServerRep(DVFactions::FreePorts) >= DVFactions::Allied ? 0.7f : 1.f;
+	GS->SupplyReadyTime = GetWorld()->GetTimeSeconds() + SupplyCooldown * Favour * Smugglers;
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	if (ADVSupplyPod* Pod = GetWorld()->SpawnActor<ADVSupplyPod>(ADVSupplyPod::StaticClass(), Target + FVector(0.f, 0.f, 9000.f), FRotator::ZeroRotator, Params))
 	{
 		Pod->Launch(Target);
+		// Colonists trusted with the fleet's logistics pack the pods fuller.
+		const ADVPlayerController* DVPC = Cast<ADVPlayerController>(Caller);
+		if (DVPC && DVPC->GetServerRep(DVFactions::Colonies) >= DVFactions::Trusted)
+		{
+			Pod->AddCharges(4);
+		}
 	}
 	Radio(TEXT("Deck Chief Ruiz"), TEXT("Supply pod away! Ammo, med-gel and plates. Don't stand under it."));
 }
@@ -940,6 +952,36 @@ void ADVGameMode::EndMission(bool bSuccess)
 		return;
 	}
 	bMissionEnded = true;
+
+	// Who remembers this operation, and how.
+	if (ADVGameState* RepGS = GetDVGameState(); RepGS && !bIsHub)
+	{
+		const FString Map = GetWorld()->GetMapName();
+		if (bSuccess)
+		{
+			RepGS->MulticastReputation(DVFactions::Accord, bIsTrainingMap ? 3 : 8, bIsTrainingMap ? TEXT("Training complete") : TEXT("Operation complete"));
+			if (Map.Contains(TEXT("Breakwater")))
+			{
+				RepGS->MulticastReputation(DVFactions::Colonies, 20, TEXT("Twelve thousand evacuated from Port Halden"));
+			}
+			else if (Map.Contains(TEXT("Proxima")))
+			{
+				RepGS->MulticastReputation(DVFactions::Colonies, 15, TEXT("New Albion's landing field retaken"));
+			}
+			else if (Map.Contains(TEXT("Gaia")))
+			{
+				RepGS->MulticastReputation(DVFactions::Colonies, 10, TEXT("The capital held"));
+			}
+		}
+		else if (!bIsTrainingMap)
+		{
+			RepGS->MulticastReputation(DVFactions::Accord, -5, TEXT("Operation failed"));
+			if (Map.Contains(TEXT("Breakwater")))
+			{
+				RepGS->MulticastReputation(DVFactions::Colonies, -15, TEXT("The transports never left Port Halden"));
+			}
+		}
+	}
 
 	FDVMissionReport Report;
 	Report.MissionName = MissionName;

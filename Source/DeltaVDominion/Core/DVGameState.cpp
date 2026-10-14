@@ -1,4 +1,7 @@
 #include "Core/DVGameState.h"
+#include "Core/DVProfileSubsystem.h"
+#include "Core/DVPlayerController.h"
+#include "Engine/GameInstance.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -75,6 +78,24 @@ void ADVGameState::BeginPlay()
 	else if (!Map.Contains(TEXT("Galaxy")))
 	{
 		DVSound::Loop(GetWorld(), nullptr, TEXT("SW_AmbWind"), 0.4f);
+	}
+}
+
+void ADVGameState::MulticastReputation_Implementation(uint8 Faction, int32 Delta, const FString& Reason)
+{
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	if (UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+	{
+		Profile->AddRep(Faction, Delta, Reason);
+	}
+	DVSound::UI(GetWorld(), Delta > 0 ? TEXT("SW_KillConfirm") : TEXT("SW_RadioSquelch"), 0.5f);
+	// Let the server's copy of this player's standing catch up (it gates call-in bonuses).
+	if (ADVPlayerController* PC = Cast<ADVPlayerController>(GetWorld()->GetFirstPlayerController()))
+	{
+		PC->PushReputation();
 	}
 }
 

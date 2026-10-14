@@ -609,6 +609,10 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 			Text(FString::Printf(TEXT("ARMOURY  >  %s"), *Data->DisplayName.ToString().ToUpper()), W * 0.5f, H * 0.62f + S(12.f),
 				FLinearColor(0.4f, 1.f, 0.5f, 1.f), GEngine->GetLargeFont(), 1.1f, true);
 			Text(DVLoadouts::Describe(Data), W * 0.5f, H * 0.62f + S(60.f), DVHudColors::Text, GEngine->GetSmallFont(), 1.1f, true);
+			if (!PC->ArmouryNote.IsEmpty())
+			{
+				Text(PC->ArmouryNote, W * 0.5f, H * 0.62f + S(104.f), DVHudColors::Warn, GEngine->GetSmallFont(), 1.f, true);
+			}
 		}
 	}
 }
@@ -896,6 +900,25 @@ void ADVHUD::DrawLocker()
 			bHave ? DVHudColors::Friendly : DVHudColors::Dim, GEngine->GetSmallFont(), 1.05f);
 		RY += S(32.f);
 	}
+
+	// Standing with the three powers, from Hostile to Allied.
+	const float FX = RX + S(500.f);
+	float FY = Canvas->ClipY * 0.22f;
+	DrawRect(FLinearColor(0.01f, 0.012f, 0.02f, 0.82f), FX - S(20.f), FY - S(20.f), S(440.f), S(330.f));
+	Text(TEXT("STANDING"), FX, FY, FLinearColor(0.95f, 0.75f, 0.3f, 1.f), GEngine->GetLargeFont(), 1.1f);
+	FY += S(56.f);
+	const TCHAR* Perks[DVFactions::Num] = { TEXT("Trusted: Longreach DMR  |  Allied: orbital priority"),
+		TEXT("Trusted: fuller supply pods"), TEXT("Trusted: Pulse Carbine  |  Allied: faster supply drops") };
+	for (int32 F = 0; F < DVFactions::Num; ++F)
+	{
+		const int32 V = Profile->GetRep(F);
+		Text(FString::Printf(TEXT("%s  -  %s (%d)"), *UDVProfileSubsystem::FactionName(F), *UDVProfileSubsystem::TierName(V), V), FX, FY, DVHudColors::Text, GEngine->GetSmallFont(), 1.1f);
+		const float Mid = FX + S(200.f);
+		DrawRect(FLinearColor(1.f, 1.f, 1.f, 0.15f), FX, FY + S(30.f), S(400.f), S(5.f));
+		DrawRect(V >= 0 ? FLinearColor(0.4f, 0.9f, 0.5f, 1.f) : DVHudColors::Hostile, V >= 0 ? Mid : Mid + V * S(2.f), FY + S(30.f), FMath::Abs(V) * S(2.f), S(5.f));
+		Text(Perks[F], FX, FY + S(42.f), DVHudColors::Dim, GEngine->GetSmallFont(), 0.9f);
+		FY += S(86.f);
+	}
 }
 
 void ADVHUD::DrawProgression()
@@ -910,6 +933,14 @@ void ADVHUD::DrawProgression()
 	{
 		const float A = FMath::Clamp(float(2.5 - (Now - Profile->LastAwardTime)) / 0.6f, 0.f, 1.f);
 		Text(Profile->LastAward, Canvas->ClipX * 0.5f, Canvas->ClipY * 0.56f, FLinearColor(1.f, 0.8f, 0.35f, A), GEngine->GetSmallFont(), 1.15f, true);
+	}
+	if (Now - Profile->LastRepTime < 4.0)
+	{
+		const float A = FMath::Clamp(float(4.0 - (Now - Profile->LastRepTime)) / 0.8f, 0.f, 1.f);
+		for (int32 i = 0; i < Profile->RecentRep.Num(); ++i)
+		{
+			Text(Profile->RecentRep[i], Canvas->ClipX * 0.5f, Canvas->ClipY * 0.2f + i * S(34.f), FLinearColor(0.95f, 0.75f, 0.3f, A), GEngine->GetMediumFont(), 1.f, true);
+		}
 	}
 	if (Now - Profile->LastLevelUpTime < 5.0)
 	{

@@ -37,7 +37,9 @@ void UDVProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		Look = Saved->Look;
 		XP = Saved->XP;
+		Reputation = Saved->Reputation;
 	}
+	Reputation.SetNumZeroed(DVFactions::Num);
 	Look.bSet = true;	// a fresh profile is the default commander
 }
 
@@ -59,6 +61,7 @@ void UDVProfileSubsystem::Save()
 	UDVCommanderSave* Data = Cast<UDVCommanderSave>(UGameplayStatics::CreateSaveGameObject(UDVCommanderSave::StaticClass()));
 	Data->Look = Look;
 	Data->XP = XP;
+	Data->Reputation = Reputation;
 	UGameplayStatics::SaveGameToSlot(Data, CommanderSlot, 0);
 }
 
@@ -118,4 +121,41 @@ FString UDVProfileSubsystem::PerkName(int32 Level)
 	case DVPerks::KestrelFavour: return TEXT("Kestrel's favour: call-ins recharge faster");
 	default: return Level > DVPerks::KestrelFavour ? TEXT("Service ribbon") : TEXT("");
 	}
+}
+
+void UDVProfileSubsystem::AddRep(int32 Faction, int32 Delta, const FString& Reason)
+{
+	if (!Reputation.IsValidIndex(Faction) || Delta == 0)
+	{
+		return;
+	}
+	const FString Before = TierName(Reputation[Faction]);
+	Reputation[Faction] = FMath::Clamp(Reputation[Faction] + Delta, -100, 100);
+	const FString After = TierName(Reputation[Faction]);
+	const FString Line = FString::Printf(TEXT("%s%d %s  -  %s%s"), Delta > 0 ? TEXT("+") : TEXT(""), Delta, *FactionName(Faction).ToUpper(), *Reason,
+		After != Before ? *FString::Printf(TEXT("  (now %s)"), *After) : TEXT(""));
+	RecentRep.Add(Line);
+	if (RecentRep.Num() > 3)
+	{
+		RecentRep.RemoveAt(0);
+	}
+	LastRepTime = GetGameInstance() && GetGameInstance()->GetWorld() ? GetGameInstance()->GetWorld()->GetRealTimeSeconds() : 0.0;
+	Save();
+}
+
+FString UDVProfileSubsystem::FactionName(int32 Faction)
+{
+	switch (Faction)
+	{
+	case DVFactions::Accord: return TEXT("Accord Command");
+	case DVFactions::Colonies: return TEXT("The Colonies");
+	case DVFactions::FreePorts: return TEXT("The Free Ports");
+	default: return TEXT("");
+	}
+}
+
+FString UDVProfileSubsystem::TierName(int32 Value)
+{
+	return Value <= -50 ? TEXT("Hostile") : Value < -15 ? TEXT("Wary") : Value < DVFactions::Trusted ? TEXT("Neutral")
+		: Value < DVFactions::Allied ? TEXT("Trusted") : TEXT("Allied");
 }

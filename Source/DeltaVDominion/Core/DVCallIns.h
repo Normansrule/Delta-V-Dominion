@@ -27,6 +27,7 @@ public:
 	void Launch(const FVector& Ground);
 
 	int32 GetChargesLeft() const { return Charges; }
+	void AddCharges(int32 Extra) { Charges += Extra; }
 	bool HasLanded() const { return bLanded; }
 
 	static constexpr float Reach = 380.f;
@@ -102,4 +103,23 @@ protected:
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Column;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Ring;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UPointLightComponent> Light;
+};
+
+/**
+ * A Free Ports salvage contract: a sealed cargo crate left in the war zone. Walk over it to claim it for the
+ * smugglers (Free Ports standing up), at the price of a little standing with Accord Command, who call it looting.
+ */
+UCLASS()
+class DELTAVDOMINION_API ADVSalvage : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	ADVSalvage();
+	virtual void Tick(float DeltaSeconds) override;
+
+protected:
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Beacon;
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UPointLightComponent> Light;
+	bool bClaimed = false;
 };

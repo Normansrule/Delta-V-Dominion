@@ -26,7 +26,19 @@ class DELTAVDOMINION_API UDVCommanderSave : public USaveGame
 public:
 	UPROPERTY() FDVLook Look;
 	UPROPERTY() int32 XP = 0;
+	UPROPERTY() TArray<int32> Reputation;
 };
+
+/** The three powers that remember what Delta does (-100..100 each). */
+namespace DVFactions
+{
+	constexpr int32 Accord = 0;		// Accord Command: the chain of command and the fleet
+	constexpr int32 Colonies = 1;	// the civilian colonies you evacuate, defend or fail
+	constexpr int32 FreePorts = 2;	// smugglers and salvagers who trade in what the war leaves behind
+	constexpr int32 Num = 3;
+	constexpr int32 Trusted = 20;
+	constexpr int32 Allied = 50;
+}
 
 /** Commander perks, unlocked by level (see UDVProfileSubsystem::PerkName). */
 namespace DVPerks
@@ -59,6 +71,15 @@ public:
 	int32 GetLevel() const;
 	int32 XPForLevel(int32 Level) const;	// total XP needed to reach Level
 	static FString PerkName(int32 Level);
+
+	/** Reputation with a faction (see DVFactions). Saved with the commander. */
+	int32 GetRep(int32 Faction) const { return Reputation.IsValidIndex(Faction) ? Reputation[Faction] : 0; }
+	void AddRep(int32 Faction, int32 Delta, const FString& Reason);
+	static FString FactionName(int32 Faction);
+	static FString TierName(int32 Value);
+	/** Recent standing changes (newest last), for the HUD. */
+	TArray<FString> RecentRep;
+	double LastRepTime = -100.0;
 	/** Last XP award, for the HUD toast. */
 	FString LastAward;
 	double LastAwardTime = -100.0;
@@ -80,4 +101,5 @@ private:
 	void Save();
 	FDVLook Look;
 	int32 XP = 0;
+	TArray<int32> Reputation;
 };
