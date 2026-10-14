@@ -205,8 +205,55 @@ void ADVSquadAIController::Think()
 	}
 }
 
+bool ADVSquadAIController::CanNotice(const AActor* Actor) const
+{
+	const ADVSoldierCharacter* Soldier = GetSoldier();
+	const FVector To = Actor->GetActorLocation() - Soldier->GetActorLocation();
+	const float Dist = To.Size();
+	float Range = 2600.f;	// walking
+	if (const ADVSoldierCharacter* Other = Cast<ADVSoldierCharacter>(Actor))
+	{
+		if (Other->bIsCrouched)
+		{
+			Range = 1100.f;
+		}
+		else if (Other->GetVelocity().Size2D() > 500.f)
+		{
+			Range = 3600.f;	// sprinting, sliding, thrusting
+		}
+	}
+	else
+	{
+		Range = 5000.f;	// engines are loud
+	}
+	if (Dist > Range)
+	{
+		return false;
+	}
+	// 120 degree field of view, but anything right next to them is noticed regardless of facing.
+	return Dist < 90.f || FVector::DotProduct(Soldier->GetActorForwardVector(), To.GetSafeNormal()) > 0.5f;
+}
+
+void ADVSquadAIController::RaiseAlarm(const FVector& Where)
+{
+	// The alarm spreads to every frame within earshot of the one that spotted you.
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		if (It->TeamId != 1 && !It->IsOutOfAction() && FVector::Dist(It->GetActorLocation(), Where) < 3200.f)
+		{
+			It->SetAlerted(true);
+		}
+	}
+}
+
 void ADVSquadAIController::UpdateTarget()
 {
+	// Being shot at, or shot near, always gives you away.
+	if (ADVSoldierCharacter* Me = GetSoldier(); Me && Me->TeamId != 1 && !Me->IsAlerted() && (Me->GetSuppression() > 4.f || Me->GetHealth() < Me->GetMaxHealthValue() - 1.f))
+	{
+		RaiseAlarm(Me->GetActorLocation());
+	}
+
 	const ADVSoldierCharacter* Soldier = GetSoldier();
 	const double Now = GetWorld()->GetTimeSeconds();
 
@@ -231,8 +278,18 @@ void ADVSquadAIController::UpdateTarget()
 		{
 			continue;
 		}
+		// Unaware sentries only notice what is in front of them and close enough for how it moves.
+		if (Soldier->TeamId != 1 && !Soldier->IsAlerted() && !CanNotice(Actor))
+		{
+			continue;
+		}
+		// Weapons tight: the squad doesn't open a fight the commander is trying to sneak into.
+		if (Soldier->TeamId == 1 && Other && !Other->IsAlerted())
+		{
+			continue;
+		}
 		// Prefer the current target slightly to avoid flip-flopping.
-		const float DistSq = FVector::DistSquared(Soldier->GetActorLocation(), Other->GetActorLocation()) * (Actor == Target.Get() ? 0.7f : 1.f);
+		const float DistSq = FVector::DistSquared(Soldier->GetActorLocation(), Actor->GetActorLocation()) * (Actor == Target.Get() ? 0.7f : 1.f);
 		if (DistSq < BestDistSq)
 		{
 			BestDistSq = DistSq;
@@ -240,6 +297,10 @@ void ADVSquadAIController::UpdateTarget()
 		}
 	}
 
+	if (Best && Soldier->TeamId != 1 && !Soldier->IsAlerted())
+	{
+		RaiseAlarm(Soldier->GetActorLocation());
+	}
 	if (Best)
 	{
 		Target = Best;

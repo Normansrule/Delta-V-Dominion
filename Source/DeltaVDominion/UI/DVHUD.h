@@ -52,6 +52,7 @@ private:
 	void DrawDowned(const class ADVSoldierCharacter* Soldier);
 	void DrawThrusters(const class ADVSoldierCharacter* Soldier);
 	void DrawLocker();
+	void DrawAwareness(const class ADVSoldierCharacter* Viewer);
 	void DrawCockpit(const class ADVGunship* Air);
 	void DrawProgression();
 	void DrawRadio(const ADVGameState* GS);

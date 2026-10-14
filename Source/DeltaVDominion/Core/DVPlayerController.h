@@ -53,6 +53,12 @@ public:
 	/** Console (tests): "DVMoveDemo 0|1|2 [Delay]" 0 = jump + thruster boost, 1 = sprint slide, 2 = ground dash. */
 	UFUNCTION(Exec)
 	void DVMoveDemo(int32 Mode, float Delay = 0.f);
+	/** Console (tests): "DVWarp X Y Z" teleports your soldier; "DVTakedownTest [Delay]" sneaks up behind the nearest unaware frame. */
+	UFUNCTION(Exec)
+	void DVWarp(float X, float Y, float Z);
+	UFUNCTION(Exec)
+	void DVTakedownTest(float Delay = 0.f);
+	UFUNCTION(Server, Reliable) void ServerWarp(FVector_NetQuantize To, float Yaw);
 	/** Console (tests): "DVRavenMode Jet Cockpit [Delay]" sets the Raven's flight mode and camera. */
 	UFUNCTION(Exec)
 	void DVRavenMode(int32 bJet, int32 bCockpit, float Delay = 0.f);
@@ -151,6 +157,10 @@ private:
 	double LastHitTime = -100.0;
 	bool bShowMemorial = false;
 	bool bShowLocker = false;
+public:
+	/** HUD notes when the takedown prompt was last shown (to label the kill as silent). */
+	double LastTakedownPrompt = -100.0;
+private:
 	/** Progression bookkeeping on the owning client. */
 	uint8 SeenStage = 0;
 	bool bMissionXPAwarded = false;

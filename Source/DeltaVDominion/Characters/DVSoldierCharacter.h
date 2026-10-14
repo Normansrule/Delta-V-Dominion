@@ -82,6 +82,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Soldier") bool IsDowned() const { return bDowned; }
 	bool IsOutOfAction() const { return bIsDead || bDowned; }
 
+	/** Stealth: Hearthbound sentries start unaware; the alarm (seeing you, being shot at) flips this for good. */
+	bool IsAlerted() const { return bAlerted; }
+	void SetAlerted(bool bOn) { bAlerted = bOn; }
+	float GetMaxHealthValue() const;
+	/** In the harbour (or any map with a DV_Water plane): floating and swimming. */
+	bool IsSwimming() const { return bInWater; }
+	/** An unaware hostile right behind you, if any (for the takedown prompt). */
+	ADVSoldierCharacter* FindTakedownTarget() const;
+	UFUNCTION(Server, Reliable) void ServerTakedown(ADVSoldierCharacter* Victim);
+
 	/** Cosmetics for movement abilities (called by the movement component on the owning client and server). */
 	void OnThrusterBoost();
 	void OnSlideStarted();
@@ -182,6 +192,11 @@ protected:
 	UPROPERTY(Replicated) float LeanAmount = 0.f;
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead) bool bIsDead = false;
 	UPROPERTY(ReplicatedUsing = OnRep_Downed) bool bDowned = false;
+	UPROPERTY(Replicated) bool bAlerted = false;
+	bool bInWater = false;
+	float WaterZ = -1.e9f;
+	bool bWaterChecked = false;
+	void TickWater(float DeltaSeconds);
 	UPROPERTY(ReplicatedUsing = OnRep_Look) FDVLook Look;
 	UPROPERTY(ReplicatedUsing = OnRep_CommanderLevel) int32 CommanderLevel = 0;
 	UPROPERTY() TObjectPtr<USkeletalMesh> DefaultBodyMesh;

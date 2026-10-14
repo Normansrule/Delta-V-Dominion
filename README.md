@@ -57,6 +57,14 @@ water, then extract on a Raven. Launch it from the war table (Sol, second operat
 | ![The strait](Docs/media/breakwater_strait.png) | ![The docks](Docs/media/breakwater_docks.png) | ![The Marlin](Docs/media/breakwater_marlin.png) |
 | The strait at dawn, a transport moored in the channel | Cranes, quays and the barricaded bridge | At the Marlin's helm: deck gun, missiles (RMB) |
 
+## Stealth
+
+Hearthbound sentries start **unaware** (a grey "- -" marker). They notice you inside a cone in front of them,
+at a range that depends on how you move: about 11 m crouched, 26 m walking, 36 m sprinting or sliding, 50 m in a
+vehicle. Being spotted, or shot at, raises the alarm for every frame within earshot (a red "!"). Your squad keeps
+**weapons tight** until the enemy knows you are there, so you choose when the fight starts. Get behind an unaware
+frame and press **F** for a silent takedown (extra commander XP).
+
 ## Every mission is an operation
 
 Clear the garrison, then the radio gives you the real job: **plant charges on the target** (stand on the amber
@@ -170,6 +178,7 @@ Unreal games are Windows-native; on Linux use Steam Proton, on macOS a Windows V
 | C / Ctrl | Crouch; **slide** while sprinting | X | Squad: flank target |
 | Q / E | Lean left / right | Space | Jump; in the air, **thruster boost** |
 | Left Alt | **Thruster dash** (charges shown as THRUST) | Z (hold) | Revive a downed squadmate |
+| F (behind an unaware frame) | **Silent takedown** | Space (in water) | Swim up and climb out |
 | B / N / H | Orbital strike (danger close) / supply drop / strafing run on the crosshair | Enter / M | Redeploy / back to the galaxy map (after a mission) |
 | **Galaxy map** | Left-drag orbit, right-drag or WASD pan, wheel zoom, click a system, **1-3** launch, H home, G galaxy | | |
 | Z | Board / exit vehicles; use the war table, memorial, armoury, barracks locker (1-4 customise) | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
@@ -358,6 +367,7 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
+- [x] Stealth: unaware sentries, sight cones by stance, alarms, weapons-tight squad, silent takedowns; swimming
 - [x] Operation Breakwater: harbour map with water, missile boat, air-defence and dock-key objectives, transports that sail
 - [x] Hoverbike, Raven jet mode + cockpit HUD + flares, Jackal APC armour, vehicles that right themselves
 - [x] Movement: sprint-slide, thruster boost jump and dash (predicted, multiplayer-safe)

@@ -726,7 +726,7 @@ def build_extras(mats, rocks, rock_mat):
             yaw = random.uniform(-15, 15)
             block("Tower_%02d" % i, (x, y, gz + h / 2), (w, d, h), mats["concrete_dark"] if "harbour" in extras else mats["concrete"], yaw, folder="City")
             for k in range(int(h // 900)):
-                block("TowerWin_%02d_%d" % (i, k), (x, y, gz + 450 + k * 900), (w + 10, d + 10, 120), mats["windows"], yaw, folder="City")
+                block("TowerWin_%02d_%d" % (i, k), (x, y, gz + 450 + k * 900), (w + 10, d + 10, 120), mats["windows_dim"] if "harbour" in extras else mats["windows"], yaw, folder="City")
             block("TowerBeacon_%02d" % i, (x, y, gz + h + 60), (80, 80, 80), mats["strip_red"], folder="City")
 
 

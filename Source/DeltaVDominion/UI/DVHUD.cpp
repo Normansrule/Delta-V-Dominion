@@ -96,6 +96,7 @@ void ADVHUD::DrawHUD()
 	{
 		DrawDowned(Soldier);
 		DrawCasualties(Soldier);
+		DrawAwareness(Soldier);
 		DrawSquad(Soldier);
 		DrawObjective(GS);
 		DrawRadio(GS);
@@ -967,4 +968,46 @@ void ADVHUD::DrawCockpit(const ADVGunship* Air)
 	Text(Air->AreFlaresActive() ? TEXT("FLARES OUT") : TEXT("ECM ARMED"), CX + S(360.f), CY + S(30.f), Air->AreFlaresActive() ? FLinearColor(1.f, 0.6f, 0.2f, 1.f) : Green, GEngine->GetSmallFont(), 1.f, true);
 	Text(TEXT("30MM"), CX - S(60.f), CY + S(120.f), Green, GEngine->GetSmallFont(), 0.95f, true);
 	Text(Air->GetRocketReadyFraction() >= 1.f ? TEXT("RKT RDY") : TEXT("RKT ..."), CX + S(60.f), CY + S(120.f), Green, GEngine->GetSmallFont(), 0.95f, true);
+}
+
+void ADVHUD::DrawAwareness(const ADVSoldierCharacter* Viewer)
+{
+	// Unaware sentries show a grey eye-line marker; alerted frames a red "!".
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		const ADVSoldierCharacter* Frame = *It;
+		if (Frame->TeamId == Viewer->TeamId || Frame->IsOutOfAction() || FVector::Dist(Frame->GetActorLocation(), Viewer->GetActorLocation()) > 4000.f)
+		{
+			continue;
+		}
+		const FVector Screen = Project(Frame->GetActorLocation() + FVector(0.f, 0.f, 125.f));
+		if (Screen.Z <= 0.f)
+		{
+			continue;
+		}
+		if (Frame->IsAlerted())
+		{
+			Text(TEXT("!"), Screen.X, Screen.Y - S(10.f), DVHudColors::Hostile, GEngine->GetMediumFont(), 1.2f, true);
+		}
+		else
+		{
+			Text(TEXT("- -"), Screen.X, Screen.Y - S(6.f), FLinearColor(0.75f, 0.75f, 0.8f, 0.8f), GEngine->GetSmallFont(), 1.f, true);
+		}
+	}
+	if (ADVSoldierCharacter* Victim = Viewer->FindTakedownTarget())
+	{
+		const FVector Screen = Project(Victim->GetActorLocation() + FVector(0.f, 0.f, 60.f));
+		if (Screen.Z > 0.f)
+		{
+			Text(TEXT("[F]  Silent takedown"), Screen.X, Screen.Y, FLinearColor(0.4f, 0.75f, 1.f, 1.f), GEngine->GetMediumFont(), 1.1f, true);
+		}
+		if (ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner))
+		{
+			PC->LastTakedownPrompt = GetWorld()->GetTimeSeconds();
+		}
+	}
+	if (Viewer->IsSwimming())
+	{
+		Text(TEXT("SWIMMING  -  [Space] climb out"), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.66f, FLinearColor(0.5f, 0.8f, 1.f, 1.f), GEngine->GetSmallFont(), 1.1f, true);
+	}
 }

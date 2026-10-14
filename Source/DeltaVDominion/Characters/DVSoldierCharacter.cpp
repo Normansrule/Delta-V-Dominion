@@ -127,6 +127,7 @@ void ADVSoldierCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(ADVSoldierCharacter, bIsDead);
 	DOREPLIFETIME(ADVSoldierCharacter, bDowned);
 	DOREPLIFETIME(ADVSoldierCharacter, Look);
+	DOREPLIFETIME(ADVSoldierCharacter, bAlerted);
 	DOREPLIFETIME(ADVSoldierCharacter, CommanderLevel);
 	DOREPLIFETIME(ADVSoldierCharacter, BleedOutEndTime);
 	DOREPLIFETIME(ADVSoldierCharacter, ReviveProgress);
@@ -591,6 +592,8 @@ void ADVSoldierCharacter::Tick(float DeltaSeconds)
 		FirstPersonCamera->SetFieldOfView(FMath::FInterpTo(FirstPersonCamera->FieldOfView, TargetFOV, DeltaSeconds, 14.f));
 	}
 
+	TickWater(DeltaSeconds);
+
 	// Lean: side-step the camera (and arms) for peeking out of cover.
 	CurrentLeanVisual = FMath::FInterpTo(CurrentLeanVisual, LeanAmount, DeltaSeconds, 10.f);
 	FirstPersonCamera->SetRelativeLocation(CameraBaseOffset + FVector(0.f, CurrentLeanVisual * LeanOffset, -FMath::Abs(CurrentLeanVisual) * 4.f - (bDowned ? 45.f : 0.f)));
@@ -709,6 +712,94 @@ void ADVSoldierCharacter::OnRep_Downed()
 		FirstPersonCamera->SetRelativeLocation(CameraBaseOffset);
 		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 	}
+}
+
+float ADVSoldierCharacter::GetMaxHealthValue() const
+{
+	return AttributeSet ? AttributeSet->GetMaxHealth() : 100.f;
+}
+
+void ADVSoldierCharacter::TickWater(float DeltaSeconds)
+{
+	if (!bWaterChecked)
+	{
+		bWaterChecked = true;
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			if (It->ActorHasTag(TEXT("DV_Water")))
+			{
+				WaterZ = It->GetActorLocation().Z;
+				break;
+			}
+		}
+	}
+	UCharacterMovementComponent* Move = GetCharacterMovement();
+	if (WaterZ < -1.e8f || bIsDead || !Move || IsHidden())
+	{
+		return;
+	}
+	// Chest height under the surface means you are in the water: float up to it and swim slowly.
+	const float Chest = GetActorLocation().Z + 20.f;
+	const bool bNowInWater = Chest < WaterZ;
+	if (bNowInWater != bInWater)
+	{
+		bInWater = bNowInWater;
+		Move->GravityScale = bInWater ? 0.f : 1.f;
+		Move->AirControl = bInWater ? 1.f : 0.25f;
+		Move->MaxWalkSpeed = bInWater ? 260.f : 420.f;
+		if (bInWater)
+		{
+			Move->SetMovementMode(MOVE_Falling);
+			DVSound::At(GetWorld(), TEXT("SW_Slide"), GetActorLocation(), 0.8f, 0, 0.3f);	// the splash
+		}
+	}
+	if (bInWater)
+	{
+		// Buoyancy toward floating with the head out, heavy drag, and swim speed capped.
+		const float Depth = WaterZ - Chest;
+		Move->Velocity.Z = FMath::FInterpTo(Move->Velocity.Z, FMath::Clamp(Depth * 3.f, -150.f, 220.f), DeltaSeconds, 4.f);
+		const FVector Planar(Move->Velocity.X, Move->Velocity.Y, 0.f);
+		if (Planar.Size() > 280.f)
+		{
+			Move->Velocity = FVector(Planar.GetSafeNormal().X * 280.f, Planar.GetSafeNormal().Y * 280.f, Move->Velocity.Z);
+		}
+		Move->AddInputVector(FVector::ZeroVector);
+	}
+}
+
+ADVSoldierCharacter* ADVSoldierCharacter::FindTakedownTarget() const
+{
+	if (bIsDead || bDowned || bInWater)
+	{
+		return nullptr;
+	}
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		ADVSoldierCharacter* Other = *It;
+		if (Other == this || Other->TeamId == TeamId || Other->IsOutOfAction() || Other->IsAlerted())
+		{
+			continue;
+		}
+		const FVector To = Other->GetActorLocation() - GetActorLocation();
+		// Close, and behind them: they are facing away from you.
+		if (To.Size2D() < 190.f && FVector::DotProduct(Other->GetActorForwardVector(), To.GetSafeNormal2D()) > 0.3f)
+		{
+			return Other;
+		}
+	}
+	return nullptr;
+}
+
+void ADVSoldierCharacter::ServerTakedown_Implementation(ADVSoldierCharacter* Victim)
+{
+	if (!Victim || Victim->IsOutOfAction() || Victim->IsAlerted() || FVector::Dist2D(Victim->GetActorLocation(), GetActorLocation()) > 260.f)
+	{
+		return;	// server re-checks reach and awareness
+	}
+	DVSound::At(GetWorld(), TEXT("SW_Impact"), Victim->GetActorLocation(), 1.f, 0, 0.1f);
+	DVFx::Flash(GetWorld(), Victim->GetActorLocation() + FVector(0.f, 0.f, 60.f), FLinearColor(0.3f, 0.6f, 1.f), 1200.f, 300.f, 0.08f);
+	// A shock-blade to the reactor: the frame drops without a sound anyone else hears.
+	DVCombat::ApplyDamage(this, Victim, 99999.f, false);
 }
 
 void ADVSoldierCharacter::OnThrusterBoost()
@@ -963,6 +1054,12 @@ void ADVSoldierCharacter::Input_Jump()
 		return;
 	}
 	UDVCharacterMovementComponent* Move = GetDVMovement();
+	if (bInWater && Move)
+	{
+		// Kick up and out: enough, with a thruster burst, to get back onto a quay.
+		LaunchCharacter(FVector(0.f, 0.f, 650.f), false, true);
+		return;
+	}
 	if (Move && Move->IsFalling())
 	{
 		Move->bWantsToBoost = true;	// thruster boost jump
@@ -1001,7 +1098,16 @@ void ADVSoldierCharacter::Input_Crouch()
 	}
 }
 
-void ADVSoldierCharacter::Input_OrderMove() { CommandComponent->IssueOrderFromView(EDVSquadOrder::MoveTo); }
+void ADVSoldierCharacter::Input_OrderMove()
+{
+	// Context-sensitive: an unaware frame right in front of you gets a silent takedown instead of an order.
+	if (ADVSoldierCharacter* Victim = FindTakedownTarget())
+	{
+		ServerTakedown(Victim);
+		return;
+	}
+	CommandComponent->IssueOrderFromView(EDVSquadOrder::MoveTo);
+}
 void ADVSoldierCharacter::Input_OrderHold() { CommandComponent->IssueOrderFromView(EDVSquadOrder::Hold); }
 void ADVSoldierCharacter::Input_OrderRegroup() { CommandComponent->IssueOrderFromView(EDVSquadOrder::Regroup); }
 void ADVSoldierCharacter::Input_OrderSuppress() { CommandComponent->IssueOrderFromView(EDVSquadOrder::Suppress); }

@@ -262,5 +262,5 @@ Done so far from this list: **1** (downed, revive, bleed-out; AI squadmates come
 - **Seamless planet to orbit**: the long-term goal is to lift off a planet in a Raven and fly up to the Kestrel without a loading screen; the war table stands in until then.
 - **Faction reputation**: Brasshaven's Guild Council, Neon Verge's brokers and Hollyhock Vale each remember what you did for (or to) them, opening or closing contracts, prices and help in Act IV.
 - **Open hubs**: the Kestrel's hangar is the first; each new world gets a walkable town to take contracts in before the operation.
-- **Stealth and takedowns**: quiet approaches, especially under restrained rules of engagement.
+- **Stealth and takedowns**: in game. Unaware sentries with sight cones by stance, alarms that spread, a weapons-tight squad, and silent takedowns from behind.
 - **Look**: warm, dusty frontier light, lived-in hardware, big skies; our palettes come from the art-direction table above.

@@ -72,6 +72,8 @@ protected:
 private:
 	void Think();
 	void UpdateTarget();
+	bool CanNotice(const AActor* Actor) const;
+	void RaiseAlarm(const FVector& Where);
 
 	void BehaveFollow(bool bRegroup);
 	void BehaveMoveTo();

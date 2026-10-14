@@ -449,6 +449,7 @@ void ADVGameMode::SpawnWave(int32 Count)
 			continue;
 		}
 		Frame->TeamId = 2;
+		Frame->SetAlerted(true);	// counter-attacks know exactly where you are
 		Frame->FinishSpawning(SpawnTransform);
 		if (!Frame->GetController())
 		{

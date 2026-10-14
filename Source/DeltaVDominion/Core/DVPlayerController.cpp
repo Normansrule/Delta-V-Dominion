@@ -194,7 +194,9 @@ void ADVPlayerController::ClientHitConfirmed_Implementation(bool bKill, bool bHe
 	DVSound::UI(GetWorld(), bKill ? TEXT("SW_KillConfirm") : TEXT("SW_HitMarker"), bKill ? 0.6f : 0.4f);
 	if (bKill)
 	{
-		AwardXP(bHeadshot ? 35 : 25, bHeadshot ? TEXT("Headshot") : TEXT("Kill"));
+		const ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(GetPawn());
+		const bool bQuiet = Me && Me->FindTakedownTarget() == nullptr && GetWorld()->GetTimeSeconds() - LastTakedownPrompt < 0.5;
+		AwardXP(bQuiet ? 40 : bHeadshot ? 35 : 25, bQuiet ? TEXT("Silent takedown") : bHeadshot ? TEXT("Headshot") : TEXT("Kill"));
 	}
 	bLastHitKill = bKill;
 	bLastHitHeadshot = bHeadshot;
@@ -646,6 +648,69 @@ void ADVPlayerController::DVRavenMode(int32 bJet, int32 bCockpit, float Delay)
 		{
 			Air->DebugSetModes(bJet != 0, bCockpit != 0);
 		}
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::DVWarp(float X, float Y, float Z)
+{
+	ServerWarp(FVector(X, Y, Z), GetControlRotation().Yaw);
+}
+
+void ADVPlayerController::ServerWarp_Implementation(FVector_NetQuantize To, float Yaw)
+{
+#if !UE_BUILD_SHIPPING
+	if (APawn* P = GetPawn())
+	{
+		P->TeleportTo(To, FRotator(0.f, Yaw, 0.f));
+	}
+#endif
+}
+
+void ADVPlayerController::DVTakedownTest(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(GetPawn());
+		ADVSoldierCharacter* Best = nullptr;
+		for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It && Me; ++It)
+		{
+			if (It->TeamId == Me->TeamId || It->IsOutOfAction() || It->IsAlerted())
+			{
+				continue;
+			}
+			// Pick a sentry standing on its own, so nobody else watches the approach.
+			bool bAlone = true;
+			for (TActorIterator<ADVSoldierCharacter> Other(GetWorld()); Other; ++Other)
+			{
+				bAlone &= *Other == *It || Other->TeamId == Me->TeamId || FVector::Dist(Other->GetActorLocation(), It->GetActorLocation()) > 700.f;
+			}
+			if (bAlone && (!Best || FVector::Dist(It->GetActorLocation(), Me->GetActorLocation()) < FVector::Dist(Best->GetActorLocation(), Me->GetActorLocation())))
+			{
+				Best = *It;
+			}
+		}
+		if (!Best)
+		{
+			return;
+		}
+		// Step in right behind them, facing their back.
+		const FVector Behind = Best->GetActorLocation() - Best->GetActorForwardVector() * 130.f;
+		const float Yaw = Best->GetActorRotation().Yaw;
+		SetControlRotation(FRotator(-10.f, Yaw, 0.f));
+		ServerWarp(Behind, Yaw);
+		// ...and take them down a moment later, as if F was pressed.
+		FTimerHandle Strike;
+		GetWorldTimerManager().SetTimer(Strike, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (ADVSoldierCharacter* Me2 = Cast<ADVSoldierCharacter>(GetPawn()))
+			{
+				if (ADVSoldierCharacter* Victim = Me2->FindTakedownTarget())
+				{
+					Me2->ServerTakedown(Victim);
+				}
+			}
+		}), 1.2f, false);
 	}), FMath::Max(Delay, 0.001f), false);
 }
 
