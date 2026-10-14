@@ -5,6 +5,7 @@
   io       /Game/Maps/Io        Forgefall      Volcanic moon: black basalt, sulphur haze, rivers of lava
   proxima  /Game/Maps/Proxima   Cold Wake      Proxima b colony: red-dwarf light over forested hills
   ceres    /Game/Maps/Ceres     Ghost Signal   Night mining town on Ceres, drowned in neon
+  breakwater /Game/Maps/Breakwater Breakwater  Port Halden on Gaia at dawn: a harbour strait, docks, transports, a missile boat
   gaia     /Game/Maps/Gaia      Gaia Falls     Earth: green hills outside the capital, skyline on the horizon
 
 Everything is generated: Nanite terrain and rocks (GeometryScript), PBR materials, a fortified compound
@@ -63,6 +64,12 @@ BIOMES = {
                  sun=(-40, 30), sun_color=(255, 245, 230), sun_lux=10.0, atmosphere=True, mie=0.004, sky_light=1.2,
                  fog=0.01, fog_color=(0.4, 0.45, 0.55), clouds=True, saturation=1.05, contrast=1.1, exposure=0.0,
                  extras=["city", "trees"]),
+    "breakwater": dict(map="/Game/Maps/Breakwater", env="/Game/Environment/Planets/Breakwater", seed=71, dunes=60.0, rim=700.0, mesa=1600.0,
+                       sand_a=(0.32, 0.29, 0.22), sand_b=(0.16, 0.15, 0.12), slope_rock=(0.13, 0.12, 0.11),
+                       rock_dark=(0.06, 0.06, 0.06), rock_light=(0.24, 0.23, 0.21),
+                       sun=(-9, 95), sun_color=(255, 196, 140), sun_lux=8.0, atmosphere=True, mie=0.012, sky_light=1.1,
+                       fog=0.008, fog_color=(0.42, 0.44, 0.48), clouds=True, saturation=1.05, contrast=1.1, exposure=-0.6,
+                       extras=["harbour", "city"]),
 }
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
@@ -156,6 +163,9 @@ def terrain_height(x, y):
     mesa = ridged(x / 9000.0, y / 9000.0, 4, 11 + sd)
     mountains = rim * (B["rim"] + B["mesa"] * mesa) + rim * (fbm(x / 1500.0, y / 1500.0, 5, 5 + sd) - 0.5) * 600.0
     h = ground + mountains
+    if "harbour" in B["extras"]:
+        # A deep strait runs north to south through the arena: the harbour, open to the sea at both ends.
+        h -= 780.0 * (1.0 - smoothstep(850.0, 1250.0, abs(x)))
     if "lava" in B["extras"]:
         # Two meandering channels cut across the arena flanks; the lava plane fills them.
         for offset in (-2600.0, 2900.0):
@@ -495,8 +505,146 @@ def clear_of_gameplay(x, y):
     return not ((-6200 < x < -2600 and -1600 < y < 3400) or (1400 < x < 4600 and -2000 < y < 2200))
 
 
+WATER_Z = -300.0
+
+
+def make_water_material():
+    mat, fresh = new_material("M_HarbourWater")
+    if not fresh:
+        return mat
+    # Deep grey-green water, glassy, with two drifting layers of ripples and paler water at grazing angles.
+    deep = const3(mat, (0.008, 0.03, 0.035), -900, -400)
+    shallow = const3(mat, (0.05, 0.12, 0.13), -900, -280)
+    fres = expr(mat, unreal.MaterialExpressionFresnel, -900, -160, exponent=4.0, base_reflect_fraction=0.04)
+    col = expr(mat, unreal.MaterialExpressionLinearInterpolate, -600, -300)
+    mel.connect_material_expressions(deep, "", col, "A")
+    mel.connect_material_expressions(shallow, "", col, "B")
+    mel.connect_material_expressions(fres, "", col, "Alpha")
+    mel.connect_material_property(col, "", unreal.MaterialProperty.MP_BASE_COLOR)
+    rough = expr(mat, unreal.MaterialExpressionConstant, -600, 0, r=0.04)
+    mel.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS)
+    spec = expr(mat, unreal.MaterialExpressionConstant, -600, 80, r=1.0)
+    mel.connect_material_property(spec, "", unreal.MaterialProperty.MP_SPECULAR)
+    normals = []
+    for i, (scale, sx, sy) in enumerate(((900.0, 0.02, 0.012), (260.0, -0.035, 0.02))):
+        uv = world_uv(mat, scale, -1600, 300 + i * 300)
+        pan = expr(mat, unreal.MaterialExpressionPanner, -1200, 300 + i * 300, speed_x=sx, speed_y=sy)
+        mel.connect_material_expressions(uv, "", pan, "Coordinate")
+        normals.append(tex(mat, "/Game/Building/Textures/T_Noise01_N", pan, -900, 300 + i * 300, normal=True))
+    add = expr(mat, unreal.MaterialExpressionAdd, -600, 400)
+    mel.connect_material_expressions(normals[0], "RGB", add, "A")
+    mel.connect_material_expressions(normals[1], "RGB", add, "B")
+    flat = expr(mat, unreal.MaterialExpressionMultiply, -400, 400, const_b=0.5)
+    mel.connect_material_expressions(add, "", flat, "A")
+    mel.connect_material_property(flat, "", unreal.MaterialProperty.MP_NORMAL)
+    mel.recompile_material(mat)
+    lib.save_loaded_asset(mat)
+    return mat
+
+
+def marker(label, location, tag):
+    m = spawn(unreal.TargetPoint, label, location, folder="Objectives")
+    m.tags = [unreal.Name(tag)]
+    return m
+
+
+def build_harbour(mats):
+    """Port Halden: the strait, a blocked bridge, the docks and cranes, the transports, the boat and the air defence."""
+    water = place(lib.load_asset("/Engine/BasicShapes/Plane"), "HarbourWater", (0, 0, WATER_Z), rot(), (40.0, 700.0, 1.0), make_water_material(), "Harbour")
+    wc = water.static_mesh_component
+    wc.set_collision_enabled(unreal.CollisionEnabled.QUERY_ONLY)
+    wc.set_collision_response_to_all_channels(unreal.CollisionResponseType.ECR_IGNORE)
+    wc.set_collision_response_to_channel(unreal.CollisionChannel.ECC_VISIBILITY, unreal.CollisionResponseType.ECR_BLOCK)   # hoverbikes skim it
+    water.tags = [unreal.Name("DV_Water")]
+
+    # Quay walls along both banks.
+    for side in (-1, 1):
+        for i in range(12):
+            y = -5500 + i * 1000
+            block("Quay_%s%02d" % ("W" if side < 0 else "E", i), (side * 1000, y, WATER_Z + 180), (220, 1000, 520), mats["concrete"], folder="Harbour")
+            block("QuayEdge_%s%02d" % ("W" if side < 0 else "E", i), (side * 890, y, WATER_Z + 445), (20, 1000, 14), mats["hazard"], folder="Harbour")
+
+    # The bridge to the north, blocked by a CINDER barricade of stacked containers and a wrecked transporter.
+    by_ = 2600
+    block("Bridge_Deck", (0, by_, 30), (3000, 700, 60), mats["concrete_dark"], folder="Bridge")
+    for x in range(-1300, 1400, 650):
+        block("Bridge_Pier_%d" % x, (x, by_, -350), (160, 400, 700), mats["concrete"], folder="Bridge")
+    block("Bridge_RailN", (0, by_ + 340, 90), (3000, 20, 60), mats["gunmetal"], folder="Bridge")
+    block("Bridge_RailS", (0, by_ - 340, 90), (3000, 20, 60), mats["gunmetal"], folder="Bridge")
+    for k in range(3):
+        block("Barricade_%d" % k, (-150 + k * 160, by_, 60 + 260 * k + 130), (600, 244, 260), [mats["rust"], mats["navy"], mats["olive"]][k], 85 + k * 8, folder="Bridge")
+    block("Wreck_Truck", (300, by_ - 120, 160), (700, 260, 200), mats["gunmetal"], 30, folder="Bridge")
+    block("Barricade_Sign", (-150, by_, 900), (40, 600, 120), mats["strip_red"], folder="Bridge")
+
+    # Docks on the east bank: piers, gantry cranes, container stacks.
+    for i, y in enumerate((-2800, -600, 1400)):
+        block("Pier_%d" % i, (700, y, WATER_Z + 330), (500, 260, 40), mats["concrete_dark"], folder="Docks")
+        for k in range(3):
+            block("PierPost_%d_%d" % (i, k), (520 + k * 170, y, WATER_Z + 150), (40, 40, 360), mats["concrete"], folder="Docks")
+    for i, y in enumerate((-2000, 400)):
+        cx = 1450
+        for lx, ly in ((-200, -400), (200, -400), (-200, 400), (200, 400)):
+            block("Crane_%d_Leg%d%d" % (i, lx, ly), (cx + lx, y + ly, ground(cx + lx, y + ly) + 1100), (60, 60, 2200), mats["hazard"], folder="Cranes")
+        block("Crane_%d_Beam" % i, (cx, y, ground(cx, y) + 2250), (500, 900, 120), mats["hazard"], folder="Cranes")
+        block("Crane_%d_Boom" % i, (cx - 1400, y, ground(cx, y) + 2350), (3400, 160, 100), mats["hazard"], folder="Cranes")
+        block("Crane_%d_Cab" % i, (cx, y - 300, ground(cx, y) + 2050), (220, 220, 200), mats["gunmetal"], folder="Cranes")
+        block("Crane_%d_Lamp" % i, (cx - 3000, y, ground(cx, y) + 2290), (40, 40, 40), mats["strip_red"], folder="Cranes")
+    for i in range(10):
+        x, y = random.uniform(1700, 2400), random.uniform(-3200, 2000)
+        if abs(y + 2000) < 600 or abs(y - 400) < 600:
+            continue
+        container("DockBox_%d" % i, x, y, random.choice((0, 90)), random.choice((mats["rust"], mats["navy"], mats["olive"])), mats, stacked=random.random() < 0.4)
+
+    # Civilian transports moored in the strait, bows to the sea (south).
+    transport = unreal.load_class(None, "/Script/DeltaVDominion.DVTransportShip")
+    for i, y in enumerate((300, -5200)):
+        spawn(transport, "Transport_%d" % i, (420, y, WATER_Z - 20), rot(yaw=-90), "Harbour")
+
+    # The Marlin at the west slip, nose to the east bank.
+    block("Slip", (-650, -3000, WATER_Z + 60), (500, 900, 30), mats["concrete_dark"], folder="Harbour")
+    boat = unreal.load_class(None, "/Script/DeltaVDominion.DVBoat")
+    spawn(boat, "Marlin", (-350, -3000, WATER_Z + 60), rot(yaw=20), "Vehicles")   # clear water south of the moored transport
+
+    # Air-defence controller on the north-west headland: radar, launcher racks, a control shack.
+    ax, ay = -2000, 3300   # north of the bridge on the west bank, out of rifle range of the drop
+    az = ground(ax, ay)
+    block("AA_Pad", (ax, ay, az + 15), (1500, 1300, 30), mats["concrete_dark"], folder="AirDefence")
+    block("AA_Shack", (ax - 400, ay - 300, az + 160), (400, 300, 300), mats["concrete"], folder="AirDefence")
+    block("AA_ShackStrip", (ax - 190, ay - 300, az + 250), (6, 260, 10), mats["strip_red"], folder="AirDefence")
+    for k in range(4):
+        block("AA_RadarLeg%d" % k, (ax + 250 + (k % 2) * 120, ay + 250 + (k // 2) * 120, az + 600), (24, 24, 1200), mats["gunmetal"], folder="AirDefence")
+    block("AA_Radar", (ax + 310, ay + 310, az + 1250), (60, 520, 300), mats["gunmetal"], 35, folder="AirDefence")
+    block("AA_RadarGlow", (ax + 340, ay + 290, az + 1250), (8, 420, 20), mats["strip_red"], 35, folder="AirDefence")
+    for k in range(2):
+        rx = ax - 200 + k * 500
+        block("AA_Launcher%d" % k, (rx, ay + 350, az + 160), (320, 220, 200), mats["olive"], folder="AirDefence")
+        for t in range(4):
+            block("AA_Tube%d_%d" % (k, t), (rx - 90 + t * 60, ay + 350, az + 330), (40, 200, 40), mats["gunmetal"], folder="AirDefence")
+    marker("Objective_AirDefence", (ax, ay, az + 20), "DV_Obj_1")
+    soldier = unreal.load_class(None, "/Script/DeltaVDominion.DVSoldierCharacter")
+    for i, (dx, dy) in enumerate(((-500, 300), (300, -400), (600, 200), (-100, 600), (-700, -100))):
+        e = spawn(soldier, "AA_Guard_%02d" % i, (ax + dx, ay + dy, ground(ax + dx, ay + dy) + 105), rot(yaw=200), "Enemies")
+        e.set_editor_property("team_id", 2)
+
+    # The dock control key sits in the east compound's bunker; the Raven comes in to a pad south of it.
+    marker("Objective_DockKey", (3000, 0, ground(3000, 0) + 20), "DV_Obj_2")
+    lx, ly = 3900, -2700
+    lz = ground(lx, ly)
+    block("Extract_Pad", (lx, ly, lz + 15), (1400, 1400, 30), mats["concrete_dark"], folder="Harbour")
+    marker("Extraction_Pad", (lx, ly, lz + 30), "DV_LZ")
+
+    # Harbour overlook for trailers ("DVShowcase 5") and a low shot along the water ("DVShowcase 6").
+    for i, (eye, target) in enumerate((((-2600, -4200, 1700), (600, 600, -300)), ((-700, -3800, -150), (300, 1800, -100)))):
+        cam = spawn(unreal.CameraActor, "ShowcaseCam_%d" % (5 + i), eye, folder="Cameras")
+        cam.set_actor_rotation(unreal.MathLibrary.find_look_at_rotation(unreal.Vector(*eye), unreal.Vector(*target)), False)
+        cam.tags = [unreal.Name("Showcase%d" % (5 + i))]
+        setp(cam.camera_component, "field_of_view", 70.0)
+
+
 def build_extras(mats, rocks, rock_mat):
     extras = B["extras"]
+    if "harbour" in extras:
+        build_harbour(mats)
     if "lava" in extras:
         lava = place(CHAMFER, "LavaSea", (0, 0, -260), rot(), (60000 / CHAMFER_SIZE.x, 60000 / CHAMFER_SIZE.y, 20 / CHAMFER_SIZE.z), mats["lava"], "Lava")
         for i in range(18):
@@ -576,7 +724,7 @@ def build_extras(mats, rocks, rock_mat):
             gz = ground(x, y)
             w, d, h = random.uniform(900, 2600), random.uniform(900, 2600), random.uniform(4000, 22000)
             yaw = random.uniform(-15, 15)
-            block("Tower_%02d" % i, (x, y, gz + h / 2), (w, d, h), mats["concrete"], yaw, folder="City")
+            block("Tower_%02d" % i, (x, y, gz + h / 2), (w, d, h), mats["concrete_dark"] if "harbour" in extras else mats["concrete"], yaw, folder="City")
             for k in range(int(h // 900)):
                 block("TowerWin_%02d_%d" % (i, k), (x, y, gz + 450 + k * 900), (w + 10, d + 10, 120), mats["windows"], yaw, folder="City")
             block("TowerBeacon_%02d" % i, (x, y, gz + h + 60), (80, 80, 80), mats["strip_red"], folder="City")

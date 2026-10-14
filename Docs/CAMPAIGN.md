@@ -238,6 +238,7 @@ These set palettes and set dressing; nothing is copied.
 | Proxima | Cold Wake | New Albion Colony, Proxima b |
 | Ceres | Ghost Signal | Occator District, Ceres (night mining town) |
 | Gaia | Gaia Falls | Lagos Arcology outskirts, Earth |
+| Breakwater | Breakwater | Port Halden harbour, Earth: air defence, the Marlin boat across the strait, hold the docks, extract |
 | BootCamp | Boot Camp | Copernicus Range, Luna |
 
 Each planet operation runs: clear the garrison, plant charges, hold against counter-attacks, extract on a Raven.
@@ -253,4 +254,13 @@ Each planet operation runs: clear the garrison, plant charges, hold against coun
 7. **Brasshaven, Neon Verge and Hollyhock Vale** as new Lattice destinations on the war table.
 8. **Lantern Deep, Underhang and Pelagia** maps; the Coil boss; the Maw as a ship-wide escape and Ruiz's POV level.
 
-Done so far from this list: **1** (downed, revive, bleed-out; AI squadmates come for you).
+Done so far from this list: **1** (downed, revive, bleed-out; AI squadmates come for you) and **2** (Operation Breakwater: harbour map, PB-9 Marlin missile boat, air-defence objective, transports, extraction).
+
+## Star Wars Outlaws as a reference (mechanics and look, nothing copied)
+
+- **Speeder travel**: the VX-3 Skiff hoverbike is the fast, fragile scout's ride between objectives (in game).
+- **Seamless planet to orbit**: the long-term goal is to lift off a planet in a Raven and fly up to the Kestrel without a loading screen; the war table stands in until then.
+- **Faction reputation**: Brasshaven's Guild Council, Neon Verge's brokers and Hollyhock Vale each remember what you did for (or to) them, opening or closing contracts, prices and help in Act IV.
+- **Open hubs**: the Kestrel's hangar is the first; each new world gets a walkable town to take contracts in before the operation.
+- **Stealth and takedowns**: quiet approaches, especially under restrained rules of engagement.
+- **Look**: warm, dusty frontier light, lived-in hardware, big skies; our palettes come from the art-direction table above.

@@ -83,6 +83,10 @@ private:
 	void TickStage();
 	void StartSabotage();
 	void StartDefend();
+	void StartCapture();
+	/** Breakwater-style operations: objectives come from actors tagged DV_Obj_1 / DV_Obj_2 / DV_LZ in the map. */
+	bool bScriptedObjectives = false;
+	FVector SecondObjective = FVector::ZeroVector;
 	void StartExtract();
 	void SpawnWave(int32 Count);
 	bool AnyPlayerNear(const FVector& Location, float Radius) const;

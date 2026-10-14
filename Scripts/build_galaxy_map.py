@@ -165,13 +165,13 @@ def build():
            "the TAS Kestrel fights to retake the inner system before the machines reach Gaia itself.",
            (1.0, 0.92, 0.7), 3.0,
            [op("Kestrel (home base)", "TAS Kestrel, hangar deck", "/Game/Maps/Kestrel"),
+            op("Breakwater", "Port Halden harbour, Gaia", "/Game/Maps/Breakwater"),
             op("Red Tide", "Tharsis Ridge, Mars", "/Game/Maps/Outpost"),
             op("Glass Ocean", "Conamara Chaos, Europa", "/Game/Maps/Europa"),
             op("Forgefall", "Loki Patera, Io", "/Game/Maps/Io"),
             op("Ghost Signal", "Occator District, Ceres", "/Game/Maps/Ceres"),
             op("Gaia Falls", "Lagos Arcology outskirts, Gaia", "/Game/Maps/Gaia"),
-            op("Boot Camp", "Copernicus Range, Luna", "/Game/Maps/BootCamp"),
-            op("Cold Burn", "Phobos shipyard")], home=True)
+            op("Boot Camp", "Copernicus Range, Luna", "/Game/Maps/BootCamp")], home=True)
 
     # --- Local bubble (real data; drawn magnified) -------------------------------------------
     system("Alpha Centauri", galactic(4.37, 315.7, -0.7), "Local Bubble", 4.37, CONTESTED,

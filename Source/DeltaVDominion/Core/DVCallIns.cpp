@@ -278,7 +278,7 @@ void ADVObjectiveBeacon::Tick(float DeltaSeconds)
 	}
 	const bool bActive = GS->Phase == EDVMissionPhase::InProgress && (bExtraction
 		? GS->Stage == EDVMissionStage::Extract
-		: (GS->Stage == EDVMissionStage::Sabotage || GS->Stage == EDVMissionStage::Defend));
+		: (GS->Stage == EDVMissionStage::Sabotage || GS->Stage == EDVMissionStage::Capture || GS->Stage == EDVMissionStage::Defend));
 	SetActorHiddenInGame(!bActive);
 	if (!bActive)
 	{

@@ -124,6 +124,12 @@ void ADVGameMode::SetupMissionForMap()
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Neon everywhere and no ambient light. Watch the rooftops, check your targets.") },
 		    { TEXT("SPARROW"), TEXT("I can hear the network here. It is very loud. I would like it to stop.") },
 		    { TEXT("CINDER"), TEXT("SPARROW. COME HOME.") } } },
+		{ TEXT("Breakwater"), TEXT("Breakwater"), TEXT("Destroy the air-defence controller"), TEXT("Port Halden, Gaia"),
+		  TEXT("Earth  |  Day 2 of the uprising  |  Evacuation"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Delta, CINDER has locked four civilian transports in Port Halden. Twelve thousand people. Open that harbour.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Air defence first, or our Ravens can't get in. Then the dock key across the water. Boat's at the slip.") },
+		    { TEXT("Deck Chief Ruiz"), TEXT("Marlin's fuelled and the launcher's armed. Bring her back with paint on her.") },
+		    { TEXT("CINDER"), TEXT("THE TRANSPORTS ARE SAFE WHERE THEY ARE. SO ARE YOU. STAY.") } } },
 		{ TEXT("Gaia"), TEXT("Gaia Falls"), TEXT("Hold the hills outside the capital"), TEXT("Lagos Arcology outskirts, Gaia"),
 		  TEXT("Earth  |  Day 30 of the uprising"),
 		  { { TEXT("Admiral Osei (Accord Command)"), TEXT("All units, this is Gaia Command. CINDER's landing force is on the ground. This is home. Hold it.") },
@@ -278,6 +284,23 @@ void ADVGameMode::SetupOperation()
 	GS->ObjectiveLocation = Target;
 	GS->ExtractLocation = LZ;
 
+	// Hand-authored operations place their objectives in the map instead.
+	FVector Obj1 = FVector::ZeroVector;
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		if (It->ActorHasTag(TEXT("DV_Obj_1"))) { Obj1 = It->GetActorLocation(); bScriptedObjectives = true; }
+		if (It->ActorHasTag(TEXT("DV_Obj_2"))) { SecondObjective = It->GetActorLocation(); }
+		if (It->ActorHasTag(TEXT("DV_LZ"))) { GS->ExtractLocation = It->GetActorLocation(); }
+	}
+	if (bScriptedObjectives)
+	{
+		// Straight to the first job; nobody waits for the whole garrison to fall.
+		GS->ObjectiveLocation = Obj1;
+		GS->Stage = EDVMissionStage::Sabotage;
+		GS->ObjectiveText = TEXT("Destroy the air-defence controller");
+		TargetNoun = TEXT("the air-defence controller");
+	}
+
 	const FString Map = GetWorld()->GetMapName();
 	struct FNoun { const TCHAR* Key; const TCHAR* Noun; };
 	static const FNoun Nouns[] = {
@@ -314,7 +337,8 @@ void ADVGameMode::DevAdvanceStage()
 	switch (GS->Stage)
 	{
 	case EDVMissionStage::Clear: StartSabotage(); break;
-	case EDVMissionStage::Sabotage: StartDefend(); break;
+	case EDVMissionStage::Sabotage: if (bScriptedObjectives) { StartCapture(); } else { StartDefend(); } break;
+	case EDVMissionStage::Capture: StartDefend(); break;
 	case EDVMissionStage::Defend: StartExtract(); break;
 	default: break;
 	}
@@ -353,23 +377,43 @@ void ADVGameMode::StartDefend()
 	GS->StageProgress = 0.f;
 	StageStartTime = GetWorld()->GetTimeSeconds();
 	GS->StageEndTime = StageStartTime + HoldSeconds;
-	GS->ObjectiveText = TEXT("Hold until the charges blow");
+	GS->ObjectiveText = bScriptedObjectives ? TEXT("Hold the docks while the transports get clear") : TEXT("Hold until the charges blow");
 	WavesSpawned = 0;
-	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Charges set! Forty-five seconds. Dig in, they'll want it back."));
+	Radio(TEXT("Gny. Sgt. Halloran"), bScriptedObjectives ? TEXT("Key's in! Locks are opening. Hold the docks till those ships are clear!")
+		: TEXT("Charges set! Forty-five seconds. Dig in, they'll want it back."));
 	GS->MulticastSound(TEXT("SW_Alarm"), GS->ObjectiveLocation, 0.6f, 1);
 	Radio(TEXT("CINDER"), TEXT("YOU HAVE TOUCHED SOMETHING OF MINE."), 5.f);
+}
+
+void ADVGameMode::StartCapture()
+{
+	ADVGameState* GS = GetDVGameState();
+	// The air defence goes up with the charges, and the sky opens for the Kestrel's aircraft.
+	DVFx::Explosion(GetWorld(), GS->ObjectiveLocation, 1.2f);
+	DVCombat::RadialDamage(SquadLeader.Get(), GS->ObjectiveLocation, 1400.f, 500.f, false);
+	GS->Stage = EDVMissionStage::Capture;
+	GS->StageProgress = 0.f;
+	GS->ObjectiveLocation = SecondObjective;
+	GS->ObjectiveText = TEXT("Take the dock control key across the harbour");
+	StageStartTime = GetWorld()->GetTimeSeconds();
+	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Air defence is down! Ravens are cleared to approach. Now get me that dock key."), 1.f);
+	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Bridge is blocked. Take the Marlin across the harbour, it's faster than walking round."), 6.f);
 }
 
 void ADVGameMode::StartExtract()
 {
 	ADVGameState* GS = GetDVGameState();
-	DVFx::Explosion(GetWorld(), GS->ObjectiveLocation, 1.2f);
-	DVCombat::RadialDamage(SquadLeader.Get(), GS->ObjectiveLocation, 1400.f, 500.f, false);	// the squad's charges: credit the leader
+	if (!bScriptedObjectives)
+	{
+		DVFx::Explosion(GetWorld(), GS->ObjectiveLocation, 1.2f);
+		DVCombat::RadialDamage(SquadLeader.Get(), GS->ObjectiveLocation, 1400.f, 500.f, false);	// the squad's charges: credit the leader
+	}
 	GS->Stage = EDVMissionStage::Extract;
 	GS->StageProgress = 0.f;
 	GS->ObjectiveText = TEXT("Get to the landing zone for extraction");
 	StageStartTime = GetWorld()->GetTimeSeconds();
-	Radio(TEXT("Capt. Vance (Kestrel)"), FString::Printf(TEXT("Good kill on %s, Delta. Raven Two-One is inbound to your LZ. Get out of there."), *TargetNoun), 1.f);
+	Radio(TEXT("Capt. Vance (Kestrel)"), bScriptedObjectives ? FString(TEXT("Transports are in open water. Twelve thousand people, Delta. Raven Two-One is coming for you."))
+		: FString::Printf(TEXT("Good kill on %s, Delta. Raven Two-One is inbound to your LZ. Get out of there."), *TargetNoun), 1.f);
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	const FVector From = FVector(GS->ExtractLocation) + FVector(-6000.f, 0.f, 4000.f);
@@ -439,6 +483,24 @@ void ADVGameMode::TickStage()
 		{
 			GS->StageProgress = FMath::Min(1.f, GS->StageProgress + 0.25f / PlantSeconds);
 			GS->MulticastSound(TEXT("SW_PlantBeep"), GS->ObjectiveLocation, 0.8f, 0);
+			if (GS->StageProgress >= 1.f)
+			{
+				if (bScriptedObjectives && !SecondObjective.IsNearlyZero())
+				{
+					StartCapture();
+				}
+				else
+				{
+					StartDefend();
+				}
+			}
+		}
+		break;
+	case EDVMissionStage::Capture:
+		if (AnyPlayerNear(GS->ObjectiveLocation, 500.f))
+		{
+			GS->StageProgress = FMath::Min(1.f, GS->StageProgress + 0.25f / 5.f);
+			GS->MulticastSound(TEXT("SW_PlantBeep"), GS->ObjectiveLocation, 0.6f, 0);
 			if (GS->StageProgress >= 1.f)
 			{
 				StartDefend();

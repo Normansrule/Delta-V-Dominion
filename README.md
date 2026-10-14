@@ -45,6 +45,18 @@ thrusters in the air, and **dash** on the ground.
 
 <p align="center"><img src="Docs/media/commander_locker.png" width="720" alt="The barracks locker: customising the commander, with the service record and perks"></p>
 
+## Operation Breakwater (Gaia)
+
+CINDER has locked four civilian transports in Port Halden. Knock out the **air-defence controller** on the
+north headland so the Kestrel's Ravens can get in, take the **PB-9 Marlin missile boat** across the strait (the
+bridge is barricaded) to grab the **dock control key**, **hold the docks** while the transports sail for open
+water, then extract on a Raven. Launch it from the war table (Sol, second operation).
+
+| | | |
+|---|---|---|
+| ![The strait](Docs/media/breakwater_strait.png) | ![The docks](Docs/media/breakwater_docks.png) | ![The Marlin](Docs/media/breakwater_marlin.png) |
+| The strait at dawn, a transport moored in the channel | Cranes, quays and the barricaded bridge | At the Marlin's helm: deck gun, missiles (RMB) |
+
 ## Every mission is an operation
 
 Clear the garrison, then the radio gives you the real job: **plant charges on the target** (stand on the amber
@@ -346,6 +358,7 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
 - [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
 - [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
+- [x] Operation Breakwater: harbour map with water, missile boat, air-defence and dock-key objectives, transports that sail
 - [x] Hoverbike, Raven jet mode + cockpit HUD + flares, Jackal APC armour, vehicles that right themselves
 - [x] Movement: sprint-slide, thruster boost jump and dash (predicted, multiplayer-safe)
 - [x] Customisable commander (frame, paint, optics, callsign) and commander levels with perks

@@ -12,6 +12,7 @@
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
 #include "Vehicles/DVHoverbike.h"
+#include "Vehicles/DVBoat.h"
 #include "Core/DVGameState.h"
 #include "Core/DVFx.h"
 #include "Characters/DVBulwark.h"
@@ -740,6 +741,10 @@ void ADVPlayerController::DVAutopilot(float Delay, float Throttle, float Steer, 
 		{
 			Bike->SetAutopilot(Throttle, Steer * 40.f, Fire != 0);
 		}
+		else if (ADVBoat* Boat = Cast<ADVBoat>(GetPawn()))
+		{
+			Boat->SetAutopilot(Throttle, Steer * 30.f, Fire != 0);
+		}
 	}), FMath::Max(Delay, 0.001f), false);
 }
 
@@ -754,7 +759,8 @@ void ADVPlayerController::DVBoard(const FString& Which, float Delay)
 			const bool bMatch = (Which.Equals(TEXT("tank"), ESearchCase::IgnoreCase) && It->IsA<ADVTank>())
 				|| (Which.Equals(TEXT("ltv"), ESearchCase::IgnoreCase) && It->IsA<ADVGroundVehicle>() && !It->IsA<ADVTank>())
 				|| (Which.Equals(TEXT("gunship"), ESearchCase::IgnoreCase) && It->IsA<ADVGunship>())
-				|| (Which.Equals(TEXT("bike"), ESearchCase::IgnoreCase) && It->IsA<ADVHoverbike>());
+				|| (Which.Equals(TEXT("bike"), ESearchCase::IgnoreCase) && It->IsA<ADVHoverbike>())
+				|| (Which.Equals(TEXT("boat"), ESearchCase::IgnoreCase) && It->IsA<ADVBoat>());
 			if (bMatch && GetPawn())
 			{
 				GetPawn()->TeleportTo(It->GetActorLocation() + FVector(0.f, -300.f, 120.f), GetPawn()->GetActorRotation());

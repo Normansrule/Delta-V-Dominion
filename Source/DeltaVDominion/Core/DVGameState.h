@@ -18,6 +18,7 @@ enum class EDVMissionStage : uint8
 {
 	Clear,
 	Sabotage,
+	Capture,	// hold a point for a few seconds (Breakwater: the dock control key)
 	Defend,
 	Extract
 };

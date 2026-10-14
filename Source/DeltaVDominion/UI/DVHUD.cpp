@@ -17,6 +17,7 @@
 #include "Vehicles/DVGroundVehicle.h"
 #include "Vehicles/DVGunship.h"
 #include "Vehicles/DVHoverbike.h"
+#include "Vehicles/DVBoat.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -377,6 +378,7 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 		switch (GS->Stage)
 		{
 		case EDVMissionStage::Sabotage: Right = FString::Printf(TEXT("PLANTING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
+		case EDVMissionStage::Capture: Right = FString::Printf(TEXT("CAPTURING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
 		case EDVMissionStage::Defend: Right = FString::Printf(TEXT("DETONATION %ds"), FMath::Max(0, FMath::CeilToInt(GS->StageEndTime - GetWorld()->GetTimeSeconds()))); Color = DVHudColors::Hostile; break;
 		case EDVMissionStage::Extract: Right = GS->StageProgress < 1.f ? FString(TEXT("RAVEN INBOUND")) : FString(TEXT("RAVEN ON THE PAD")); Color = Cyan; break;
 		default: break;
@@ -644,6 +646,12 @@ void ADVHUD::DrawVehicle(APawn* Vehicle)
 		{
 			DrawCockpit(Air);
 		}
+	}
+	else if (const ADVBoat* Boat = Cast<ADVBoat>(Vehicle))
+	{
+		Speed = Boat->GetSpeedKph();
+		Ready = Boat->GetMissileReadyFraction();
+		Extra = TEXT("MISSILES");
 	}
 	else if (const ADVHoverbike* Bike = Cast<ADVHoverbike>(Vehicle))
 	{
