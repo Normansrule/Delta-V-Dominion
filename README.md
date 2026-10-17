@@ -73,6 +73,23 @@ Three powers remember what Delta does, from Hostile to Allied (shown at the barr
 | ![Salvage contract](Docs/media/salvage_contract.png) | ![Standing](Docs/media/standing.png) |
 | Claiming a salvage contract on Europa | Standing, perks and the commander's look at the locker |
 
+## Rook's Rest and the job board
+
+Take the shuttle from the Kestrel's hangar down to **Rook's Rest**, a Free Ports market town under the Tharsis rim at
+golden hour. Walk the market, step into the Rusty Rook cantina, and talk to the townsfolk: what they say depends on how
+the Free Ports feel about Delta. Mags Okafor's **job board** outside the cantina posts five contracts (silent
+takedowns, salvage, headshots, revives, Bulwark bounties). Take one, work it on your next operations (the HUD tracks
+it under the objective), and it pays standing and XP when an operation is won. The Raven on the pad flies you home.
+
+| | |
+|---|---|
+| ![Main street](Docs/media/town_street.png) | ![The Rusty Rook](Docs/media/town_cantina.png) |
+| **Main street**: stalls, string lights and the Kestrel in the sky | **The Rusty Rook** cantina and Mags Okafor's job board |
+| ![Job board](Docs/media/town_board.png) | ![Contract tracker](Docs/media/contract_tracker.png) |
+| **The job board**: one contract at a time, paid on a win | **On the job**: a silent takedown on Red Tide counts toward Quiet Money |
+| ![Townsfolk](Docs/media/town_talk.png) | ![Rook's Rest](Docs/media/town_overview.png) |
+| **Townsfolk** stop and talk; wary, neutral or friendly by your standing | **Rook's Rest** from the dunes |
+
 ## Stealth
 
 Hearthbound sentries start **unaware** (a grey "- -" marker). They notice you inside a cone in front of them,
@@ -202,7 +219,7 @@ Unreal games are Windows-native; on Linux use Steam Proton, on macOS a Windows V
 | F (behind an unaware frame) | **Silent takedown** | Space (in water) | Swim up and climb out |
 | B / N / H | Orbital strike (danger close) / supply drop / strafing run on the crosshair | Enter / M | Redeploy / back to the galaxy map (after a mission) |
 | **Galaxy map** | Left-drag orbit, right-drag or WASD pan, wheel zoom, click a system, **1-3** launch, H home, G galaxy | | |
-| Z | Board / exit vehicles; use the war table, memorial, armoury, barracks locker (1-4 customise) | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
+| Z | Board / exit vehicles; use the war table, memorial, armoury, barracks locker (1-4 customise), job board, shuttle | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
 | **Driving** | W/S throttle, A/D steer, mouse aims, LMB fires, Space handbrake | **Flying** | W/S/A/D move, Space up, C down, LMB cannon, RMB rockets |
 
 ---
@@ -396,5 +413,6 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [x] Customisable commander (frame, paint, optics, callsign) and commander levels with perks
 - [x] Down, not dead: wounded soldiers bleed out for 30 s; squadmates (or you, holding Z) revive them
 - [x] Destructible vehicles: hull armour, enemies target crewed vehicles, wrecks burn and throw the crew clear
+- [x] Rook's Rest: a walkable Free Ports town with townsfolk, a cantina and a contract board; shuttle to and from the Kestrel
 - [ ] Smoke call-in, Skitter drones, enemy vehicles
 - [ ] Vehicles, space segments, campaign map and story missions

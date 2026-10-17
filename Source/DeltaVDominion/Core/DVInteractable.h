@@ -14,6 +14,8 @@ enum class EDVInteraction : uint8
 	Memorial,	// shows the fallen and the living roster
 	Armoury,	// cycle weapon loadouts
 	Locker,		// commander customisation (look, optics, callsign)
+	ContractBoard,	// Rook's Rest job board: take a side contract for the next operations
+	Shuttle,	// ride to Destination (Kestrel hangar <-> Rook's Rest)
 };
 
 /**
@@ -34,6 +36,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact") EDVInteraction Interaction = EDVInteraction::WarTable;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact") FString Prompt = TEXT("Use");
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact") float Reach = 380.f;
+	/** Shuttle only: the map to open, e.g. /Game/Maps/RooksRest. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact") FString Destination;
 
 	static ADVInteractable* FindNear(const AActor* User);
 

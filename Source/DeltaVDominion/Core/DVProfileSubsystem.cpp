@@ -26,6 +26,21 @@ namespace
 		{ TEXT("Violet"), FLinearColor(0.6f, 0.25f, 1.f) },
 		{ TEXT("Gold"), FLinearColor(1.f, 0.8f, 0.3f) },
 	};
+	// The board at Rook's Rest. Free Ports jobs pay in standing with the smugglers; the others are posted by
+	// an Accord liaison and a Colonies relief officer who drink in the same cantina.
+	const FDVContract CommanderContracts[DVContracts::Num] = {
+		{ TEXT("Quiet Money"), TEXT("Mags Okafor, Free Ports fixer"), DVFactions::FreePorts,
+		  TEXT("A client wants Hearthbound sentries gone without an alarm. Get behind them."), TEXT("silent takedowns"), 3, 10, 250 },
+		{ TEXT("Scrap Rights"), TEXT("Mags Okafor, Free Ports fixer"), DVFactions::FreePorts,
+		  TEXT("Sealed cargo is lying in the war zones. Bring the Ports their share."), TEXT("salvage crates claimed"), 2, 12, 200 },
+		{ TEXT("Marksman's Purse"), TEXT("Lt. Adaeze Kim, Accord liaison"), DVFactions::Accord,
+		  TEXT("Command is testing the new optics. Prove them on frame cores."), TEXT("headshots"), 6, 10, 250 },
+		{ TEXT("Nobody Left Behind"), TEXT("Sister Ilse, Colonies relief"), DVFactions::Colonies,
+		  TEXT("The colonies watch how Delta treats its own. Pick your people up."), TEXT("squadmates revived"), 2, 12, 250 },
+		{ TEXT("Heavy Bounty"), TEXT("Lt. Adaeze Kim, Accord liaison"), DVFactions::Accord,
+		  TEXT("Bulwark war-frames are holding our lines back. Command pays per wreck."), TEXT("Bulwarks destroyed"), 1, 12, 300 },
+	};
+
 	const TCHAR* CommanderCallsigns[] = { TEXT("Halcyon"), TEXT("Ghost"), TEXT("Nomad"), TEXT("Atlas"), TEXT("Saint"), TEXT("Kodiak"),
 		TEXT("Echo"), TEXT("Wraith"), TEXT("Lantern"), TEXT("Comet"), TEXT("Juniper"), TEXT("Anvil") };
 }
@@ -38,6 +53,8 @@ void UDVProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		Look = Saved->Look;
 		XP = Saved->XP;
 		Reputation = Saved->Reputation;
+		ActiveContract = Saved->ActiveContract < NumContracts() ? Saved->ActiveContract : -1;
+		ContractProgress = Saved->ContractProgress;
 	}
 	Reputation.SetNumZeroed(DVFactions::Num);
 	Look.bSet = true;	// a fresh profile is the default commander
@@ -62,6 +79,8 @@ void UDVProfileSubsystem::Save()
 	Data->Look = Look;
 	Data->XP = XP;
 	Data->Reputation = Reputation;
+	Data->ActiveContract = ActiveContract;
+	Data->ContractProgress = ContractProgress;
 	UGameplayStatics::SaveGameToSlot(Data, CommanderSlot, 0);
 }
 
@@ -158,4 +177,54 @@ FString UDVProfileSubsystem::TierName(int32 Value)
 {
 	return Value <= -50 ? TEXT("Hostile") : Value < -15 ? TEXT("Wary") : Value < DVFactions::Trusted ? TEXT("Neutral")
 		: Value < DVFactions::Allied ? TEXT("Trusted") : TEXT("Allied");
+}
+
+double UDVProfileSubsystem::Now() const
+{
+	return GetGameInstance() && GetGameInstance()->GetWorld() ? GetGameInstance()->GetWorld()->GetRealTimeSeconds() : 0.0;
+}
+
+int32 UDVProfileSubsystem::NumContracts() { return DVContracts::Num; }
+const FDVContract& UDVProfileSubsystem::Contract(int32 Kind) { return CommanderContracts[FMath::Clamp(Kind, 0, DVContracts::Num - 1)]; }
+
+void UDVProfileSubsystem::TakeContract(int32 Kind)
+{
+	if (Kind == ActiveContract || Kind < 0 || Kind >= NumContracts())
+	{
+		return;
+	}
+	ActiveContract = Kind;
+	ContractProgress = 0;
+	ContractNote = FString::Printf(TEXT("CONTRACT TAKEN  -  %s"), Contract(Kind).Name);
+	ContractNoteTime = Now();
+	Save();
+}
+
+void UDVProfileSubsystem::ContractEvent(int32 Kind)
+{
+	if (Kind != ActiveContract || IsContractDone())
+	{
+		return;
+	}
+	++ContractProgress;
+	const FDVContract& C = Contract(Kind);
+	ContractNote = IsContractDone() ? FString::Printf(TEXT("CONTRACT COMPLETE  -  %s  (paid on a successful operation)"), C.Name)
+		: FString::Printf(TEXT("%s  %d / %d %s"), C.Name, ContractProgress, C.Goal, C.Unit);
+	ContractNoteTime = Now();
+	Save();
+}
+
+int32 UDVProfileSubsystem::PayContract()
+{
+	if (!IsContractDone())
+	{
+		return 0;
+	}
+	const FDVContract& C = Contract(ActiveContract);
+	ActiveContract = -1;
+	ContractProgress = 0;
+	ContractNote = FString::Printf(TEXT("CONTRACT PAID  -  %s"), C.Name);
+	ContractNoteTime = Now();
+	AddRep(C.Faction, C.Rep, FString::Printf(TEXT("Contract paid: %s"), C.Name));	// also saves
+	return C.XP;
 }

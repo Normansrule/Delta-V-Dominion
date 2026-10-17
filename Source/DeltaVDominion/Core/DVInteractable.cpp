@@ -48,6 +48,8 @@ void ADVInteractable::BeginPlay()
 	case EDVInteraction::Memorial: Color = FLinearColor(1.f, 0.7f, 0.35f); break;
 	case EDVInteraction::Armoury:  Color = FLinearColor(0.4f, 1.f, 0.5f); break;
 	case EDVInteraction::Locker:   Color = FLinearColor(0.85f, 0.6f, 1.f); break;
+	case EDVInteraction::ContractBoard: Color = FLinearColor(1.f, 0.55f, 0.12f); break;
+	case EDVInteraction::Shuttle:  Color = FLinearColor(0.95f, 0.95f, 1.f); break;
 	default: break;
 	}
 	for (UStaticMeshComponent* G : Glows)

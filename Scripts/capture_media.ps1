@@ -84,6 +84,14 @@ if (-not $GifsOnly -and -not $FirefightOnly) {
     Save-MapStill "kestrel_wartable" "/Game/Maps/Kestrel" "DVShowcase 1, " 4 1
     Save-MapStill "kestrel_mars" "/Game/Maps/Kestrel" "DVShowcase 3, " 5
     Save-MapStill "kestrel_armoury" "/Game/Maps/Kestrel" "DVShowcase 4, " 5
+    # Rook's Rest, the Free Ports town between operations (town_board takes a contract that contract_tracker then works).
+    Save-MapStill "town_street" "/Game/Maps/RooksRest" "DVShowcase 0, " 6
+    Save-MapStill "town_cantina" "/Game/Maps/RooksRest" "DVShowcase 1, " 6
+    Save-MapStill "town_overview" "/Game/Maps/RooksRest" "DVShowcase 2, " 6
+    Save-MapStill "town_market" "/Game/Maps/RooksRest" "DVShowcase 3, " 6
+    Save-MapStill "town_board" "/Game/Maps/RooksRest" "DVWarp -700 -190 100 65, DVInteract 2, " 4 1
+    Save-MapStill "town_talk" "/Game/Maps/RooksRest" "DVWarp -1700 -380 100 -90, " 4 1
+    Save-MapStill "contract_tracker" "/Game/Maps/Outpost" "DVTakedownTest 2, " 6 1
     Save-MapStill "landing_zone" "/Game/Maps/Outpost" "DVShowcase 4, " 3
     Save-MapStill "tank_kestrel" "/Game/Maps/Outpost" "DVBoard tank 1, DVAutopilot 2 0.6 0.1 0 1, " 7 1
     Save-MapStill "vehicle_gunship" "/Game/Maps/Outpost" "DVBoard gunship 1, DVAutopilot 1.5 0.6 0.2 0.6 3, " 7 1

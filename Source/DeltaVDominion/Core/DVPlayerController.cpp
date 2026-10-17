@@ -198,6 +198,22 @@ void ADVPlayerController::ClientHitConfirmed_Implementation(bool bKill, bool bHe
 	{
 		const bool bQuiet = GetWorld()->GetTimeSeconds() - LastTakedownRequest < 1.0;
 		AwardXP(bQuiet ? 40 : bHeadshot ? 35 : 25, bQuiet ? TEXT("Silent takedown") : bHeadshot ? TEXT("Headshot") : TEXT("Kill"));
+		if (UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+		{
+			const bool bWasDone = Profile->IsContractDone();
+			if (bQuiet)
+			{
+				Profile->ContractEvent(DVContracts::SilentTakedown);
+			}
+			if (bHeadshot)
+			{
+				Profile->ContractEvent(DVContracts::Headshot);
+			}
+			if (Profile->IsContractDone() != bWasDone)
+			{
+				DVSound::UI(GetWorld(), TEXT("SW_KillConfirm"), 0.7f);
+			}
+		}
 	}
 	bLastHitKill = bKill;
 	bLastHitHeadshot = bHeadshot;
@@ -490,6 +506,20 @@ void ADVPlayerController::OnInteractPressed()
 		case EDVInteraction::Memorial:
 			bShowMemorial = !bShowMemorial;
 			break;
+		case EDVInteraction::ContractBoard:
+			// Each press takes the next job on the board; the one you hold is the one you work.
+			if (UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+			{
+				Profile->TakeContract((Profile->GetActiveContract() + 1) % UDVProfileSubsystem::NumContracts());
+				DVSound::UI(GetWorld(), TEXT("SW_UIClick"), 0.6f);
+			}
+			break;
+		case EDVInteraction::Shuttle:
+			if (!Thing->Destination.IsEmpty())
+			{
+				UGameplayStatics::OpenLevel(this, FName(*Thing->Destination));
+			}
+			break;
 		case EDVInteraction::Locker:
 			SetLockerOpen(!bShowLocker);
 			break;
@@ -587,6 +617,15 @@ void ADVPlayerController::TickProgression()
 	{
 		bMissionXPAwarded = true;
 		AwardXP(GS->Phase == EDVMissionPhase::Success ? 300 : 60, GS->Phase == EDVMissionPhase::Success ? TEXT("Mission accomplished") : TEXT("Survived to fight again"));
+		// A finished Rook's Rest contract is paid when the operation is won.
+		UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+		if (Profile && GS->Phase == EDVMissionPhase::Success && Profile->IsContractDone())
+		{
+			const FString Name = UDVProfileSubsystem::Contract(Profile->GetActiveContract()).Name;
+			const int32 Pay = Profile->PayContract();
+			AwardXP(Pay, FString::Printf(TEXT("Contract: %s"), *Name));
+			PushReputation();
+		}
 	}
 }
 
@@ -692,8 +731,12 @@ void ADVPlayerController::DVRavenMode(int32 bJet, int32 bCockpit, float Delay)
 	}), FMath::Max(Delay, 0.001f), false);
 }
 
-void ADVPlayerController::DVWarp(float X, float Y, float Z)
+void ADVPlayerController::DVWarp(float X, float Y, float Z, float Yaw)
 {
+	if (Yaw > -999.f)
+	{
+		SetControlRotation(FRotator(-5.f, Yaw, 0.f));
+	}
 	ServerWarp(FVector(X, Y, Z), GetControlRotation().Yaw);
 }
 

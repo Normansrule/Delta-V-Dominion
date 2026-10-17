@@ -99,6 +99,23 @@ void ADVGameState::MulticastReputation_Implementation(uint8 Faction, int32 Delta
 	}
 }
 
+void ADVGameState::MulticastContractEvent_Implementation(uint8 Kind)
+{
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	if (UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+	{
+		const bool bWasDone = Profile->IsContractDone();
+		Profile->ContractEvent(Kind);
+		if (Profile->IsContractDone() != bWasDone)
+		{
+			DVSound::UI(GetWorld(), TEXT("SW_KillConfirm"), 0.7f);
+		}
+	}
+}
+
 void ADVGameState::MulticastSound_Implementation(FName Sound, FVector_NetQuantize Location, float Volume, uint8 Range)
 {
 	const FString Name = Sound.ToString();

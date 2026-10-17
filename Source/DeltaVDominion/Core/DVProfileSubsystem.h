@@ -27,6 +27,8 @@ public:
 	UPROPERTY() FDVLook Look;
 	UPROPERTY() int32 XP = 0;
 	UPROPERTY() TArray<int32> Reputation;
+	UPROPERTY() int32 ActiveContract = -1;
+	UPROPERTY() int32 ContractProgress = 0;
 };
 
 /** The three powers that remember what Delta does (-100..100 each). */
@@ -39,6 +41,24 @@ namespace DVFactions
 	constexpr int32 Trusted = 20;
 	constexpr int32 Allied = 50;
 }
+
+/** Side jobs posted on the board at Rook's Rest. Taken in town, worked on the next operations, paid on a win. */
+namespace DVContracts
+{
+	enum EKind : uint8 { SilentTakedown, Salvage, Headshot, Revive, HeavyFrame, Num };
+}
+
+struct FDVContract
+{
+	const TCHAR* Name;
+	const TCHAR* Giver;		// who posted it
+	int32 Faction;			// who pays (DVFactions)
+	const TCHAR* Brief;
+	const TCHAR* Unit;		// "silent takedowns"
+	int32 Goal;
+	int32 Rep;
+	int32 XP;
+};
 
 /** Commander perks, unlocked by level (see UDVProfileSubsystem::PerkName). */
 namespace DVPerks
@@ -85,6 +105,19 @@ public:
 	double LastAwardTime = -100.0;
 	int32 LastLevelUp = 0;
 	double LastLevelUpTime = -100.0;
+	/** Contracts (see DVContracts): one active at a time, saved with the commander. */
+	static int32 NumContracts();
+	static const FDVContract& Contract(int32 Kind);
+	int32 GetActiveContract() const { return ActiveContract; }
+	int32 GetContractProgress() const { return ContractProgress; }
+	bool IsContractDone() const { return ActiveContract >= 0 && ContractProgress >= Contract(ActiveContract).Goal; }
+	void TakeContract(int32 Kind);
+	/** Something happened that a contract might count (Kind is a DVContracts::EKind). */
+	void ContractEvent(int32 Kind);
+	/** Pays a finished contract (reputation and XP); returns the XP to award, 0 if nothing was due. */
+	int32 PayContract();
+	FString ContractNote;
+	double ContractNoteTime = -100.0;
 	/** Field 0 body, 1 paint, 2 optics, 3 callsign: step to the next option and save. */
 	void Cycle(int32 Field);
 
@@ -102,4 +135,7 @@ private:
 	FDVLook Look;
 	int32 XP = 0;
 	TArray<int32> Reputation;
+	int32 ActiveContract = -1;
+	int32 ContractProgress = 0;
+	double Now() const;
 };

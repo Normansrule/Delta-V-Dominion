@@ -1,4 +1,5 @@
 ﻿#include "Core/DVCallIns.h"
+#include "Core/DVProfileSubsystem.h"
 #include "Core/DVFx.h"
 #include "Core/DVGameState.h"
 #include "Characters/DVSoldierCharacter.h"
@@ -350,6 +351,7 @@ void ADVSalvage::Tick(float DeltaSeconds)
 			{
 				GS->MulticastReputation(2, 6, TEXT("Salvage contract claimed"));
 				GS->MulticastReputation(0, -2, TEXT("Command frowns on looting"));
+				GS->MulticastContractEvent(DVContracts::Salvage);
 			}
 			Destroy();
 			return;

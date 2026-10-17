@@ -8,6 +8,7 @@
 #include "Core/DVPlayerController.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
+#include "Characters/DVTownsfolk.h"
 #include "Core/DVProfileSubsystem.h"
 #include "Characters/DVBulwark.h"
 #include "Core/DVCallIns.h"
@@ -114,6 +115,7 @@ void ADVHUD::DrawHUD()
 		DrawThrusters(Soldier);
 		DrawAmmo(Soldier);
 		DrawOrderToast();
+		DrawContract();
 	}
 	else if (!Soldier || Soldier->IsDead())
 	{
@@ -592,6 +594,14 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 	else if (const ADVInteractable* Thing = ADVInteractable::FindNear(Soldier))
 	{
 		Text(FString::Printf(TEXT("[Z]  %s"), *Thing->Prompt), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Warn, GEngine->GetMediumFont(), 1.1f, true);
+		if (Thing->Interaction == EDVInteraction::ContractBoard)
+		{
+			DrawContractBoard();
+		}
+	}
+	else
+	{
+		DrawTownsfolk(Soldier);
 	}
 	if (const ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner); PC && PC->IsMemorialOpen())
 	{
@@ -1041,4 +1051,77 @@ void ADVHUD::DrawAwareness(const ADVSoldierCharacter* Viewer)
 	{
 		Text(TEXT("SWIMMING  -  [Space] climb out"), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.66f, FLinearColor(0.5f, 0.8f, 1.f, 1.f), GEngine->GetSmallFont(), 1.1f, true);
 	}
+}
+
+void ADVHUD::DrawContractBoard()
+{
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (!Profile)
+	{
+		return;
+	}
+	const FLinearColor Amber(1.f, 0.6f, 0.15f, 1.f);
+	const float X = Canvas->ClipX - S(800.f);	// right side: the squad list and radio own the left
+	float Y = Canvas->ClipY * 0.16f;
+	const int32 Num = UDVProfileSubsystem::NumContracts();
+	DrawRect(FLinearColor(0.03f, 0.018f, 0.008f, 0.85f), X - S(20.f), Y - S(20.f), S(780.f), S(120.f) + Num * S(112.f));
+	Text(TEXT("ROOK'S REST  -  JOB BOARD"), X, Y, Amber, GEngine->GetLargeFont(), 1.1f);
+	Text(TEXT("One job at a time. Work it on your next operations; paid when an operation is won."), X, Y + S(44.f), DVHudColors::Dim, GEngine->GetSmallFont(), 0.95f);
+	Y += S(84.f);
+	for (int32 K = 0; K < Num; ++K)
+	{
+		const FDVContract& C = UDVProfileSubsystem::Contract(K);
+		const bool bActive = Profile->GetActiveContract() == K;
+		if (bActive)
+		{
+			DrawRect(FLinearColor(1.f, 0.55f, 0.1f, 0.16f), X - S(10.f), Y - S(6.f), S(760.f), S(106.f));
+		}
+		Text(FString::Printf(TEXT("%s%s"), bActive ? TEXT("> ") : TEXT(""), C.Name), X, Y, bActive ? Amber : DVHudColors::Text, GEngine->GetMediumFont(), 1.f);
+		Text(FString::Printf(TEXT("+%d %s  |  %d XP"), C.Rep, *UDVProfileSubsystem::FactionName(C.Faction), C.XP),
+			X + S(740.f), Y + S(4.f), DVHudColors::Friendly, GEngine->GetSmallFont(), 0.9f, false, true);
+		Text(bActive ? FString::Printf(TEXT("%s   (%d / %d)"), C.Brief, Profile->GetContractProgress(), C.Goal) : FString(C.Brief),
+			X, Y + S(38.f), DVHudColors::Text, GEngine->GetSmallFont(), 0.95f);
+		Text(FString::Printf(TEXT("%s  -  %d %s"), C.Giver, C.Goal, C.Unit), X, Y + S(68.f), DVHudColors::Dim, GEngine->GetSmallFont(), 0.85f);
+		Y += S(112.f);
+	}
+	Text(TEXT("[Z] take the next job"), X, Y + S(4.f), Amber, GEngine->GetSmallFont(), 1.f);
+}
+
+void ADVHUD::DrawContract()
+{
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (!Profile)
+	{
+		return;
+	}
+	const float Now = GetWorld()->GetRealTimeSeconds();
+	if (Now - Profile->ContractNoteTime < 5.0 && !Profile->ContractNote.IsEmpty())
+	{
+		const float A = FMath::Clamp(float(5.0 - (Now - Profile->ContractNoteTime)), 0.f, 1.f);
+		Text(Profile->ContractNote, Canvas->ClipX * 0.5f, Canvas->ClipY * 0.24f, FLinearColor(1.f, 0.6f, 0.15f, A), GEngine->GetMediumFont(), 1.05f, true);
+	}
+	if (Profile->GetActiveContract() >= 0)
+	{
+		const FDVContract& C = UDVProfileSubsystem::Contract(Profile->GetActiveContract());
+		const FString Line = Profile->IsContractDone() ? FString::Printf(TEXT("CONTRACT  %s  -  complete, paid on a win"), C.Name)
+			: FString::Printf(TEXT("CONTRACT  %s  -  %d / %d %s"), C.Name, Profile->GetContractProgress(), C.Goal, C.Unit);
+		Text(Line, Canvas->ClipX * 0.5f, S(122.f), Profile->IsContractDone() ? DVHudColors::Friendly : FLinearColor(1.f, 0.6f, 0.15f, 0.9f), GEngine->GetSmallFont(), 1.f, true);
+	}
+}
+
+void ADVHUD::DrawTownsfolk(const ADVSoldierCharacter* Soldier)
+{
+	const ADVTownsfolk* Local = ADVTownsfolk::FindNear(Soldier);
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (!Local || !Profile)
+	{
+		return;
+	}
+	const FVector Screen = Project(Local->GetActorLocation() + FVector(0.f, 0.f, 120.f * Local->GetActorScale3D().Z));
+	if (Screen.Z <= 0.f)
+	{
+		return;
+	}
+	Text(Local->DisplayName, Screen.X, Screen.Y - S(34.f), FLinearColor(1.f, 0.6f, 0.15f, 1.f), GEngine->GetSmallFont(), 1.f, true);
+	Text(FString::Printf(TEXT("\"%s\""), *Local->Line(Profile->GetRep(DVFactions::FreePorts))), Screen.X, Screen.Y, DVHudColors::Text, GEngine->GetMediumFont(), 0.95f, true);
 }

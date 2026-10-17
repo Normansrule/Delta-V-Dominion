@@ -70,6 +70,13 @@ BIOMES = {
                        sun=(-9, 95), sun_color=(255, 196, 140), sun_lux=8.0, atmosphere=True, mie=0.012, sky_light=1.1,
                        fog=0.008, fog_color=(0.42, 0.44, 0.48), clouds=True, saturation=1.05, contrast=1.1, exposure=-0.6,
                        extras=["harbour", "city"]),
+    # Rook's Rest: a Free Ports market town on the Tharsis rim at golden hour. No enemies; a hub between operations.
+    "rooksrest": dict(map="/Game/Maps/RooksRest", env="/Game/Environment/Planets/RooksRest", seed=81, dunes=70.0, rim=1100.0, mesa=3000.0,
+                      sand_a=(0.3, 0.17, 0.09), sand_b=(0.1, 0.065, 0.045), slope_rock=(0.06, 0.045, 0.036),
+                      rock_dark=(0.025, 0.02, 0.018), rock_light=(0.14, 0.1, 0.075),
+                      sun=(-8, 200), sun_color=(255, 170, 110), sun_lux=7.0, atmosphere=True, mie=0.012, sky_light=1.1,
+                      fog=0.006, fog_color=(0.42, 0.24, 0.15), clouds=True, saturation=1.1, contrast=1.12, exposure=-0.1,
+                      extras=["town"]),
 }
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
@@ -166,6 +173,9 @@ def terrain_height(x, y):
     if "harbour" in B["extras"]:
         # A deep strait runs north to south through the arena: the harbour, open to the sea at both ends.
         h -= 780.0 * (1.0 - smoothstep(850.0, 1250.0, abs(x)))
+    if "town" in B["extras"]:
+        # The town sits on a levelled plaza; the land rises back into dunes and mesas past the last buildings.
+        h *= smoothstep(4400.0, 6000.0, math.sqrt(x * x + y * y * 1.6))
     if "lava" in B["extras"]:
         # Two meandering channels cut across the arena flanks; the lava plane fills them.
         for offset in (-2600.0, 2900.0):
@@ -730,6 +740,208 @@ def build_extras(mats, rocks, rock_mat):
             block("TowerBeacon_%02d" % i, (x, y, gz + h + 60), (80, 80, 80), mats["strip_red"], folder="City")
 
 
+
+# --------------------------------------------------------------------------------------------
+# Rook's Rest (hub town)
+# --------------------------------------------------------------------------------------------
+
+def town_light(label, loc, color, candelas, radius):
+    l = spawn(unreal.PointLight, label, loc, folder="Lights")
+    lc = l.point_light_component
+    setp(lc, "intensity_units", unreal.LightUnits.CANDELAS)
+    setp(lc, "intensity", candelas)
+    setp(lc, "light_color", unreal.Color(r=color[0], g=color[1], b=color[2], a=255))
+    setp(lc, "attenuation_radius", radius)
+    setp(lc, "cast_shadows", False)
+    return l
+
+
+def townsperson(label, loc, yaw, name, trade, wanders=True, radius=1400.0):
+    folk = spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVTownsfolk"), label, loc, rot(yaw=yaw), "Townsfolk")
+    folk.set_editor_property("display_name", name)
+    folk.set_editor_property("trade", trade)
+    folk.set_editor_property("wanders", wanders)
+    folk.set_editor_property("wander_radius", radius)
+    return folk
+
+
+def stall(i, x, y, facing, canvas, mats, vendor):
+    """A market stall facing the street: four poles, a canvas awning, a counter of goods; the vendor stands behind it."""
+    gz = ground(x, y)
+    c, s_ = math.cos(math.radians(facing)), math.sin(math.radians(facing))
+    for k, (ox, oy) in enumerate([(-180, -130), (180, -130), (-180, 130), (180, 130)]):
+        rx, ry = ox * -s_ + oy * c, ox * c + oy * s_
+        block("Stall%d_Pole%d" % (i, k), (x + rx, y + ry, gz + 140), (10, 10, 280), mats["gunmetal"], folder="Market")
+    block("Stall%d_Awning" % i, (x, y, gz + 285), (300, 420, 14), canvas, facing, folder="Market")
+    block("Stall%d_Valance" % i, (x + c * 150, y + s_ * 150, gz + 260), (6, 420, 50), canvas, facing, folder="Market")
+    block("Stall%d_Counter" % i, (x + c * 90, y + s_ * 90, gz + 50), (70, 380, 100), mats["adobe_dark"], facing, folder="Market")
+    for k in range(4):
+        goods = random.choice([mats["rust"], mats["navy"], mats["olive"], mats["hazard"], mats["sign_amber"]])
+        off = -140 + k * 95
+        block("Stall%d_Goods%d" % (i, k), (x + c * 90 - s_ * off, y + s_ * 90 + c * off, gz + 118), (40, 50, 36), goods,
+              facing + random.uniform(-20, 20), folder="Market")
+    for k in range(3):
+        off = -150 + k * 150
+        block("Stall%d_Bulb%d" % (i, k), (x + c * 140 - s_ * off, y + s_ * 140 + c * off, gz + 255), (12, 12, 12), mats["lamp"], folder="Market")
+    town_light("Stall%d_Light" % i, (x + c * 60, y + s_ * 60, gz + 240), (255, 190, 120), 250.0, 700.0)
+    townsperson("Vendor_%d" % i, (x - c * 60, y - s_ * 60, gz + 100), facing, vendor, 0, wanders=False)
+
+
+def town_house(label, x, y, w, d, h, mats, sign=None):
+    """Adobe-and-scrap habitat: thick walls, a lit doorway and windows on the street side, rooftop clutter, maybe a neon sign."""
+    gz = ground(x, y)
+    block(label, (x, y, gz + h / 2), (w, d, h), random.choice([mats["adobe"], mats["adobe"], mats["adobe_dark"]]), folder="Town")
+    block(label + "_Parapet", (x, y, gz + h + 15), (w + 20, d + 20, 30), mats["adobe_dark"], folder="Town")
+    face = -1 if y > 0 else 1
+    fy = y + face * (d / 2 + 2)
+    block(label + "_Door", (x, fy, gz + 120), (130, 6, 230), mats["windows_dim"], folder="Town")
+    for k in range(int(w // 400)):
+        wx = x - w / 2 + 200 + k * 400
+        if abs(wx - x) > 120:
+            block(label + "_Win%d" % k, (wx, fy, gz + (460 if h > 600 else 210)), (90, 6, 70), mats["windows_dim"], folder="Town")
+    for k in range(random.randint(1, 3)):
+        block(label + "_Roof%d" % k, (x + random.uniform(-w / 3, w / 3), y + random.uniform(-d / 3, d / 3), gz + h + 60),
+              (random.uniform(80, 200), random.uniform(80, 200), random.uniform(60, 140)), random.choice([mats["gunmetal"], mats["rust"]]),
+              random.uniform(0, 90), folder="Town")
+    if sign is not None:
+        block(label + "_Sign", (x + random.uniform(-w / 4, w / 4), y + face * (d / 2 + 40), gz + h - 120), (220, 14, 90), sign, folder="Town")
+    town_light(label + "_DoorLight", (x, fy + face * 120, gz + 260), (255, 175, 100), 150.0, 600.0)
+
+
+def build_town(mats):
+    """Rook's Rest: one main street (along X) of stalls, homes and the Rusty Rook cantina; shuttle pad west, garage east."""
+    inter = unreal.load_class(None, "/Script/DeltaVDominion.DVInteractable")
+    cyl = lib.load_asset("/Engine/BasicShapes/Cylinder")
+    canvases = [mats["canvas_red"], mats["canvas_teal"], mats["canvas_sand"], mats["canvas_red"]]
+    signs = [mats["sign_amber"], mats["sign_cyan"], mats["sign_pink"], mats["sign_amber"]]
+
+    # Street: packed earth with salvaged deck plates pressed into it.
+    block("MainStreet", (0, 0, ground(0, 0) - 5), (6400, 900, 20), mats["street"], folder="Street")
+    for i in range(16):
+        block("StreetPlate_%d" % i, (-3000 + i * 400, random.uniform(-40, 40), 3), (300, 160, 6), mats["adobe_dark"], random.uniform(-6, 6), folder="Street")
+
+    # The Rusty Rook: open front, bar and bottles inside, balcony and a big amber sign over the street.
+    cx, cy = 0.0, 1150.0
+    W, D, H = 1600.0, 900.0, 720.0
+    adobe, dark = mats["adobe"], mats["adobe_dark"]
+    block("Rook_Back", (cx, cy + D / 2, H / 2), (W, 60, H), adobe, folder="Cantina")
+    block("Rook_West", (cx - W / 2, cy, H / 2), (60, D, H), adobe, folder="Cantina")
+    block("Rook_East", (cx + W / 2, cy, H / 2), (60, D, H), adobe, folder="Cantina")
+    block("Rook_FrontL", (cx - W / 2 + 300, cy - D / 2, H / 2), (600, 60, H), adobe, folder="Cantina")
+    block("Rook_FrontR", (cx + W / 2 - 300, cy - D / 2, H / 2), (600, 60, H), adobe, folder="Cantina")
+    block("Rook_Lintel", (cx, cy - D / 2, 300 + (H - 300) / 2), (400, 60, H - 300), adobe, folder="Cantina")
+    block("Rook_Roof", (cx, cy, H + 20), (W + 120, D + 120, 40), dark, folder="Cantina")
+    block("Rook_Floor", (cx, cy, 4), (W - 60, D - 60, 8), mats["wood"], folder="Cantina")
+    block("Rook_Balcony", (cx, cy - D / 2 - 160, 380), (W, 320, 20), dark, folder="Cantina")
+    for k in range(5):
+        block("Rook_BalconyPost%d" % k, (cx - W / 2 + 40 + k * (W - 80) / 4, cy - D / 2 - 300, 190), (24, 24, 380), mats["gunmetal"], folder="Cantina")
+    # The sign: a dark board with a neon outline and glowing letter strokes, not a light box.
+    sy = cy - D / 2 - 330
+    block("Rook_SignBoard", (cx, sy + 12, 520), (900, 14, 170), mats["wood"], folder="Cantina")
+    for k, (dx, dz, w, h) in enumerate([(0, 80, 880, 8), (0, -80, 880, 8), (-440, 0, 8, 168), (440, 0, 8, 168)]):
+        block("Rook_SignEdge%d" % k, (cx + dx, sy, 520 + dz), (w, 10, h), mats["sign_amber"], folder="Cantina")
+    for k in range(9):
+        lx = cx - 340 + k * 85
+        block("Rook_SignStroke%d" % k, (lx, sy, 520), (14, 10, 90), mats["sign_amber"], folder="Cantina")
+        if k % 2 == 0:
+            block("Rook_SignBar%d" % k, (lx + 18, sy, 520 + random.choice((-40, 0, 40))), (44, 10, 12), mats["sign_amber"], folder="Cantina")
+    block("Rook_SignAccent", (cx + 520, cy - D / 2 - 330, 520), (90, 18, 90), mats["sign_pink"], 45, folder="Cantina")
+    block("Rook_Bar", (cx, cy + D / 2 - 220, 55), (1000, 90, 110), mats["wood"], folder="Cantina")
+    block("Rook_BarTop", (cx, cy + D / 2 - 220, 114), (1040, 110, 8), mats["gunmetal"], folder="Cantina")
+    block("Rook_Shelf", (cx, cy + D / 2 - 50, 200), (1000, 40, 220), mats["wood"], folder="Cantina")
+    for k in range(14):
+        block("Rook_Bottle%d" % k, (cx - 460 + k * 70, cy + D / 2 - 75, 250 + (k % 2) * 70), (14, 14, 40),
+              random.choice([mats["sign_amber"], mats["sign_cyan"], mats["windows"]]), folder="Cantina")
+    for k in range(4):
+        tx, ty = cx - 500 + k * 330, cy - 100
+        place(cyl, "Rook_Table%d" % k, (tx, ty, 38), None, (1.4, 1.4, 0.75), mats["wood"], "Cantina")
+        town_light("Rook_Lamp%d" % k, (tx, ty, 420), (255, 170, 90), 280.0, 900.0)
+    for k in range(6):
+        place(cyl, "Rook_Stool%d" % k, (cx - 400 + k * 160, cy + D / 2 - 330, 23), None, (0.5, 0.5, 0.45), mats["gunmetal"], "Cantina")
+    town_light("Rook_Neon", (cx, cy - D / 2 - 420, 500), (255, 150, 60), 600.0, 1500.0)
+    for k, name in enumerate(["Drifter", "Off-shift miner", "Ports pilot", "Ice hauler"]):
+        townsperson("Patron_%d" % k, (cx - 450 + k * 300, cy + 60 + (k % 2) * 120, 100), random.uniform(0, 360), name, 2, wanders=k % 2 == 0, radius=500.0)
+
+    # Mags Okafor's job board outside the cantina door, and Mags herself.
+    board = spawn(inter, "ContractBoard", (cx - 520, cy - D / 2 - 520, 0), folder="Stations")
+    board.set_editor_property("interaction", unreal.DVInteraction.CONTRACT_BOARD)
+    board.set_editor_property("prompt", "Mags Okafor's job board: take a contract")
+    board.set_editor_property("reach", 420.0)
+    block("Board_Panel", (cx - 520, cy - D / 2 - 380, 230), (420, 20, 260), mats["wood"], folder="Stations")
+    for k in range(6):
+        block("Board_Note%d" % k, (cx - 680 + (k % 3) * 160, cy - D / 2 - 392, 180 + (k // 3) * 110), (110, 4, 80),
+              mats["sign_amber"] if k == 1 else mats["canvas_sand"], random.uniform(-6, 6), folder="Stations")
+    townsperson("Mags_Okafor", (cx - 800, cy - D / 2 - 560, 100), -60, "Mags Okafor, Free Ports fixer", 1, wanders=False)
+
+    # North and south rows of homes and workshops, stalls in front of them.
+    north = [(-2400, 800, 650), (-1500, 700, 500), (1400, 800, 700), (2300, 700, 500)]
+    south = [(-2300, 900, 550), (-1200, 800, 750), (0, 900, 600), (1200, 800, 500)]
+    for i, (x, w, h) in enumerate(north):
+        town_house("House_N%d" % i, x, 1150, w, 600, h, mats, sign=signs[i % 4] if i % 2 == 0 else None)
+    for i, (x, w, h) in enumerate(south):
+        town_house("House_S%d" % i, x, -1150, w, 600, h, mats, sign=signs[(i + 1) % 4] if i % 2 == 1 else None)
+    vendors = ["Noodle cart", "Coolant and water", "Spare parts", "Rations trader", "Charm seller", "Scrap dealer"]
+    stalls = [(-2100, 560, -90), (-1200, 560, -90), (1300, 560, -90), (-1700, -560, 90), (-500, -560, 90), (1000, -560, 90)]
+    for i, (x, y, facing) in enumerate(stalls):
+        stall(i, x, y, facing, canvases[i % 4], mats, vendors[i])
+
+    # Juno's garage at the east end: open bay toward the street, skiff bikes parked outside.
+    gx, gy = 2900, -1300
+    block("Garage_Back", (gx, gy - 400, 300), (1200, 60, 600), mats["rust"], folder="Garage")
+    block("Garage_SideW", (gx - 600, gy, 300), (60, 800, 600), mats["rust"], folder="Garage")
+    block("Garage_SideE", (gx + 600, gy, 300), (60, 800, 600), mats["rust"], folder="Garage")
+    block("Garage_Roof", (gx, gy, 620), (1300, 900, 40), mats["gunmetal"], folder="Garage")
+    block("Garage_Sign", (gx, gy + 420, 560), (600, 14, 70), mats["sign_cyan"], folder="Garage")
+    for k in range(3):
+        block("Garage_Bench%d" % k, (gx - 350 + k * 350, gy - 300, 50), (260, 80, 100), mats["gunmetal"], folder="Garage")
+    town_light("Garage_Light", (gx, gy, 560), (190, 220, 255), 400.0, 1400.0)
+    townsperson("Mechanic", (gx - 200, gy - 150, 100), 90, "Juno Vasquez, mechanic", 3, wanders=False)
+
+    # Skyline: water tower and comms mast.
+    wx, wy = -1800, 2200
+    for k, (ox, oy) in enumerate([(-150, -150), (150, -150), (-150, 150), (150, 150)]):
+        block("WaterTower_Leg%d" % k, (wx + ox, wy + oy, 600), (30, 30, 1200), mats["gunmetal"], folder="Skyline")
+    place(cyl, "WaterTower_Tank", (wx, wy, 1350), None, (5.0, 5.0, 4.0), mats["rust"], "Skyline")
+    block("WaterTower_Band", (wx, wy, 1450), (510, 510, 30), mats["sign_amber"], folder="Skyline")
+    mx, my = 1900, 2300
+    for h in range(0, 2400, 300):
+        block("Mast_Seg%d" % h, (mx, my, h + 150), (60 - h / 80.0, 60 - h / 80.0, 300), mats["gunmetal"], folder="Skyline")
+    block("Mast_Beacon", (mx, my, 2440), (40, 40, 40), mats["strip_red"], folder="Skyline")
+
+    # String lights across the street.
+    for i, x in enumerate((-2950, 2950)):
+        block("Pole_%d_A" % i, (x, -470, 300), (24, 24, 600), mats["gunmetal"], folder="Street")
+        block("Pole_%d_B" % i, (x, 470, 300), (24, 24, 600), mats["gunmetal"], folder="Street")
+    for i in range(9):
+        x0 = -2600 + i * 650
+        # A sagging cable from rooftop to rooftop with small bulbs hanging off it.
+        yaw = math.degrees(math.atan2(920, 140))
+        for k in range(10):
+            t = k / 9.0
+            z = 560 - math.sin(t * math.pi) * 90
+            block("Garland_%d_%d" % (i, k), (x0 + (t - 0.5) * 140, -460 + t * 920, z - 10), (8, 8, 9),
+                  random.choice([mats["lamp"], mats["sign_amber"], mats["sign_pink"]]), folder="Lights")
+            if k < 9:
+                t2 = (k + 0.5) / 9.0
+                block("GarlandCable_%d_%d" % (i, k), (x0 + (t2 - 0.5) * 140, -460 + t2 * 920, 560 - math.sin(t2 * math.pi) * 90), (104, 2, 2),
+                      mats["gunmetal"], yaw, folder="Lights")
+        if i % 2 == 0:
+            town_light("GarlandLight_%d" % i, (x0, 0, 470), (255, 180, 110), 350.0, 1200.0)
+
+    # The people of Rook's Rest, out on the street.
+    walkers = [(1, "Dockhand"), (1, "Freight loader"), (2, "Drifter"), (2, "Prospector"), (2, "Pilgrim"),
+               (4, "Colony kid"), (4, "Colony kid"), (1, "Courier"), (2, "Refugee from Ceres")]
+    for i, (trade, name) in enumerate(walkers):
+        townsperson("Walker_%d" % i, (random.uniform(-2400, 2400), random.uniform(-300, 300), 100), random.uniform(0, 360), name, trade, radius=1800.0)
+
+    # The shuttle home: the Raven on the pad takes Delta back up to the Kestrel.
+    shuttle = spawn(inter, "ShuttleHome", (-3000, -700, 0), folder="Stations")
+    shuttle.set_editor_property("interaction", unreal.DVInteraction.SHUTTLE)
+    shuttle.set_editor_property("prompt", "Shuttle up to the Kestrel")
+    shuttle.set_editor_property("destination", "/Game/Maps/Kestrel")
+    log("town built")
+
+
 # --------------------------------------------------------------------------------------------
 # Build
 # --------------------------------------------------------------------------------------------
@@ -766,6 +978,13 @@ def build():
         "windows": glow("MI_Windows", (1.0, 0.85, 0.6), 12.0),
         "giant": glow("MI_GasGiant", (0.85, 0.6, 0.38), 3.0),
         "giant_band": glow("MI_GasGiantBand", (0.55, 0.32, 0.18), 2.0),
+        "adobe": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Adobe", (0.46, 0.3, 0.19), roughness=0.95),
+        "adobe_dark": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Adobe_Dark", (0.26, 0.17, 0.11), roughness=0.95),
+        "street": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_PackedEarth", (0.2, 0.12, 0.07), roughness=1.0),
+        "wood": tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_OldWood", (0.16, 0.08, 0.035), metallic=0.0, roughness=0.8),
+        "canvas_red": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Canvas_Red", (0.45, 0.07, 0.04), roughness=0.9),
+        "canvas_teal": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Canvas_Teal", (0.04, 0.22, 0.22), roughness=0.9),
+        "canvas_sand": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Canvas_Sand", (0.55, 0.42, 0.24), roughness=0.9),
     }
     terrain = make_terrain()
     rocks = [make_rock(i) for i in range(6)]
@@ -778,13 +997,15 @@ def build():
     elif not levels.new_level(MAP_PATH):
         raise RuntimeError("Could not create " + MAP_PATH)
 
+    town = "town" in B["extras"]
+
     # --- Terrain and rocks --------------------------------------------------------------
     place(terrain, "MoonTerrain", (0, 0, 0), material=terrain_mat, folder="Terrain")
 
     # Boulders as cover across the approach, plus big outcrops on the slopes.
     cover_rocks = [(-2600, -1300), (-2300, 900), (-1600, -300), (-900, 1500), (-700, -1600), (-200, 400),
                    (300, -900), (700, 1700), (1100, -2100), (-3300, 300), (-1200, -2600), (200, 2600)]
-    for i, (x, y) in enumerate(cover_rocks):
+    for i, (x, y) in enumerate([] if town else cover_rocks):
         s = random.uniform(1.1, 1.8)
         place(random.choice(rocks), "CoverRock_%02d" % i, (x, y, ground(x, y) - 10), rot(yaw=random.uniform(0, 360)),
               (s * random.uniform(0.9, 1.4), s, s * random.uniform(0.8, 1.1)), rock_mat, "Rocks")
@@ -798,97 +1019,101 @@ def build():
               (s * random.uniform(0.7, 1.1), s * random.uniform(0.7, 1.1), s * random.uniform(1.2, 2.4)), rock_mat, "Rocks")
 
     # --- Hearthbound compound (east) ----------------------------------------------------
-    bx, by = 3000.0, 0.0
-    bz = ground(bx, by)
-    # Bunker: thick walls with a doorway facing west, roof slab with overhang, glowing strips.
-    block("Bunker_Floor", (bx, by, bz + 10), (1400, 1000, 30), mats["concrete_dark"])
-    block("Bunker_WallN", (bx, by + 480, bz + 220), (1400, 60, 440), mats["concrete"])
-    block("Bunker_WallS", (bx, by - 480, bz + 220), (1400, 60, 440), mats["concrete"])
-    block("Bunker_WallE", (bx + 680, by, bz + 220), (60, 1000, 440), mats["concrete"])
-    block("Bunker_WallW_A", (bx - 680, by + 330, bz + 220), (60, 340, 440), mats["concrete"])
-    block("Bunker_WallW_B", (bx - 680, by - 330, bz + 220), (60, 340, 440), mats["concrete"])
-    block("Bunker_Lintel", (bx - 680, by, bz + 400), (60, 320, 80), mats["concrete"])
-    block("Bunker_Roof", (bx, by, bz + 470), (1600, 1200, 60), mats["concrete_dark"])
-    block("Bunker_Strip_W", (bx - 712, by, bz + 352), (6, 300, 10), mats["strip_red"])
-    block("Bunker_Strip_N", (bx, by + 512, bz + 420), (1300, 6, 8), mats["strip_red"])
-    block("Bunker_Vent", (bx + 300, by - 200, bz + 540), (300, 260, 80), mats["gunmetal"])
-    inner = spawn(unreal.PointLight, "Bunker_Light", (bx, by, bz + 380), folder="Lights")
-    setp(inner.point_light_component, "intensity_units", unreal.LightUnits.CANDELAS)
-    setp(inner.point_light_component, "intensity", 600.0)
-    setp(inner.point_light_component, "light_color", unreal.Color(r=255, g=60, b=40, a=255))
-    setp(inner.point_light_component, "attenuation_radius", 1400.0)
+    if not town:
+        bx, by = 3000.0, 0.0
+        bz = ground(bx, by)
+        # Bunker: thick walls with a doorway facing west, roof slab with overhang, glowing strips.
+        block("Bunker_Floor", (bx, by, bz + 10), (1400, 1000, 30), mats["concrete_dark"])
+        block("Bunker_WallN", (bx, by + 480, bz + 220), (1400, 60, 440), mats["concrete"])
+        block("Bunker_WallS", (bx, by - 480, bz + 220), (1400, 60, 440), mats["concrete"])
+        block("Bunker_WallE", (bx + 680, by, bz + 220), (60, 1000, 440), mats["concrete"])
+        block("Bunker_WallW_A", (bx - 680, by + 330, bz + 220), (60, 340, 440), mats["concrete"])
+        block("Bunker_WallW_B", (bx - 680, by - 330, bz + 220), (60, 340, 440), mats["concrete"])
+        block("Bunker_Lintel", (bx - 680, by, bz + 400), (60, 320, 80), mats["concrete"])
+        block("Bunker_Roof", (bx, by, bz + 470), (1600, 1200, 60), mats["concrete_dark"])
+        block("Bunker_Strip_W", (bx - 712, by, bz + 352), (6, 300, 10), mats["strip_red"])
+        block("Bunker_Strip_N", (bx, by + 512, bz + 420), (1300, 6, 8), mats["strip_red"])
+        block("Bunker_Vent", (bx + 300, by - 200, bz + 540), (300, 260, 80), mats["gunmetal"])
+        inner = spawn(unreal.PointLight, "Bunker_Light", (bx, by, bz + 380), folder="Lights")
+        setp(inner.point_light_component, "intensity_units", unreal.LightUnits.CANDELAS)
+        setp(inner.point_light_component, "intensity", 600.0)
+        setp(inner.point_light_component, "light_color", unreal.Color(r=255, g=60, b=40, a=255))
+        setp(inner.point_light_component, "attenuation_radius", 1400.0)
 
-    # Comms tower with a blinking-red top light.
-    tx, ty = bx + 1100, by + 900
-    tz = ground(tx, ty)
-    for i, (ox, oy) in enumerate([(-80, -80), (80, -80), (-80, 80), (80, 80)]):
-        block("Tower_Leg%d" % i, (tx + ox, ty + oy, tz + 900), (18, 18, 1800), mats["gunmetal"], folder="Tower")
-    for h in range(200, 1800, 300):
-        block("Tower_Brace%d" % h, (tx, ty, tz + h), (180, 180, 10), mats["gunmetal"], folder="Tower")
-    block("Tower_Dish", (tx, ty, tz + 1850), (260, 40, 160), mats["gunmetal"], 30, folder="Tower")
-    block("Tower_Beacon", (tx, ty, tz + 1950), (30, 30, 30), mats["strip_red"], folder="Tower")
-    beacon = spawn(unreal.PointLight, "Tower_BeaconLight", (tx, ty, tz + 1960), folder="Lights")
-    setp(beacon.point_light_component, "intensity_units", unreal.LightUnits.CANDELAS)
-    setp(beacon.point_light_component, "intensity", 400.0)
-    setp(beacon.point_light_component, "light_color", unreal.Color(r=255, g=30, b=20, a=255))
-    setp(beacon.point_light_component, "attenuation_radius", 900.0)
+        # Comms tower with a blinking-red top light.
+        tx, ty = bx + 1100, by + 900
+        tz = ground(tx, ty)
+        for i, (ox, oy) in enumerate([(-80, -80), (80, -80), (-80, 80), (80, 80)]):
+            block("Tower_Leg%d" % i, (tx + ox, ty + oy, tz + 900), (18, 18, 1800), mats["gunmetal"], folder="Tower")
+        for h in range(200, 1800, 300):
+            block("Tower_Brace%d" % h, (tx, ty, tz + h), (180, 180, 10), mats["gunmetal"], folder="Tower")
+        block("Tower_Dish", (tx, ty, tz + 1850), (260, 40, 160), mats["gunmetal"], 30, folder="Tower")
+        block("Tower_Beacon", (tx, ty, tz + 1950), (30, 30, 30), mats["strip_red"], folder="Tower")
+        beacon = spawn(unreal.PointLight, "Tower_BeaconLight", (tx, ty, tz + 1960), folder="Lights")
+        setp(beacon.point_light_component, "intensity_units", unreal.LightUnits.CANDELAS)
+        setp(beacon.point_light_component, "intensity", 400.0)
+        setp(beacon.point_light_component, "light_color", unreal.Color(r=255, g=30, b=20, a=255))
+        setp(beacon.point_light_component, "attenuation_radius", 900.0)
 
-    # Containers, barriers and sandbag lines around the compound and across no-man's land.
-    container("Container_A", bx - 1500, by + 1300, 75, mats["rust"], mats)
-    container("Container_B", bx - 1400, by - 1500, 100, mats["navy"], mats)
-    container("Container_C", bx + 200, by - 1400, 0, mats["olive"], mats)
-    container("Container_D", bx + 200, by - 1400, 0, mats["rust"], mats, stacked=True)
-    container("Container_E", bx - 300, by + 1500, 10, mats["navy"], mats)
-    container("Container_F", -800, -500, 35, mats["olive"], mats)
-    container("Container_G", 600, 1100, -20, mats["rust"], mats)
-    for i, (x, y, yaw) in enumerate([(bx - 1100, by - 300, 90), (bx - 1100, by + 400, 90), (bx - 2000, by + 100, 80),
-                                     (1200, -700, 60), (1300, 600, 110), (-300, 1100, 0), (-1900, -800, 20), (200, -2000, 70)]):
-        jersey("Barrier_%02d" % i, x, y, yaw, mats)
+        # Containers, barriers and sandbag lines around the compound and across no-man's land.
+        container("Container_A", bx - 1500, by + 1300, 75, mats["rust"], mats)
+        container("Container_B", bx - 1400, by - 1500, 100, mats["navy"], mats)
+        container("Container_C", bx + 200, by - 1400, 0, mats["olive"], mats)
+        container("Container_D", bx + 200, by - 1400, 0, mats["rust"], mats, stacked=True)
+        container("Container_E", bx - 300, by + 1500, 10, mats["navy"], mats)
+        container("Container_F", -800, -500, 35, mats["olive"], mats)
+        container("Container_G", 600, 1100, -20, mats["rust"], mats)
+        for i, (x, y, yaw) in enumerate([(bx - 1100, by - 300, 90), (bx - 1100, by + 400, 90), (bx - 2000, by + 100, 80),
+                                         (1200, -700, 60), (1300, 600, 110), (-300, 1100, 0), (-1900, -800, 20), (200, -2000, 70)]):
+            jersey("Barrier_%02d" % i, x, y, yaw, mats)
 
-    floodlight("Flood_N", bx - 900, by + 900, 200, mats)
-    floodlight("Flood_S", bx - 900, by - 900, 160, mats)
-    floodlight("Flood_W", -200, 2300, 250, mats)
+        floodlight("Flood_N", bx - 900, by + 900, 200, mats)
+        floodlight("Flood_S", bx - 900, by - 900, 160, mats)
+        floodlight("Flood_W", -200, 2300, 250, mats)
 
     # --- Gameplay -----------------------------------------------------------------------
-    spawn(unreal.PlayerStart, "PlayerStart", (-4300, 0, ground(-4300, 0) + 110))
-    soldier = unreal.load_class(None, "/Script/DeltaVDominion.DVSoldierCharacter")
-    enemy_spots = [(bx - 900, by - 250), (bx - 900, by + 450), (bx - 1300, by + 1000), (bx - 1200, by - 1100),
-                   (bx - 300, by + 1250), (bx - 450, by), (1300, -500), (1400, 800)]
-    for i, (x, y) in enumerate(enemy_spots):
-        e = spawn(soldier, "Hearthbound_%02d" % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
-        e.set_editor_property("team_id", 2)
+    start = (-2900, 300) if town else (-4300, 0)
+    spawn(unreal.PlayerStart, "PlayerStart", (start[0], start[1], ground(*start) + 110), rot(yaw=0))
+    if not town:
+        soldier = unreal.load_class(None, "/Script/DeltaVDominion.DVSoldierCharacter")
+        enemy_spots = [(bx - 900, by - 250), (bx - 900, by + 450), (bx - 1300, by + 1000), (bx - 1200, by - 1100),
+                       (bx - 300, by + 1250), (bx - 450, by), (1300, -500), (1400, 800)]
+        for i, (x, y) in enumerate(enemy_spots):
+            e = spawn(soldier, "Hearthbound_%02d" % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
+            e.set_editor_property("team_id", 2)
 
-    # --- Free Ports salvage contracts: optional, off the main path ------------------------------------
-    salvage = unreal.load_class(None, "/Script/DeltaVDominion.DVSalvage")
-    placed = 0
-    for i in range(60):
-        ang = random.uniform(0, 2 * math.pi)
-        q = random.uniform(0.45, 0.85)
-        x, y = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
-        if not clear_of_gameplay(x, y) or ("harbour" in B["extras"] and abs(x) < 1500):
-            continue
-        spawn(salvage, "Salvage_%d" % placed, (x, y, ground(x, y) + 5), rot(yaw=random.uniform(0, 360)), "Contracts")
-        placed += 1
-        if placed >= 3:
-            break
-    log("salvage contracts %d" % placed)
+        # --- Free Ports salvage contracts: optional, off the main path ------------------------------------
+        salvage = unreal.load_class(None, "/Script/DeltaVDominion.DVSalvage")
+        placed = 0
+        for i in range(60):
+            ang = random.uniform(0, 2 * math.pi)
+            q = random.uniform(0.45, 0.85)
+            x, y = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
+            if not clear_of_gameplay(x, y) or ("harbour" in B["extras"] and abs(x) < 1500):
+                continue
+            spawn(salvage, "Salvage_%d" % placed, (x, y, ground(x, y) + 5), rot(yaw=random.uniform(0, 360)), "Contracts")
+            placed += 1
+            if placed >= 3:
+                break
+        log("salvage contracts %d" % placed)
 
     # --- Accord vehicles at the landing zone, and the Kestrel overhead ------------------------------
     ltv = unreal.load_class(None, "/Script/DeltaVDominion.DVGroundVehicle")
     tank = unreal.load_class(None, "/Script/DeltaVDominion.DVTank")
     gunship = unreal.load_class(None, "/Script/DeltaVDominion.DVGunship")
     kestrel = unreal.load_class(None, "/Script/DeltaVDominion.DVKestrel")
-    spawn(ltv, "LTV_Jackal", (-3700, 950, ground(-3700, 950) + 120), rot(yaw=10), "Vehicles")
-    spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
+    if not town:
+        spawn(ltv, "LTV_Jackal", (-3700, 950, ground(-3700, 950) + 120), rot(yaw=10), "Vehicles")
+        spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
     bike = unreal.load_class(None, "/Script/DeltaVDominion.DVHoverbike")
-    for i, (bx, by) in enumerate([(-3300, 300), (-3300, -300)]):
+    for i, (bx, by) in enumerate([(2900, -650), (2600, -650)] if town else [(-3300, 300), (-3300, -300)]):
         spawn(bike, "Hoverbike_%d" % i, (bx, by, ground(bx, by) + 160), rot(yaw=8), "Vehicles")
-    px, py = -5000, 2300
+    px, py = (-3600, -1300) if town else (-5000, 2300)
     pz = ground(px, py)
     block("LZ_Pad", (px, py, pz + 15), (1600, 1600, 40), mats["concrete_dark"], folder="Vehicles")
     for i, (ox, oy) in enumerate([(-740, -740), (740, -740), (-740, 740), (740, 740)]):
         block("LZ_Light%d" % i, (px + ox, py + oy, pz + 40), (40, 40, 20), mats["strip_cyan"], folder="Vehicles")
-    spawn(gunship, "Gunship_Raven", (px, py, pz + 200), rot(yaw=30), "Vehicles")
+    spawn(gunship, "Gunship_Raven", (px, py, pz + 200), rot(yaw=90 if town else 30), "Vehicles")
     spawn(kestrel, "TAS_Kestrel", (230000, 70000, 50000), rot(yaw=110), "Vehicles")   # 2.4 km east, 500 m up: on the horizon over the compound
 
     nav = spawn(unreal.NavMeshBoundsVolume, "NavMeshBounds", (0, 0, 300), folder="Navigation")
@@ -898,7 +1123,11 @@ def build():
     spawn(unreal.RecastNavMesh, "RecastNavMesh-Default", (0, 0, 0), folder="Navigation")
 
     # Showcase cameras ("DVShowcase N").
-    shots = [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
+    shots = [((-3300, 0, 320), (2400, 0, 250)),                # 0: down Rook's Rest main street at golden hour
+             ((750, -380, 200), (-150, 900, 330)),             # 1: the Rusty Rook cantina and the job board
+             ((4600, 3400, 1200), (-700, -400, 100)),          # 2: the town from the dunes, sun behind the camera
+             ((900, -150, 170), (1500, -700, 180)),            # 3: a market stall up close
+             ((-3000, -2300, 260), (-3600, -1300, 220))] if town else [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
              ((-2200, -1500, 220), (2600, 300, 220)),        # 1: low, behind the boulders, looking at the bunker
              ((5600, 2600, 900), (-800, -400, 0)),           # 2: reverse from behind the compound, sun in the lens
              ((bx - 1700, by - 700, 170), (bx - 600, by + 100, 250)),  # 3: close on the bunker doorway
@@ -974,6 +1203,8 @@ def build():
     pp.settings = s
 
     build_extras(mats, rocks, rock_mat)
+    if town:
+        build_town(mats)
 
     if not levels.save_current_level():
         raise RuntimeError("Could not save " + MAP_PATH)

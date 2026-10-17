@@ -103,6 +103,10 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastReputation(uint8 Faction, int32 Delta, const FString& Reason);
 
+	/** Something a Rook's Rest contract counts happened (DVContracts kind); every player's own contract hears it. */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastContractEvent(uint8 Kind);
+
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastSound(FName Sound, FVector_NetQuantize Location, float Volume, uint8 Range);
 

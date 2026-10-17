@@ -55,7 +55,7 @@ public:
 	void DVMoveDemo(int32 Mode, float Delay = 0.f);
 	/** Console (tests): "DVWarp X Y Z" teleports your soldier; "DVTakedownTest [Delay]" sneaks up behind the nearest unaware frame. */
 	UFUNCTION(Exec)
-	void DVWarp(float X, float Y, float Z);
+	void DVWarp(float X, float Y, float Z, float Yaw = -1000.f);
 	UFUNCTION(Exec)
 	void DVTakedownTest(float Delay = 0.f);
 	/** Console (tests): "DVSalvageTest [Delay]" warps you onto the nearest salvage contract. */

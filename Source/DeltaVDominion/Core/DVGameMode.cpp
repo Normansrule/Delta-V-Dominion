@@ -10,6 +10,7 @@
 #include "DeltaVDominion.h"
 #include "Core/DVFx.h"
 #include "Core/DVCallIns.h"
+#include "Core/DVProfileSubsystem.h"
 #include "Characters/DVBulwark.h"
 #include "Vehicles/DVGunship.h"
 #include "GameFramework/PlayerStart.h"
@@ -100,6 +101,11 @@ void ADVGameMode::SetupMissionForMap()
 		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Welcome aboard, Commander. The war table is live. Pick our next fight.") },
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Memorial wall's by the starboard bulkhead. Pay your respects before you pick the next drop.") },
 		    { TEXT("Deck Chief Ruiz"), TEXT("Raven's fuelled and the Sabre's patched. Don't scratch my paint this time.") } } },
+		{ TEXT("RooksRest"), TEXT("Rook's Rest"), TEXT("Shore leave. Take a job from the board (Z), then ride the shuttle home"), TEXT("Rook's Rest, Tharsis Rim, Mars"),
+		  TEXT("Free Ports market town  |  No Accord flag flies here"),
+		  { { TEXT("Mags Okafor (Free Ports)"), TEXT("Delta Squadron, in my town. Keep your weapons slung and your credit good, and we'll get along.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Board's by the cantina. The Ports pay in favours, and favours open doors Command keeps shut.") },
+		    { TEXT("Deck Chief Ruiz"), TEXT("Shuttle's on the pad when you're done. Don't buy anything that hums.") } } },
 		{ TEXT("Europa"), TEXT("Glass Ocean"), TEXT("Destroy the CINDER listening post on the ice"), TEXT("Conamara Chaos, Europa"),
 		  TEXT("Jupiter system  |  Day 9 of the uprising"),
 		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is listening to the ocean under that ice. Whatever it's hearing, it doesn't get to keep it.") },
@@ -158,7 +164,7 @@ void ADVGameMode::SetupMissionForMap()
 			GS->MissionSubtitle = M.Subtitle;
 			Lines = M.Radio;
 			bIsTrainingMap = FCString::Strcmp(M.MapKey, TEXT("BootCamp")) == 0;
-			bIsHub = FCString::Strcmp(M.MapKey, TEXT("Kestrel")) == 0;
+			bIsHub = FCString::Strcmp(M.MapKey, TEXT("Kestrel")) == 0 || FCString::Strcmp(M.MapKey, TEXT("RooksRest")) == 0;
 			break;
 		}
 	}
@@ -560,7 +566,7 @@ void ADVGameMode::TickStage()
 void ADVGameMode::SpawnBulwarks()
 {
 	const FString Map = GetWorld()->GetMapName();
-	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("BootCamp")))
+	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("RooksRest")) || Map.Contains(TEXT("BootCamp")))
 	{
 		return;
 	}
@@ -798,6 +804,13 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 		return;
 	}
 
+	if (Victim->IsA<ADVBulwark>() && Victim->TeamId != PlayerTeamId && !bMissionEnded)
+	{
+		if (ADVGameState* GS = GetDVGameState())
+		{
+			GS->MulticastContractEvent(DVContracts::HeavyFrame);
+		}
+	}
 	UDVRosterSubsystem* Roster = GetRoster();
 	if (Roster && !bMissionEnded)
 	{
@@ -903,6 +916,10 @@ void ADVGameMode::NotifySoldierRevived(ADVSoldierCharacter* Soldier)
 	}
 	const FString Name = Soldier->IsPlayerControlled() ? FString(TEXT("Commander")) : Soldier->GetSoldierName();
 	Radio(TEXT("Gny. Sgt. Halloran"), FString::Printf(TEXT("%s is back up. Stay low!"), *Name));
+	if (ADVGameState* GS = GetDVGameState())
+	{
+		GS->MulticastContractEvent(DVContracts::Revive);
+	}
 }
 
 void ADVGameMode::RespawnPlayer(TWeakObjectPtr<APlayerController> WeakPC)

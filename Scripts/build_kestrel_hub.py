@@ -313,6 +313,11 @@ def build():
         x = 1700 + i * 170
         block("LockerUnit_%d" % i, (x, W / 2 - 160, 110), (150, 70, 220), steel if i % 2 else hull, folder="Stations")
         block("LockerTag_%d" % i, (x, W / 2 - 198, 180), (60, 4, 14), mat("MI_Strip_Cyan"), folder="Stations")
+    # Shore leave: the shuttle down to Rook's Rest, the Free Ports town under the Tharsis rim.
+    shuttle = spawn(inter, "ShuttleToTown", (-2000, -700, 0), folder="Stations")
+    shuttle.set_editor_property("interaction", unreal.DVInteraction.SHUTTLE)
+    shuttle.set_editor_property("prompt", "Shore leave: shuttle down to Rook's Rest")
+    shuttle.set_editor_property("destination", "/Game/Maps/RooksRest")
     light("LockerLight", (2300, W / 2 - 700, 900), (230, 200, 255), 2000.0, 2000.0, spot=True, pitch=-60.0)
     light("ArmouryLight", (-1000, W / 2 - 700, 900), (190, 255, 210), 2500.0, 2200.0, spot=True, pitch=-60.0)
 
