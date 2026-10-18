@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="26" role="img" aria-label="Vehicles: 70%">
+  <title>Vehicles: 70%</title>
+  <rect x="0" y="0" width="420" height="26" rx="6" fill="#1f2328"/>
+  <rect x="2" y="2" width="291" height="22" rx="5" fill="#2ea44f"/>
+  <text x="210.0" y="18.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="14" font-weight="600" fill="#ffffff">70%</text>
+</svg>

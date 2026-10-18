@@ -25,6 +25,7 @@ engine. There are no mock-ups and no pre-rendered cinematics.
 
 **Contents:**
 - [Download](#download-and-play-windows-1011)
+- [Progress tracker](#progress-tracker) and [roadmap](#roadmap)
 - [Where it stands](#where-it-stands-v021)
 - Milestones:
   - [Boot Camp](#1-boot-camp)
@@ -58,6 +59,42 @@ Proton. On a Mac, use a Windows VM or a cloud PC.
 
 ---
 
+## Progress tracker
+
+<p align="center"><img src="Docs/media/progress/overall.svg" width="720" alt="Overall progress"></p>
+
+The percentages are judged against the plan in [Docs/CAMPAIGN.md](Docs/CAMPAIGN.md), not against a finished AAA game.
+They're updated at each milestone with `python Scripts/make_progress_bars.py`.
+
+| Area | Progress | What's built | What's left |
+|---|---|---|---|
+| Combat and squad | <img src="Docs/media/progress/combat.svg" width="260" alt="80%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
+| Missions and maps | <img src="Docs/media/progress/missions.svg" width="260" alt="40%"> | 7 operations on planet maps plus Boot Camp; multi-stage objectives | The rest of the campaign's maps; the walker op is in progress |
+| Vehicles | <img src="Docs/media/progress/vehicles.svg" width="260" alt="70%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel | The walker, a space fighter, AI pilots and drivers |
+| Kestrel hub | <img src="Docs/media/progress/kestrel.svg" width="260" alt="75%"> | Hangar, war table, armoury, lockers, memorial; fly home with no loading screen; the hangar remembers | Launching from the Kestrel to orbit; talking with the crew |
+| Towns and factions | <img src="Docs/media/progress/towns.svg" width="260" alt="35%"> | Rook's Rest, 3 factions with standing, 5 contracts, townsfolk | Towns on Brasshaven, Neon Verge and Hollyhock Vale; more factions |
+| Co-op | <img src="Docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions, EOS, Easy Anti-Cheat |
+| Art and audio | <img src="Docs/media/progress/art.svg" width="260" alt="15%"> | Kit-bashed geometry, UE5 mannequins, generated materials and sounds | Real character, vehicle and environment art; music |
+| Campaign and story | <img src="Docs/media/progress/campaign.svg" width="260" alt="20%"> | Story bible, mission intros, radio chatter, Acts I and II settings | Cinematics, Acts III and IV, the Static virus arc |
+
+## Roadmap
+
+- [x] Boot Camp, Red Tide and the mission loop
+- [x] The galaxy map and six planets
+- [x] Vehicles, call-ins, the Bulwark
+- [x] Stealth, movement and the downed state
+- [x] Operation Breakwater
+- [x] The commander, reputation and contracts
+- [x] Rook's Rest
+- [x] Fly home with no loading screen
+- [x] The Kestrel remembers
+- [ ] **The Ironstride walker**: board a moving giant, overload its couplings, ride it down *(in progress)*
+- [ ] Launch from the Kestrel to orbit and the galaxy map
+- [ ] Co-op played and tested over two machines
+- [ ] Brasshaven (steampunk), Neon Verge (cyberpunk), Hollyhock Vale (non-lethal)
+- [ ] Story missions with cinematic briefings
+- [ ] Real art pass: characters, war-frames, vehicles, environments, music
+
 ## Where it stands (v0.21)
 
 Each entry was played in the packaged Windows build unless it says otherwise.
@@ -89,12 +126,7 @@ Each entry was played in the packaged Windows build unless it says otherwise.
 
 ### Planned
 
-- A giant walker to board or extract around (next)
-- Story missions with cinematic briefings
-- Brasshaven, Neon Verge and Hollyhock Vale worlds
-- The Coil and the Maw
-- Lag-compensated hit rewind
-- Command wheel and menus
+See the [roadmap](#roadmap).
 
 The full campaign plan is in **[Docs/CAMPAIGN.md](Docs/CAMPAIGN.md)**.
 

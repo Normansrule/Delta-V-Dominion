@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="26" role="img" aria-label="Missions and maps: 40%">
+  <title>Missions and maps: 40%</title>
+  <rect x="0" y="0" width="420" height="26" rx="6" fill="#1f2328"/>
+  <rect x="2" y="2" width="166" height="22" rx="5" fill="#d4a72c"/>
+  <text x="210.0" y="18.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="14" font-weight="600" fill="#ffffff">40%</text>
+</svg>
