@@ -20,6 +20,7 @@
 #include "Vehicles/DVHoverbike.h"
 #include "Vehicles/DVBoat.h"
 #include "Vehicles/DVKestrel.h"
+#include "Vehicles/DVWalker.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -386,7 +387,32 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 		FLinearColor Color = Amber;
 		switch (GS->Stage)
 		{
-		case EDVMissionStage::Sabotage: Right = FString::Printf(TEXT("PLANTING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
+		case EDVMissionStage::Sabotage:
+			if (const ADVWalker* Walker = GS->bWalkerOp ? ADVWalker::Find(GetWorld()) : nullptr)
+			{
+				Right = FString::Printf(TEXT("COUPLINGS %d / %d"), Walker->GetCouplingsBlown(), ADVWalker::NumCouplings);
+				// Plain guidance under the panel: what the walker is doing and what that means for you.
+				const APawn* Me = GetOwningPawn();
+				FString Hint;
+				switch (Walker->GetState())
+				{
+				case EDVWalkerState::Walking: Hint = Walker->IsAboard(Me) ? TEXT("You're aboard. Stand on the glowing coupling to overload it") : TEXT("The walker is striding. Wait for it to kneel, then board up the rear ramp"); break;
+				case EDVWalkerState::Kneeling: Hint = TEXT("It's kneeling. Get to the rear ramp"); break;
+				case EDVWalkerState::Knelt: Hint = Walker->IsAboard(Me) ? TEXT("Aboard. Stand on the glowing coupling to overload it") : TEXT("The rear ramp is down: board now"); break;
+				case EDVWalkerState::Rising: Hint = TEXT("It's rising. Ride it, or wait for the next kneel"); break;
+				default: break;
+				}
+				if (Walker->GetCouplingProgress() > 0.01f)
+				{
+					Hint = FString::Printf(TEXT("OVERLOADING  %d%%"), FMath::RoundToInt(Walker->GetCouplingProgress() * 100.f));
+				}
+				Text(Hint, CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), 1.05f, true);
+			}
+			else
+			{
+				Right = FString::Printf(TEXT("PLANTING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f));
+			}
+			break;
 		case EDVMissionStage::Capture: Right = FString::Printf(TEXT("CAPTURING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
 		case EDVMissionStage::Defend: Right = FString::Printf(TEXT("DETONATION %ds"), FMath::Max(0, FMath::CeilToInt(GS->StageEndTime - GetWorld()->GetTimeSeconds()))); Color = DVHudColors::Hostile; break;
 		case EDVMissionStage::Extract: Right = GS->StageProgress < 1.f ? FString(TEXT("RAVEN INBOUND")) : FString(TEXT("RAVEN ON THE PAD")); Color = Cyan; break;

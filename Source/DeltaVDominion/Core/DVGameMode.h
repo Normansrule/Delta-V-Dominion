@@ -55,6 +55,10 @@ public:
 	void BeginAscent(APlayerController* PC);
 	void OnAscentLanded(APlayerController* PC, class ADVGunship* Raven);
 
+	/** Ironstride: a power coupling blew (Count of 3), and the walker hit the ground. */
+	void OnWalkerCoupling(int32 Count);
+	void OnWalkerDown();
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float PlantSeconds = 4.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float HoldSeconds = 45.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float RavenInboundSeconds = 12.f;
@@ -93,6 +97,7 @@ private:
 	void StartCapture();
 	/** Breakwater-style operations: objectives come from actors tagged DV_Obj_1 / DV_Obj_2 / DV_LZ in the map. */
 	bool bScriptedObjectives = false;
+	bool bWalkerOp = false;
 	FVector SecondObjective = FVector::ZeroVector;
 	void StartExtract();
 	void SpawnWave(int32 Count);

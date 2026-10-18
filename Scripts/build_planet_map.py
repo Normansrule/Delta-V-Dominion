@@ -77,6 +77,13 @@ BIOMES = {
                       sun=(-8, 200), sun_color=(255, 170, 110), sun_lux=7.0, atmosphere=True, mie=0.012, sky_light=1.1,
                       fog=0.006, fog_color=(0.42, 0.24, 0.15), clouds=True, saturation=1.1, contrast=1.12, exposure=-0.1,
                       extras=["town"]),
+    # Ironstride: Arcadia Planitia, an open plain under a dust-storm sky, big enough for a 30 m walker to stride a loop.
+    "ironstride": dict(map="/Game/Maps/Ironstride", env="/Game/Environment/Planets/Ironstride", seed=91, dunes=60.0, rim=900.0, mesa=2400.0,
+                       sand_a=(0.28, 0.15, 0.08), sand_b=(0.11, 0.07, 0.05), slope_rock=(0.06, 0.045, 0.035),
+                       rock_dark=(0.025, 0.02, 0.018), rock_light=(0.13, 0.095, 0.07),
+                       sun=(-34, 60), sun_color=(255, 205, 165), sun_lux=7.5, atmosphere=True, mie=0.03, sky_light=1.2,
+                       fog=0.02, fog_color=(0.45, 0.27, 0.17), clouds=True, saturation=1.05, contrast=1.12, exposure=-0.2,
+                       extras=["walker"]),
 }
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
@@ -1026,8 +1033,8 @@ def build():
               (s * random.uniform(0.7, 1.1), s * random.uniform(0.7, 1.1), s * random.uniform(1.2, 2.4)), rock_mat, "Rocks")
 
     # --- Hearthbound compound (east) ----------------------------------------------------
-    if not town:
-        bx, by = 3000.0, 0.0
+    bx, by = 3000.0, 0.0
+    if not town and "walker" not in B["extras"]:   # the Ironstride's loop needs the plain clear
         bz = ground(bx, by)
         # Bunker: thick walls with a doorway facing west, roof slab with overhang, glowing strips.
         block("Bunker_Floor", (bx, by, bz + 10), (1400, 1000, 30), mats["concrete_dark"])
@@ -1212,6 +1219,9 @@ def build():
     build_extras(mats, rocks, rock_mat)
     if town:
         build_town(mats)
+    if "walker" in B["extras"]:
+        # The Ironstride strides a loop around the centre of the plain (see ADVWalker).
+        spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVWalker"), "Ironstride", (0, 0, ground(0, 0) + 2200), rot(), "Gameplay")
 
     if not levels.save_current_level():
         raise RuntimeError("Could not save " + MAP_PATH)

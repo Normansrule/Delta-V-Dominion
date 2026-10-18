@@ -11,8 +11,8 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "Docs", "media", "progress")
 # key: (label, percent)
 PROGRESS = {
     "combat": ("Combat and squad", 80),
-    "missions": ("Missions and maps", 40),
-    "vehicles": ("Vehicles", 70),
+    "missions": ("Missions and maps", 45),
+    "vehicles": ("Vehicles", 75),
     "kestrel": ("Kestrel hub", 75),
     "towns": ("Towns and factions", 35),
     "coop": ("Co-op", 25),

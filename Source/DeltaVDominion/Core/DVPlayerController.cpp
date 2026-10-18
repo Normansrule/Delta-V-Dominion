@@ -3,6 +3,7 @@
 #include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
 #include "Core/DVGameMode.h"
+#include "Vehicles/DVWalker.h"
 #include "Combat/DVAttributeSet.h"
 #include "Vehicles/DVKestrel.h"
 #include "Vehicles/DVVehicleKit.h"
@@ -122,6 +123,10 @@ void ADVPlayerController::StartCapture()
 void ADVPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+	if (bBoardTest)
+	{
+		TickBoardTest();
+	}
 	if (IsLocalController())
 	{
 		TickProgression();
@@ -906,6 +911,138 @@ void ADVPlayerController::ServerExitVehicle_Implementation()
 	{
 		Seat->Exit(this);
 	}
+}
+
+void ADVPlayerController::DVWalker(int32 Mode)
+{
+	ServerDVWalker(Mode);
+}
+
+void ADVPlayerController::ServerDVWalker_Implementation(int32 Mode)
+{
+#if !UE_BUILD_SHIPPING
+	ADVWalker* Walker = ADVWalker::Find(GetWorld());
+	if (!Walker)
+	{
+		return;
+	}
+	if (Mode == 0)
+	{
+		Walker->DevKneel();
+	}
+	else if (Mode == 1)
+	{
+		Walker->DevBlowAll();
+	}
+	else if (Mode == 3)
+	{
+		// Tests: clear every hostile and silence the cannon, so a boarding run measures the walker, not the firefight.
+		for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+		{
+			if (It->TeamId != 1 && !It->IsOutOfAction())
+			{
+				It->DevKill();
+			}
+		}
+		Walker->DevHoldFire();
+	}
+	else if (APawn* P = GetPawn())
+	{
+		P->TeleportTo(Walker->GetActorTransform().TransformPosition(FVector(-1000.f, 0.f, 650.f)), Walker->GetActorRotation());
+	}
+#endif
+}
+
+void ADVPlayerController::DVBoardTest(float Delay, int32 JumpOffOnce)
+{
+	BoardTestStep = 0;
+	bBoardTestJumpOff = JumpOffOnce != 0;
+	FTimerHandle Start;
+	GetWorldTimerManager().SetTimer(Start, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		BoardTestStart = GetWorld()->GetTimeSeconds();
+		bBoardTest = true;	// driven every frame from PlayerTick, like a held key
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::TickBoardTest()
+{
+	ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(GetPawn());
+	const ADVWalker* Walker = ADVWalker::Find(GetWorld());
+	if (!Me || !Walker || GetWorld()->GetTimeSeconds() - BoardTestStart > 260.0 || Walker->GetState() == EDVWalkerState::Down)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DVBoardTest: done (step %d, walker state %d, couplings %d)"), BoardTestStep, int32(Walker ? Walker->GetState() : EDVWalkerState::Down),
+			Walker ? Walker->GetCouplingsBlown() : -1);
+		bBoardTest = false;
+		return;
+	}
+	const bool bAboard = Walker->IsAboard(Me);
+	if (BoardTestStep >= 3 && !bAboard && Me->GetActorLocation().Z < Walker->GetActorLocation().Z + 200.f)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DVBoardTest: fell off the deck, going back to the ramp"));
+		BoardTestStep = 0;
+	}
+	FVector Goal;
+	const FTransform Xf = Walker->GetActorTransform();
+	switch (BoardTestStep)
+	{
+	case 0: Goal = Xf.TransformPosition(FVector(-3400.f, 0.f, 0.f)); break;	// behind the ramp
+	case 1: Goal = Xf.TransformPosition(FVector(-2800.f, 0.f, 0.f)); break;	// the ramp's bottom edge, on its centreline
+	case 2: Goal = Xf.TransformPosition(FVector(-900.f, 0.f, 600.f)); break;	// up onto the deck
+	default: Goal = Walker->GetActiveCouplingLocation(); break;
+	}
+	const FVector To = (Goal - Me->GetActorLocation());
+	if (FMath::Fmod(GetWorld()->GetTimeSeconds(), 3.0) < 0.021)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DVBoardTest: step %d, %.0f cm to go (z %.0f), me %s, walker state %d, speed %.0f"), BoardTestStep, To.Size2D(), To.Z,
+			*Me->GetActorLocation().ToCompactString(), int32(Walker->GetState()), Me->GetVelocity().Size2D());
+	}
+	if (BoardTestStep == 1 && To.Size2D() < 60.f)
+	{
+		BoardTestStep = 2;
+	}
+	if (BoardTestStep == 0 && To.Size2D() < 120.f)
+	{
+		// Wait at the foot of the ramp until it's down, then walk up.
+		if (Walker->GetState() == EDVWalkerState::Knelt)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DVBoardTest: at the ramp, walker knelt: going up"));
+			BoardTestStep = 1;
+		}
+		return;
+	}
+	if (BoardTestStep == 2 && bAboard)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DVBoardTest: aboard after %.1f s"), GetWorld()->GetTimeSeconds() - BoardTestStart);
+		BoardTestStep = 3;
+	}
+	if (BoardTestStep == 2 && Walker->GetState() != EDVWalkerState::Knelt && !bAboard)
+	{
+		BoardTestStep = 0;	// the ramp went up before we made it: try the next kneel
+	}
+	if (BoardTestStep >= 3 && bBoardTestJumpOff && Walker->GetState() != EDVWalkerState::Walking)
+	{
+		return;	// ride it up first
+	}
+	if (BoardTestStep >= 3 && bBoardTestJumpOff && Walker->GetState() == EDVWalkerState::Walking)
+	{
+		// Fall-recovery test: once it's striding at full height, walk off the stern (the ramp gap) and drop 25 m.
+		const FVector Off = Xf.TransformPosition(FVector(-1900.f, 0.f, 600.f)) - Me->GetActorLocation();
+		SetControlRotation(FRotator(-5.f, Off.Rotation().Yaw, 0.f));
+		Me->AddMovementInput(Off.GetSafeNormal2D(), 1.f);
+		if (!bAboard && Me->GetCharacterMovement()->IsFalling())
+		{
+			UE_LOG(LogTemp, Log, TEXT("DVBoardTest: jumped off at %.0f cm above the ground"), Me->GetActorLocation().Z - Xf.GetLocation().Z + ADVWalker::WalkHeight);
+			bBoardTestJumpOff = false;
+		}
+		return;
+	}
+	if (BoardTestStep >= 3 && To.Size2D() < 210.f)
+	{
+		return;	// standing on the coupling: let it overload
+	}
+	SetControlRotation(FRotator(-5.f, To.Rotation().Yaw, 0.f));
+	Me->AddMovementInput(To.GetSafeNormal2D(), 1.f);
 }
 
 void ADVPlayerController::DVCasualty(int32 Mode)

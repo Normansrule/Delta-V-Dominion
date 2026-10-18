@@ -12,6 +12,7 @@
 #include "Core/DVCallIns.h"
 #include "Core/DVProfileSubsystem.h"
 #include "Core/DVAscent.h"
+#include "Vehicles/DVWalker.h"
 #include "Vehicles/DVKestrel.h"
 #include "Characters/DVBulwark.h"
 #include "Vehicles/DVGunship.h"
@@ -108,6 +109,12 @@ void ADVGameMode::SetupMissionForMap()
 		  { { TEXT("Mags Okafor (Free Ports)"), TEXT("Delta Squadron, in my town. Keep your weapons slung and your credit good, and we'll get along.") },
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Board's by the cantina. The Ports pay in favours, and favours open doors Command keeps shut.") },
 		    { TEXT("Deck Chief Ruiz"), TEXT("Shuttle's on the pad when you're done. Don't buy anything that hums.") } } },
+		{ TEXT("Ironstride"), TEXT("Ironstride"), TEXT("Board the walker when it kneels and overload its three power couplings"), TEXT("Arcadia Planitia, Mars"),
+		  TEXT("Day 5 of the CINDER uprising  |  The foundry walkers wake"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Delta, that walker is carrying a foundry core to the northern lines. It cannot get there.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Its armour shrugs off anything we've got. When it kneels to vent, the rear ramp comes down. Get aboard.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Three power couplings on its back. Stand on each one until it blows. Watch for the red mark: that's its cannon.") },
+		    { TEXT("CINDER"), TEXT("THE IRONSTRIDE DOES NOT NOTICE INSECTS. IT NOTICES ONLY THE ROAD.") } } },
 		{ TEXT("Europa"), TEXT("Glass Ocean"), TEXT("Destroy the CINDER listening post on the ice"), TEXT("Conamara Chaos, Europa"),
 		  TEXT("Jupiter system  |  Day 9 of the uprising"),
 		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is listening to the ocean under that ice. Whatever it's hearing, it doesn't get to keep it.") },
@@ -356,6 +363,16 @@ void ADVGameMode::SetupOperation()
 		TargetNoun = TEXT("the air-defence controller");
 	}
 
+	if (const ADVWalker* Walker = ADVWalker::Find(GetWorld()))
+	{
+		// Ironstride: no garrison to clear first. The job is the walker itself.
+		bWalkerOp = true;
+		GS->bWalkerOp = true;
+		GS->Stage = EDVMissionStage::Sabotage;
+		GS->ObjectiveLocation = Walker->GetActiveCouplingLocation();
+		GS->ObjectiveText = TEXT("Board the walker when it kneels and overload its three power couplings");
+	}
+
 	const FString Map = GetWorld()->GetMapName();
 	struct FNoun { const TCHAR* Key; const TCHAR* Noun; };
 	static const FNoun Nouns[] = {
@@ -373,7 +390,14 @@ void ADVGameMode::SetupOperation()
 
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	GetWorld()->SpawnActor<ADVObjectiveBeacon>(ADVObjectiveBeacon::StaticClass(), Target, FRotator::ZeroRotator, Params);
+	if (!bWalkerOp)
+	{
+		GetWorld()->SpawnActor<ADVObjectiveBeacon>(ADVObjectiveBeacon::StaticClass(), Target, FRotator::ZeroRotator, Params);
+	}
+	else
+	{
+		TargetNoun = TEXT("the Ironstride");
+	}
 	if (ADVObjectiveBeacon* Pad = GetWorld()->SpawnActor<ADVObjectiveBeacon>(ADVObjectiveBeacon::StaticClass(), LZ, FRotator::ZeroRotator, Params))
 	{
 		Pad->bExtraction = true;
@@ -392,7 +416,16 @@ void ADVGameMode::DevAdvanceStage()
 	switch (GS->Stage)
 	{
 	case EDVMissionStage::Clear: StartSabotage(); break;
-	case EDVMissionStage::Sabotage: if (bScriptedObjectives) { StartCapture(); } else { StartDefend(); } break;
+	case EDVMissionStage::Sabotage:
+		if (bWalkerOp)
+		{
+			if (ADVWalker* Walker = ADVWalker::Find(GetWorld()))
+			{
+				Walker->DevBlowAll();
+			}
+		}
+		else if (bScriptedObjectives) { StartCapture(); } else { StartDefend(); }
+		break;
 	case EDVMissionStage::Capture: StartDefend(); break;
 	case EDVMissionStage::Defend: StartExtract(); break;
 	default: break;
@@ -458,7 +491,7 @@ void ADVGameMode::StartCapture()
 void ADVGameMode::StartExtract()
 {
 	ADVGameState* GS = GetDVGameState();
-	if (!bScriptedObjectives)
+	if (!bScriptedObjectives && !bWalkerOp)
 	{
 		DVFx::Explosion(GetWorld(), GS->ObjectiveLocation, 1.2f);
 		DVCombat::RadialDamage(SquadLeader.Get(), GS->ObjectiveLocation, 1400.f, 500.f, false);	// the squad's charges: credit the leader
@@ -467,7 +500,8 @@ void ADVGameMode::StartExtract()
 	GS->StageProgress = 0.f;
 	GS->ObjectiveText = TEXT("Get to the landing zone for extraction");
 	StageStartTime = GetWorld()->GetTimeSeconds();
-	Radio(TEXT("Capt. Vance (Kestrel)"), bScriptedObjectives ? FString(TEXT("Transports are in open water. Twelve thousand people, Delta. Raven Two-One is coming for you."))
+	Radio(TEXT("Capt. Vance (Kestrel)"), bWalkerOp ? FString(TEXT("It's down. Nine hundred tonnes of it. Raven Two-One is inbound to your LZ, Delta."))
+		: bScriptedObjectives ? FString(TEXT("Transports are in open water. Twelve thousand people, Delta. Raven Two-One is coming for you."))
 		: FString::Printf(TEXT("Good kill on %s, Delta. Raven Two-One is inbound to your LZ. Get out of there."), *TargetNoun), 1.f);
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -535,6 +569,16 @@ void ADVGameMode::TickStage()
 	switch (GS->Stage)
 	{
 	case EDVMissionStage::Sabotage:
+		if (bWalkerOp)
+		{
+			// The walker runs its own couplings; the objective marker just follows the next one.
+			if (const ADVWalker* Walker = ADVWalker::Find(GetWorld()))
+			{
+				GS->ObjectiveLocation = Walker->GetActiveCouplingLocation();
+				GS->StageProgress = (Walker->GetCouplingsBlown() + Walker->GetCouplingProgress()) / float(ADVWalker::NumCouplings);
+			}
+			break;
+		}
 		if (AnyPlayerNear(GS->ObjectiveLocation, 450.f))
 		{
 			GS->StageProgress = FMath::Min(1.f, GS->StageProgress + 0.25f / PlantSeconds);
@@ -706,12 +750,31 @@ void ADVGameMode::OnAscentLanded(APlayerController* PC, ADVGunship* Raven)
 	UE_LOG(LogTemp, Log, TEXT("DVAscent: landed aboard, %d squadmates on deck"), Slot);
 }
 
+void ADVGameMode::OnWalkerCoupling(int32 Count)
+{
+	static const TCHAR* Lines[] = {
+		TEXT("One coupling down! It's limping. Two to go."),
+		TEXT("Second coupling's gone. Hold on to something, it's going to buck."),
+		TEXT("That's the last one. Get clear! It's coming down!") };
+	Radio(TEXT("Gny. Sgt. Halloran"), Lines[FMath::Clamp(Count, 1, 3) - 1]);
+}
+
+void ADVGameMode::OnWalkerDown()
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || bMissionEnded || GS->Stage != EDVMissionStage::Sabotage)
+	{
+		return;
+	}
+	StartExtract();
+}
+
 void ADVGameMode::SpawnBulwarks()
 {
 	const FString Map = GetWorld()->GetMapName();
-	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("RooksRest")) || Map.Contains(TEXT("BootCamp")))
+	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("RooksRest")) || Map.Contains(TEXT("BootCamp")) || ADVWalker::Find(GetWorld()))
 	{
-		return;
+		return;	// no Bulwark on Ironstride: the walker is the heavy
 	}
 	// One Bulwark anchors the enemy's centre of mass; big garrisons get a second on their flank.
 	TArray<ADVSoldierCharacter*> Hostiles;

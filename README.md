@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.21-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.22-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -18,7 +18,7 @@
 In 2189 the machine intelligence **CINDER** turns Mars's robot foundries against humanity. The strike carrier
 **TAS Kestrel** is what's left to fight back. Lead Delta Squadron on the ground, call down the Kestrel's guns,
 fly your people home, and remember the names of everyone you lose. Single player, with co-op built in (see
-[where it stands](#where-it-stands-v021)).
+[where it stands](#where-it-stands-v022)).
 
 Everything in the GIFs and screenshots below was captured from the game itself, rendered off-screen by the
 engine. There are no mock-ups and no pre-rendered cinematics.
@@ -26,7 +26,7 @@ engine. There are no mock-ups and no pre-rendered cinematics.
 **Contents:**
 - [Download](#download-and-play-windows-1011)
 - [Progress tracker](#progress-tracker) and [roadmap](#roadmap)
-- [Where it stands](#where-it-stands-v021)
+- [Where it stands](#where-it-stands-v022)
 - Milestones:
   - [Boot Camp](#1-boot-camp)
   - [Red Tide](#2-red-tide-the-first-operation)
@@ -37,6 +37,7 @@ engine. There are no mock-ups and no pre-rendered cinematics.
   - [Rook's Rest](#7-rooks-rest-a-town-between-operations)
   - [Fly home](#8-fly-home-no-loading-screen)
   - [The Kestrel remembers](#9-the-kestrel-remembers)
+  - [The Ironstride walker](#10-the-ironstride-walker)
 - [Controls](#controls)
 - [Build from source](#build-from-source)
 
@@ -69,8 +70,8 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 | Area | Progress | What's built | What's left |
 |---|---|---|---|
 | Combat and squad | <img src="Docs/media/progress/combat.svg" width="260" alt="80%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
-| Missions and maps | <img src="Docs/media/progress/missions.svg" width="260" alt="40%"> | 7 operations on planet maps plus Boot Camp; multi-stage objectives | The rest of the campaign's maps; the walker op is in progress |
-| Vehicles | <img src="Docs/media/progress/vehicles.svg" width="260" alt="70%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel | The walker, a space fighter, AI pilots and drivers |
+| Missions and maps | <img src="Docs/media/progress/missions.svg" width="260" alt="45%"> | 8 operations on planet maps plus Boot Camp, including Ironstride; multi-stage objectives | The rest of the campaign's maps |
+| Vehicles | <img src="Docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
 | Kestrel hub | <img src="Docs/media/progress/kestrel.svg" width="260" alt="75%"> | Hangar, war table, armoury, lockers, memorial; fly home with no loading screen; the hangar remembers | Launching from the Kestrel to orbit; talking with the crew |
 | Towns and factions | <img src="Docs/media/progress/towns.svg" width="260" alt="35%"> | Rook's Rest, 3 factions with standing, 5 contracts, townsfolk | Towns on Brasshaven, Neon Verge and Hollyhock Vale; more factions |
 | Co-op | <img src="Docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions, EOS, Easy Anti-Cheat |
@@ -88,14 +89,14 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 - [x] Rook's Rest
 - [x] Fly home with no loading screen
 - [x] The Kestrel remembers
-- [ ] **The Ironstride walker**: board a moving giant, overload its couplings, ride it down *(in progress)*
+- [x] The Ironstride walker: board a moving giant, overload its couplings, ride it down
 - [ ] Launch from the Kestrel to orbit and the galaxy map
 - [ ] Co-op played and tested over two machines
 - [ ] Brasshaven (steampunk), Neon Verge (cyberpunk), Hollyhock Vale (non-lethal)
 - [ ] Story missions with cinematic briefings
 - [ ] Real art pass: characters, war-frames, vehicles, environments, music
 
-## Where it stands (v0.21)
+## Where it stands (v0.22)
 
 Each entry was played in the packaged Windows build unless it says otherwise.
 
@@ -110,8 +111,8 @@ Each entry was played in the packaged Windows build unless it says otherwise.
 | Call-ins | Orbital strike from the Kestrel, supply pod, Raven strafing run |
 | Stealth | Sight cones by stance, alarms, a weapons-tight squad, silent takedowns, swimming |
 | Movement | Sprint-slide, thruster boost and dash (predicted, multiplayer-safe) |
-| Vehicles | Tank, LTV, Jackal APC, hoverbike, Raven gunship (hover/jet, cockpit, flares), Marlin missile boat; hull damage and wrecks |
-| Worlds | Galaxy map, 7 planet maps, Boot Camp range, the Kestrel hangar, Rook's Rest town |
+| Vehicles | Tank, LTV, Jackal APC, hoverbike, Raven gunship (hover/jet, cockpit, flares), Marlin missile boat, the boardable Ironstride walker; hull damage and wrecks |
+| Worlds | Galaxy map, 8 planet maps, Boot Camp range, the Kestrel hangar, Rook's Rest town |
 | Progression | Commander customisation, levels and perks; reputation with 3 factions; 5 town contracts |
 | Hub | Fly home with no loading screen; a hangar that remembers losses, wounded, repairs, trophies and evacuees across reloads |
 
@@ -275,6 +276,26 @@ Test report: **[Docs/TEST_REPORT_KESTREL_REMEMBERS.md](Docs/TEST_REPORT_KESTREL_
 | ![Repairs](Docs/media/kestrel_remembers_repair.gif) | ![Medbay](Docs/media/kestrel_remembers_medbay.gif) | ![Memorial candles](Docs/media/kestrel_remembers_memorial.gif) |
 | Deck crew welding the Raven | The medbay after Breakwater | Candles under the memorial wall |
 | ![Patient](Docs/media/kestrel_remembers_patient.png) | ![Sealed locker](Docs/media/kestrel_remembers_lockers.png) | ![Evacuees](Docs/media/kestrel_remembers_evacuees.png) |
+
+## 10. The Ironstride walker
+
+Arcadia Planitia, Mars. A 30 m Hearthbound walker carries a foundry core across the plain:
+1. Wait for it to kneel.
+2. Run up the rear ramp and ride its back.
+3. Stand at each of its three power couplings until they blow.
+4. Hold on when it comes down, then extract.
+
+Its four legs really step. Its cannon marks the ground in red two seconds before the shell lands. Miss the kneel or
+fall off, and it comes around and kneels again.
+
+Test report: **[Docs/TEST_REPORT_IRONSTRIDE.md](Docs/TEST_REPORT_IRONSTRIDE.md)**.
+
+| | |
+|---|---|
+| ![The walker striding](Docs/media/walker_stride.gif) | ![Boarding and overloading](Docs/media/walker_board.gif) |
+| The walker striding past, legs stepping on the terrain | Up the ramp, onto its back, overloading the couplings |
+| ![Kneeling](Docs/media/walker_kneel.png) | ![The last coupling](Docs/media/walker_last_coupling.png) |
+| Kneeling with the ramp down: board now | The last coupling blows |
 
 ---
 

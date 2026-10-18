@@ -81,6 +81,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float SupplyReadyTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float StrafeReadyTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bMultiStage = false;
+	/** Ironstride: the objective is the walker's power couplings (see ADVWalker). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bWalkerOp = false;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") EDVMissionStage Stage = EDVMissionStage::Clear;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FVector_NetQuantize ObjectiveLocation;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FVector_NetQuantize ExtractLocation;

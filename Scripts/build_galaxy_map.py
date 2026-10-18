@@ -167,6 +167,7 @@ def build():
            [op("Kestrel (home base)", "TAS Kestrel, hangar deck", "/Game/Maps/Kestrel"),
             op("Breakwater", "Port Halden harbour, Gaia", "/Game/Maps/Breakwater"),
             op("Red Tide", "Tharsis Ridge, Mars", "/Game/Maps/Outpost"),
+            op("Ironstride", "Arcadia Planitia, Mars", "/Game/Maps/Ironstride"),
             op("Glass Ocean", "Conamara Chaos, Europa", "/Game/Maps/Europa"),
             op("Forgefall", "Loki Patera, Io", "/Game/Maps/Io"),
             op("Ghost Signal", "Occator District, Ceres", "/Game/Maps/Ceres"),

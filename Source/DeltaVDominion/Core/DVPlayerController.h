@@ -89,6 +89,22 @@ public:
 	/** Dev/tests: "DVCasualty 0" kills one AI squadmate (KIA), "DVCasualty 1" marks one badly hurt (medbay after the op), "DVCasualty 2" destroys a Bulwark. */
 	UFUNCTION(Exec)
 	void DVCasualty(int32 Mode);
+
+	/** Dev/tests: "DVWalker 0" kneels the walker now, "1" blows every coupling, "2" puts you on its deck, "3" clears every hostile and silences its cannon (mechanics tests). */
+	UFUNCTION(Exec)
+	void DVWalker(int32 Mode);
+	UFUNCTION(Server, Reliable)
+	void ServerDVWalker(int32 Mode);
+
+	/** Tests: "DVBoardTest [Delay]" walks your soldier (real movement input, no teleport) to the walker's ramp, up it,
+	 *  and onto the next power coupling, re-trying from the ground if you fall off. Logs each leg of the trip. */
+	UFUNCTION(Exec)
+	void DVBoardTest(float Delay = 0.f, int32 JumpOffOnce = 0);
+	bool bBoardTestJumpOff = false;
+	void TickBoardTest();
+	bool bBoardTest = false;
+	int32 BoardTestStep = 0;
+	double BoardTestStart = 0.0;
 	UFUNCTION(Server, Reliable)
 	void ServerCasualty(int32 Mode);
 
