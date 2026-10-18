@@ -1001,6 +1001,13 @@ def build():
 
     # --- Terrain and rocks --------------------------------------------------------------
     place(terrain, "MoonTerrain", (0, 0, 0), material=terrain_mat, folder="Terrain")
+    if "harbour" not in B["extras"]:
+        # Plains out to the horizon around the 600 m terrain tile, so the land doesn't end when a Raven climbs.
+        edge, far, top = 29500.0, 1500000.0, 400.0
+        for name, cx, cy, sx, sy in (("N", 0, (edge + far) / 2, 2 * far, far - edge), ("S", 0, -(edge + far) / 2, 2 * far, far - edge),
+                                     ("E", (edge + far) / 2, 0, far - edge, 2 * edge), ("W", -(edge + far) / 2, 0, far - edge, 2 * edge)):
+            # A plain cube: the chamfered block's bevel would grow kilometres wide at this scale.
+            place(lib.load_asset("/Engine/BasicShapes/Cube"), "Plains_" + name, (cx, cy, top - 200), None, (sx / 100.0, sy / 100.0, 4.0), terrain_mat, "Terrain")
 
     # Boulders as cover across the approach, plus big outcrops on the slopes.
     cover_rocks = [(-2600, -1300), (-2300, 900), (-1600, -300), (-900, 1500), (-700, -1600), (-200, 400),

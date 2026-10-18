@@ -54,6 +54,7 @@ private:
 	void DrawLocker();
 	void DrawContractBoard();
 	void DrawContract();
+	void DrawAscent(const class ADVGameState* GS);
 	void DrawTownsfolk(const ADVSoldierCharacter* Soldier);
 	void DrawAwareness(const class ADVSoldierCharacter* Viewer);
 	void DrawCockpit(const class ADVGunship* Air);

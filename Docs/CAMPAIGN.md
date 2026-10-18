@@ -259,7 +259,7 @@ Done so far from this list: **1** (downed, revive, bleed-out; AI squadmates come
 ## Star Wars Outlaws as a reference (mechanics and look, nothing copied)
 
 - **Speeder travel**: the VX-3 Skiff hoverbike is the fast, fragile scout's ride between objectives (in game).
-- **Seamless planet to orbit**: the long-term goal is to lift off a planet in a Raven and fly up to the Kestrel without a loading screen; the war table stands in until then.
+- **Seamless planet to ship**: in game. After an operation (K) or from Rook's Rest's shuttle, a Raven carries the squad up into the Kestrel holding station over the battlefield, through a landing bay in the hull, onto the hangar deck, which streams in during the flight. Next step: the same flight from the Kestrel out to orbit and the galaxy map.
 - **Faction reputation**: in game for Accord Command, the Colonies and the Free Ports (salvage contracts, standing-gated weapons and call-ins). Brasshaven's Guild Council, Neon Verge's brokers and Hollyhock Vale join the same system when their worlds are built.
 - **Open hubs**: in game. The Kestrel's hangar, and **Rook's Rest**, a Free Ports market town on the Tharsis rim reached by shuttle from the hangar: market stalls, the Rusty Rook cantina, townsfolk who talk to you differently as your Free Ports standing changes, and Mags Okafor's job board. Each new world gets its own town like it.
 - **Contracts**: in game. Five jobs on the board (silent takedowns, salvage, headshots, revives, Bulwark bounties) posted by the Free Ports, an Accord liaison and Colonies relief. Take one in town, work it across your next operations, get paid in standing and XP when an operation is won.

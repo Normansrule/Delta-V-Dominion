@@ -73,6 +73,24 @@ Three powers remember what Delta does, from Hostile to Allied (shown at the barr
 | ![Salvage contract](Docs/media/salvage_contract.png) | ![Standing](Docs/media/standing.png) |
 | Claiming a salvage contract on Europa | Standing, perks and the commander's look at the locker |
 
+## Fly home: no loading screen
+
+When an operation ends, press **K** and Raven Two-One lifts you and your squad off the battlefield, climbs to the
+TAS Kestrel holding station overhead, and flies in through the glowing starboard landing bay. The hangar deck is
+streamed into the carrier's hull while you fly, so you step out onto the same deck as the hub, with the war table,
+armoury and lockers, without a loading screen. The shuttle at Rook's Rest does the same.
+
+<p align="center">
+  <img src="Docs/media/fly_home.gif" width="640" alt="A Raven flies from the battlefield into the Kestrel's landing bay">
+</p>
+
+| | |
+|---|---|
+| ![Lift-off](Docs/media/fly_home_liftoff.png) | ![The Kestrel](Docs/media/fly_home_approach.png) |
+| **Dust off** from Tharsis Ridge, the Kestrel overhead | **Closing on the carrier**: the starboard bay lit in cyan |
+| ![Into the bay](Docs/media/fly_home_bay.png) | ![Aboard](Docs/media/fly_home_aboard.png) |
+| **Into the bay**: the hangar deck streamed into the hull | **Aboard**: step out on the deck, squad behind you |
+
 ## Rook's Rest and the job board
 
 Take the shuttle from the Kestrel's hangar down to **Rook's Rest**, a Free Ports market town under the Tharsis rim at
@@ -217,7 +235,7 @@ Unreal games are Windows-native; on Linux use Steam Proton, on macOS a Windows V
 | Q / E | Lean left / right | Space | Jump; in the air, **thruster boost** |
 | Left Alt | **Thruster dash** (charges shown as THRUST) | Z (hold) | Revive a downed squadmate |
 | F (behind an unaware frame) | **Silent takedown** | Space (in water) | Swim up and climb out |
-| B / N / H | Orbital strike (danger close) / supply drop / strafing run on the crosshair | Enter / M | Redeploy / back to the galaxy map (after a mission) |
+| B / N / H | Orbital strike (danger close) / supply drop / strafing run on the crosshair | Enter / K / M | After a mission: redeploy / **fly home to the Kestrel** / galaxy map |
 | **Galaxy map** | Left-drag orbit, right-drag or WASD pan, wheel zoom, click a system, **1-3** launch, H home, G galaxy | | |
 | Z | Board / exit vehicles; use the war table, memorial, armoury, barracks locker (1-4 customise), job board, shuttle | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
 | **Driving** | W/S throttle, A/D steer, mouse aims, LMB fires, Space handbrake | **Flying** | W/S/A/D move, Space up, C down, LMB cannon, RMB rockets |
@@ -414,5 +432,6 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [x] Down, not dead: wounded soldiers bleed out for 30 s; squadmates (or you, holding Z) revive them
 - [x] Destructible vehicles: hull armour, enemies target crewed vehicles, wrecks burn and throw the crew clear
 - [x] Rook's Rest: a walkable Free Ports town with townsfolk, a cantina and a contract board; shuttle to and from the Kestrel
+- [x] Seamless flight home: a Raven carries you from the battlefield into the Kestrel's hangar bay, streamed in with no loading screen
 - [ ] Smoke call-in, Skitter drones, enemy vehicles
 - [ ] Vehicles, space segments, campaign map and story missions

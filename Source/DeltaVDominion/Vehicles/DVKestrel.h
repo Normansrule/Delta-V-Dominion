@@ -31,6 +31,21 @@ public:
 
 	static ADVKestrel* Find(const UWorld* World);
 
+	/**
+	 * Where the hangar deck (the /Game/Maps/Kestrel level) sits inside this hull: its open mouth is cut into the
+	 * starboard side, facing the battlefield. Uses the ship's resting position (see HoldStation), so every machine
+	 * computes the same transform.
+	 */
+	FTransform GetHangarTransform() const;
+	/** Stop the slow heave so a streamed-in hangar stays lined up with the hull. */
+	void HoldStation();
+
+	/** Hangar placement in hull space (cm): deck centre and yaw of the level's +X (deeper into the ship). */
+	static constexpr float HangarX = -40000.f;
+	static constexpr float HangarY = 5000.f;
+	static constexpr float HangarZ = -6000.f;
+	static constexpr float HangarYaw = -90.f;
+
 protected:
 	UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> Hull;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> Battery;
@@ -38,6 +53,8 @@ protected:
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> RunningLights;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> DeckLights;
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> FlakGuns;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> MouthGlows;
+	bool bHolding = false;
 
 private:
 	FVector BaseLocation = FVector::ZeroVector;

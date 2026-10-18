@@ -19,6 +19,7 @@
 #include "Vehicles/DVGunship.h"
 #include "Vehicles/DVHoverbike.h"
 #include "Vehicles/DVBoat.h"
+#include "Vehicles/DVKestrel.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -66,7 +67,7 @@ void ADVHUD::DrawHUD()
 	ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetOwningPawn());
 	const bool bViewingSoldier = Soldier && PlayerOwner && PlayerOwner->GetViewTarget() == Soldier;
 
-	if (GS && GS->Phase != EDVMissionPhase::InProgress)
+	if (GS && GS->Phase != EDVMissionPhase::InProgress && GS->Ascent == 0)
 	{
 		DrawAfterAction(GS);
 		DrawProgression();
@@ -83,6 +84,11 @@ void ADVHUD::DrawHUD()
 	APawn* OwningPawn = GetOwningPawn();
 	if (OwningPawn && OwningPawn->FindComponentByClass<UDVSeatComponent>())
 	{
+		if (GS && GS->Ascent == 1)
+		{
+			DrawAscent(GS);	// cinematic: no gunship instruments, just the ride home
+			return;
+		}
 		DrawVehicle(OwningPawn);
 		DrawSquad(nullptr);
 		DrawObjective(GS);
@@ -493,7 +499,7 @@ void ADVHUD::DrawAfterAction(const ADVGameState* GS)
 	}
 
 	const float Pulse = 0.6f + 0.4f * FMath::Sin(GetWorld()->GetRealTimeSeconds() * 3.f);
-	Text(TEXT("ENTER  redeploy        M  strategic map"), CX, H * 0.86f, FLinearColor(1.f, 1.f, 1.f, Pulse), GEngine->GetMediumFont(), 1.2f, true);
+	Text(ADVKestrel::Find(GetWorld()) ? TEXT("ENTER  redeploy        K  fly home to the Kestrel        M  strategic map") : TEXT("ENTER  redeploy        M  strategic map"), CX, H * 0.86f, FLinearColor(1.f, 1.f, 1.f, Pulse), GEngine->GetMediumFont(), 1.2f, true);
 }
 
 void ADVHUD::DrawTitleCard(const ADVGameState* GS)
@@ -1124,4 +1130,19 @@ void ADVHUD::DrawTownsfolk(const ADVSoldierCharacter* Soldier)
 	}
 	Text(Local->DisplayName, Screen.X, Screen.Y - S(34.f), FLinearColor(1.f, 0.6f, 0.15f, 1.f), GEngine->GetSmallFont(), 1.f, true);
 	Text(FString::Printf(TEXT("\"%s\""), *Local->Line(Profile->GetRep(DVFactions::FreePorts))), Screen.X, Screen.Y, DVHudColors::Text, GEngine->GetMediumFont(), 0.95f, true);
+}
+
+void ADVHUD::DrawAscent(const ADVGameState* GS)
+{
+	// Letterbox bars, a caption and the radio: the flight home plays like a cutscene you're sitting in.
+	const float W = Canvas->ClipX, H = Canvas->ClipY;
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.92f), 0.f, 0.f, W, H * 0.1f);
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.92f), 0.f, H * 0.9f, W, H * 0.1f);
+	const ADVKestrel* Kestrel = ADVKestrel::Find(GetWorld());
+	const APawn* Ship = GetOwningPawn();
+	const float Dist = Kestrel && Ship ? FVector::Dist(Kestrel->GetHangarTransform().GetLocation(), Ship->GetActorLocation()) / 100.f : 0.f;
+	Text(TEXT("RAVEN TWO-ONE  -  RETURNING TO THE KESTREL"), W * 0.5f, H * 0.035f, FLinearColor(0.75f, 0.9f, 1.f, 1.f), GEngine->GetMediumFont(), 1.05f, true);
+	Text(Dist > 60.f ? FString::Printf(TEXT("Starboard bay  %.1f km"), Dist / 1000.f) : FString(TEXT("Coming aboard")), W * 0.5f, H * 0.925f,
+		DVHudColors::Dim, GEngine->GetSmallFont(), 1.1f, true);
+	DrawRadio(GS);
 }

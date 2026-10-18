@@ -20,7 +20,18 @@ ADVKestrel::ADVKestrel()
 
 	// Silhouette: long armoured spine, angled prow, flight deck slab, superstructure island, engine block.
 	// Units are cm; the ship is ~1.4 km long, so parts are huge.
-	DVKit::Part(this, Hull, TEXT("Spine"), DVKit::Box(), Armour, FVector(0.f, 0.f, 0.f), FRotator::ZeroRotator, FVector(110000.f, 22000.f, 16000.f));
+	// The spine is built around the hangar bay (x -43200..-36800): a 64 m slot in the starboard side opens onto the
+	// hangar deck, which streams in as its own level when a Raven flies home (see GetHangarTransform).
+	DVKit::Part(this, Hull, TEXT("SpineFore"), DVKit::Box(), Armour, FVector(9100.f, 0.f, 0.f), FRotator::ZeroRotator, FVector(91800.f, 22000.f, 16000.f));
+	DVKit::Part(this, Hull, TEXT("SpineAft"), DVKit::Box(), Armour, FVector(-49100.f, 0.f, 0.f), FRotator::ZeroRotator, FVector(11800.f, 22000.f, 16000.f));
+	DVKit::Part(this, Hull, TEXT("SpineBayTop"), DVKit::Box(), Armour, FVector(-40000.f, 0.f, 2300.f), FRotator::ZeroRotator, FVector(6400.f, 22000.f, 11400.f));
+	DVKit::Part(this, Hull, TEXT("SpineBayKeel"), DVKit::Box(), Armour, FVector(-40000.f, 0.f, -7025.f), FRotator::ZeroRotator, FVector(6400.f, 22000.f, 1950.f));
+	DVKit::Part(this, Hull, TEXT("SpineBayBack"), DVKit::Box(), Armour, FVector(-40000.f, -6000.f, -4725.f), FRotator::ZeroRotator, FVector(6400.f, 10000.f, 2650.f));
+	// Glowing frame around the bay mouth so it reads from the ground as a landing bay.
+	MouthGlows.Add(DVKit::Part(this, Hull, TEXT("BayFrameTop"), DVKit::Box(), Glow, FVector(-40000.f, 11060.f, -3330.f), FRotator::ZeroRotator, FVector(6500.f, 140.f, 140.f)));
+	MouthGlows.Add(DVKit::Part(this, Hull, TEXT("BayFrameLow"), DVKit::Box(), Glow, FVector(-40000.f, 11060.f, -6100.f), FRotator::ZeroRotator, FVector(6500.f, 140.f, 140.f)));
+	MouthGlows.Add(DVKit::Part(this, Hull, TEXT("BayFrameFore"), DVKit::Box(), Glow, FVector(-36780.f, 11060.f, -4715.f), FRotator::ZeroRotator, FVector(140.f, 140.f, 2900.f)));
+	MouthGlows.Add(DVKit::Part(this, Hull, TEXT("BayFrameAft"), DVKit::Box(), Glow, FVector(-43220.f, 11060.f, -4715.f), FRotator::ZeroRotator, FVector(140.f, 140.f, 2900.f)));
 	DVKit::Part(this, Hull, TEXT("Prow"), DVKit::Box(), Armour, FVector(62000.f, 0.f, -2000.f), FRotator(-12.f, 0.f, 0.f), FVector(30000.f, 17000.f, 11000.f));
 	DVKit::Part(this, Hull, TEXT("ProwBlade"), DVKit::Box(), Metal, FVector(76000.f, 0.f, -4000.f), FRotator(-20.f, 0.f, 0.f), FVector(16000.f, 6000.f, 5000.f));
 	DVKit::Part(this, Hull, TEXT("Keel"), DVKit::Box(), Dark, FVector(-5000.f, 0.f, -10000.f), FRotator::ZeroRotator, FVector(80000.f, 12000.f, 6000.f));
@@ -90,6 +101,10 @@ void ADVKestrel::BeginPlay()
 	{
 		DVKit::SetGlow(Burn, FLinearColor(0.35f, 0.65f, 1.f), 30.f);
 	}
+	for (UStaticMeshComponent* Frame : MouthGlows)
+	{
+		DVKit::SetGlow(Frame, FLinearColor(0.1f, 0.7f, 1.f), 25.f);
+	}
 	for (UStaticMeshComponent* Deck : DeckLights)
 	{
 		DVKit::SetGlow(Deck, FLinearColor(1.f, 0.75f, 0.35f), 12.f);
@@ -112,7 +127,7 @@ void ADVKestrel::Tick(float DeltaSeconds)
 	const float T = GetWorld()->GetTimeSeconds();
 
 	// Holding station: a slow heave and drift so 1.4 km of ship never looks painted on.
-	SetActorLocation(BaseLocation + FVector(FMath::Sin(T * 0.05f) * 1500.f, FMath::Cos(T * 0.04f) * 900.f, FMath::Sin(T * 0.13f) * 600.f));
+	SetActorLocation(bHolding ? BaseLocation : BaseLocation + FVector(FMath::Sin(T * 0.05f) * 1500.f, FMath::Cos(T * 0.04f) * 900.f, FMath::Sin(T * 0.13f) * 600.f));
 
 	// Running lights blink in sequence, red to port and green to starboard.
 	for (int32 i = 0; i < RunningLights.Num(); ++i)
@@ -131,6 +146,18 @@ void ADVKestrel::Tick(float DeltaSeconds)
 		DVFx::Beam(GetWorld(), From, To, FLinearColor(120.f, 60.f, 10.f), 250.f, 0.08f);
 		DVFx::Explosion(GetWorld(), To, 1.6f);
 	}
+}
+
+FTransform ADVKestrel::GetHangarTransform() const
+{
+	const FTransform Ship(GetActorRotation(), BaseLocation);
+	return FTransform(FRotator(0.f, GetActorRotation().Yaw + HangarYaw, 0.f), Ship.TransformPosition(FVector(HangarX, HangarY, HangarZ)));
+}
+
+void ADVKestrel::HoldStation()
+{
+	bHolding = true;
+	SetActorLocation(BaseLocation);
 }
 
 FVector ADVKestrel::GetBatteryLocation() const

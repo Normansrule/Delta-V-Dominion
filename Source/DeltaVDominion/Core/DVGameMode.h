@@ -48,6 +48,13 @@ public:
 	void DevAdvanceStage();
 	void RequestStrafeRun(APlayerController* Caller, const FVector& Target);
 
+	/**
+	 * Fly home: after an operation (or from a hub town), a Raven lifts the commander off and flies up into the
+	 * Kestrel overhead, whose hangar deck streams into the hull. No loading screen. See ADVAscent.
+	 */
+	void BeginAscent(APlayerController* PC);
+	void OnAscentLanded(APlayerController* PC, class ADVGunship* Raven);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float PlantSeconds = 4.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float HoldSeconds = 45.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float RavenInboundSeconds = 12.f;
@@ -97,6 +104,8 @@ private:
 	TWeakObjectPtr<class ADVGunship> ExtractRaven;
 	bool CanCallIn(APlayerController* Caller, const FVector& Target, float ReadyTime) const;
 	void Radio(const FString& Speaker, const FString& Text, float Delay = 0.f);
+	/** Queued radio lines, so a new scene (the flight home) can cut off chatter left over from the last one. */
+	TArray<FTimerHandle> RadioTimers;
 	void ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target);
 	int32 HostileKills = 0;
 	bool bIsTrainingMap = false;

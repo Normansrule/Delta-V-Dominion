@@ -15,6 +15,15 @@
 #include "Engine/World.h"
 #include "Core/DVFx.h"
 #include "Vehicles/DVKestrel.h"
+#include "Engine/LevelStreamingDynamic.h"
+#include "Engine/DirectionalLight.h"
+#include "Engine/SkyLight.h"
+#include "Engine/PostProcessVolume.h"
+#include "Engine/ExponentialHeightFog.h"
+#include "Engine/StaticMeshActor.h"
+#include "GameFramework/PlayerStart.h"
+#include "Components/SkyAtmosphereComponent.h"
+#include "Engine/Level.h"
 #include "UObject/ConstructorHelpers.h"
 
 ADVGameState::ADVGameState()
@@ -34,6 +43,7 @@ void ADVGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ADVGameState, Phase);
 	DOREPLIFETIME(ADVGameState, MissionName);
+	DOREPLIFETIME(ADVGameState, Ascent);
 	DOREPLIFETIME(ADVGameState, ObjectiveText);
 	DOREPLIFETIME(ADVGameState, EnemiesTotal);
 	DOREPLIFETIME(ADVGameState, EnemiesRemaining);
@@ -114,6 +124,64 @@ void ADVGameState::MulticastContractEvent_Implementation(uint8 Kind)
 			DVSound::UI(GetWorld(), TEXT("SW_KillConfirm"), 0.7f);
 		}
 	}
+}
+
+void ADVGameState::MulticastStreamHangar_Implementation(FVector_NetQuantize Location, float Yaw)
+{
+	if (HangarLevel)
+	{
+		return;
+	}
+	if (ADVKestrel* Kestrel = ADVKestrel::Find(GetWorld()))
+	{
+		Kestrel->HoldStation();
+	}
+	bool bOk = false;
+	HangarLevel = ULevelStreamingDynamic::LoadLevelInstance(GetWorld(), TEXT("/Game/Maps/Kestrel"), FVector(Location), FRotator(0.f, Yaw, 0.f), bOk,
+		TEXT("KestrelHangarDeck"));
+	if (HangarLevel)
+	{
+		HangarLevel->OnLevelShown.AddDynamic(this, &ADVGameState::OnHangarShown);
+	}
+	UE_LOG(LogTemp, Log, TEXT("DVAscent: streaming hangar at %s yaw %.0f (%s)"), *FVector(Location).ToCompactString(), Yaw, bOk ? TEXT("ok") : TEXT("failed"));
+}
+
+void ADVGameState::OnHangarShown()
+{
+	// The hangar map brings its own sky, sun and a 60 km Mars for the view out of the mouth. Here the real
+	// battlefield is outside the mouth, so keep only the ship.
+	ULevel* Level = HangarLevel ? HangarLevel->GetLoadedLevel() : nullptr;
+	if (!Level)
+	{
+		return;
+	}
+	int32 Removed = 0;
+	for (AActor* A : Level->Actors)
+	{
+		if (!A)
+		{
+			continue;
+		}
+		bool bStrip = A->IsA<ADirectionalLight>() || A->IsA<ASkyLight>() || A->IsA<APostProcessVolume>() || A->IsA<AExponentialHeightFog>()
+			|| A->IsA<APlayerStart>() || A->FindComponentByClass<USkyAtmosphereComponent>() != nullptr;
+		if (const AStaticMeshActor* Mesh = Cast<AStaticMeshActor>(A))
+		{
+			FVector Origin, Extent;
+			Mesh->GetActorBounds(false, Origin, Extent);
+			bStrip |= Extent.GetMax() > 50000.f;	// Mars and Phobos
+		}
+		if (bStrip)
+		{
+			A->Destroy();
+			++Removed;
+		}
+	}
+	UE_LOG(LogTemp, Log, TEXT("DVAscent: hangar shown, stripped %d actors"), Removed);
+}
+
+bool ADVGameState::IsHangarReady() const
+{
+	return HangarLevel && HangarLevel->IsLevelVisible();
 }
 
 void ADVGameState::MulticastSound_Implementation(FName Sound, FVector_NetQuantize Location, float Volume, uint8 Range)

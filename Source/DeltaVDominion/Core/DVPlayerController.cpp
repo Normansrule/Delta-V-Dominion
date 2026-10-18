@@ -3,6 +3,7 @@
 #include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
 #include "Core/DVGameMode.h"
+#include "Vehicles/DVKestrel.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
 #include "Core/DVCallIns.h"
@@ -169,6 +170,7 @@ void ADVPlayerController::SetupInputComponent()
 	}
 	InputComponent->BindKey(EKeys::H, IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
+	InputComponent->BindKey(EKeys::K, IE_Pressed, this, &ADVPlayerController::OnFlyHomePressed);
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
 	InputComponent->BindKey(EKeys::Z, IE_Released, this, &ADVPlayerController::OnInteractReleased);
 }
@@ -460,6 +462,29 @@ void ADVPlayerController::OnMapPressed()
 	}
 }
 
+void ADVPlayerController::OnFlyHomePressed()
+{
+	const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
+	if (GS && GS->Phase != EDVMissionPhase::InProgress && GS->Ascent == 0)
+	{
+		ServerRequestAscent();
+	}
+}
+
+void ADVPlayerController::ServerRequestAscent_Implementation()
+{
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->BeginAscent(this);
+	}
+}
+
+void ADVPlayerController::DVFlyHome(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { ServerRequestAscent(); }), FMath::Max(Delay, 0.001f), false);
+}
+
 void ADVPlayerController::OnInteractReleased()
 {
 	ServerSetReviveHeld(false);
@@ -494,7 +519,11 @@ void ADVPlayerController::OnInteractPressed()
 	}
 	if (MyPawn->FindComponentByClass<UDVSeatComponent>())
 	{
-		ServerExitVehicle();
+		const ADVGameState* FlightGS = GetWorld()->GetGameState<ADVGameState>();
+		if (!FlightGS || FlightGS->Ascent != 1)	// no stepping out of a Raven on its way to orbit
+		{
+			ServerExitVehicle();
+		}
 	}
 	else if (ADVInteractable* Thing = ADVInteractable::FindNear(MyPawn))
 	{
@@ -515,7 +544,11 @@ void ADVPlayerController::OnInteractPressed()
 			}
 			break;
 		case EDVInteraction::Shuttle:
-			if (!Thing->Destination.IsEmpty())
+			if (Thing->Destination.Contains(TEXT("Kestrel")) && ADVKestrel::Find(GetWorld()))
+			{
+				ServerRequestAscent();	// the Kestrel is right overhead: fly up to it instead of loading
+			}
+			else if (!Thing->Destination.IsEmpty())
 			{
 				UGameplayStatics::OpenLevel(this, FName(*Thing->Destination));
 			}

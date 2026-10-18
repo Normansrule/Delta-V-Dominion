@@ -86,6 +86,10 @@ public:
 	UFUNCTION(Exec)
 	void DVDebugPawns();
 
+	/** Console / capture: "DVFlyHome [Delay]" is K: ride a Raven up into the Kestrel (after an operation, or in a town). */
+	UFUNCTION(Exec)
+	void DVFlyHome(float Delay = 0.f);
+
 	/** Console / capture: "DVInteract [Delay]" boards the nearest vehicle or climbs out (same as Z). */
 	UFUNCTION(Exec)
 	void DVInteract(float Delay = 0.f);
@@ -139,6 +143,9 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerCallIn(uint8 Kind, FVector_NetQuantize Target);
 
+	UFUNCTION(Server, Reliable)
+	void ServerRequestAscent();
+
 private:
 	void OnRedeployPressed();
 	void OnOrbitalPressed();
@@ -146,6 +153,7 @@ private:
 	void OnStrafePressed();
 	bool DesignateTarget(FVector& OutTarget) const;
 	void OnMapPressed();
+	void OnFlyHomePressed();
 	void OnInteractPressed();
 	void OnInteractReleased();
 	UFUNCTION(Server, Reliable) void ServerSetReviveHeld(bool bHeld);

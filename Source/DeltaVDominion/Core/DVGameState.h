@@ -69,6 +69,8 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") EDVMissionPhase Phase = EDVMissionPhase::InProgress;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionName;
+	/** Flying home: 0 on the ground, 1 a Raven is carrying the squad up to the Kestrel, 2 landed aboard. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") uint8 Ascent = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString ObjectiveText;
 	/** Title card lines, e.g. "Tharsis Ridge, Mars" / "Day 3 of the Uprising". */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionLocation;
@@ -106,6 +108,14 @@ public:
 	/** Something a Rook's Rest contract counts happened (DVContracts kind); every player's own contract hears it. */
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastContractEvent(uint8 Kind);
+
+	/** Every machine streams the Kestrel's hangar deck into the carrier hanging over this battlefield. */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastStreamHangar(FVector_NetQuantize Location, float Yaw);
+	bool IsHangarReady() const;
+
+	UFUNCTION() void OnHangarShown();
+	UPROPERTY() TObjectPtr<class ULevelStreamingDynamic> HangarLevel;
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastSound(FName Sound, FVector_NetQuantize Location, float Volume, uint8 Range);

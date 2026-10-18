@@ -11,6 +11,8 @@
 #include "Core/DVFx.h"
 #include "Core/DVCallIns.h"
 #include "Core/DVProfileSubsystem.h"
+#include "Core/DVAscent.h"
+#include "Vehicles/DVKestrel.h"
 #include "Characters/DVBulwark.h"
 #include "Vehicles/DVGunship.h"
 #include "GameFramework/PlayerStart.h"
@@ -194,7 +196,7 @@ void ADVGameMode::Radio(const FString& Speaker, const FString& Text, float Delay
 		GS->MulticastRadio(Speaker, Text);
 		return;
 	}
-	FTimerHandle Handle;
+	FTimerHandle& Handle = RadioTimers.AddDefaulted_GetRef();
 	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(GS, [GS, Speaker, Text]() { GS->MulticastRadio(Speaker, Text); }), Delay, false);
 }
 
@@ -561,6 +563,102 @@ void ADVGameMode::TickStage()
 	default:
 		break;
 	}
+}
+
+void ADVGameMode::BeginAscent(APlayerController* PC)
+{
+	ADVGameState* GS = GetDVGameState();
+	ADVKestrel* Kestrel = ADVKestrel::Find(GetWorld());
+	ADVSoldierCharacter* Soldier = PC ? Cast<ADVSoldierCharacter>(PC->GetPawn()) : nullptr;
+	if (!GS || !Kestrel || !Soldier || Soldier->IsOutOfAction() || GS->Ascent != 0 || (!bIsHub && GS->Phase == EDVMissionPhase::InProgress))
+	{
+		return;
+	}
+	// Ride the extraction Raven if it's waiting, else the nearest parked one, else Two-One sets down beside you.
+	ADVGunship* Raven = ExtractRaven.Get();
+	if (!Raven || FVector::Dist(Raven->GetActorLocation(), Soldier->GetActorLocation()) > 4000.f)
+	{
+		Raven = nullptr;
+		float Best = 3000.f;
+		for (TActorIterator<ADVGunship> It(GetWorld()); It; ++It)
+		{
+			const float D = FVector::Dist(It->GetActorLocation(), Soldier->GetActorLocation());
+			if (D < Best && !It->GetSeat()->bWrecked && !It->GetSeat()->Driver)
+			{
+				Best = D;
+				Raven = *It;
+			}
+		}
+	}
+	if (!Raven)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		const FVector Beside = Soldier->GetActorLocation() + Soldier->GetActorRightVector() * 700.f + FVector(0.f, 0.f, 150.f);
+		Raven = GetWorld()->SpawnActor<ADVGunship>(ADVGunship::StaticClass(), Beside, FRotator(0.f, Soldier->GetActorRotation().Yaw, 0.f), Params);
+	}
+	if (!Raven)
+	{
+		return;
+	}
+	// Board as pilot (the seat's reach check needs the soldier at the door), then hand the stick to the ascent.
+	Raven->SetScriptedFlight(false);
+	Soldier->TeleportTo(Raven->GetActorLocation() + FVector(0.f, 0.f, 50.f), Soldier->GetActorRotation());
+	if (!Raven->GetSeat()->Enter(Soldier, PC))
+	{
+		return;
+	}
+	GS->Ascent = 1;
+	GS->ObjectiveText = TEXT("Raven Two-One is taking you home to the Kestrel");
+	const FTransform Bay = Kestrel->GetHangarTransform();
+	GS->MulticastStreamHangar(Bay.GetLocation(), Bay.Rotator().Yaw);
+	if (ADVAscent* Flight = GetWorld()->SpawnActor<ADVAscent>())
+	{
+		Flight->Begin(Raven, PC, Bay);
+	}
+	for (FTimerHandle& Pending : RadioTimers)
+	{
+		GetWorldTimerManager().ClearTimer(Pending);
+	}
+	RadioTimers.Reset();
+	Radio(TEXT("Raven Two-One"), TEXT("Wheels up. Kestrel, Two-One, Delta is coming home."), 1.f);
+	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Starboard bay is open and the deck is clear, Two-One. Bring them in."), 6.f);
+	Radio(TEXT("Deck Chief Ruiz"), TEXT("Lights are on, pad three. Easy on my deck plates."), 14.f);
+}
+
+void ADVGameMode::OnAscentLanded(APlayerController* PC, ADVGunship* Raven)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS)
+	{
+		return;
+	}
+	GS->Ascent = 2;
+	GS->bMultiStage = false;
+	GS->MissionName = TEXT("TAS Kestrel");
+	GS->ObjectiveText = TEXT("Welcome home. The war table (Z) picks the next operation");
+	if (Raven && PC)
+	{
+		Raven->GetSeat()->Exit(PC);
+		Raven->SetScriptedFlight(true);	// parked: nobody takes it back out by accident
+	}
+	// The squad rode up with you: they climb out of the troop bay behind you.
+	const FVector Deck = Raven ? Raven->GetActorLocation() : FVector::ZeroVector;
+	const FRotator Facing = Raven ? Raven->GetActorRotation() : FRotator::ZeroRotator;
+	int32 Slot = 0;
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		if (It->TeamId == PlayerTeamId && !It->IsPlayerControlled() && !It->IsDead() && !It->IsA<ADVBulwark>())
+		{
+			const FVector Spot = Deck + Facing.RotateVector(FVector(-500.f - 150.f * (Slot / 2), (Slot % 2 ? 1.f : -1.f) * (500.f + 60.f * Slot), 0.f));
+			It->TeleportTo(Spot, FRotator(0.f, Facing.Yaw, 0.f));
+			++Slot;
+		}
+	}
+	GS->MulticastSound(TEXT("SW_AmbHangar"), FVector::ZeroVector, 0.4f, 0);
+	Radio(TEXT("Deck Chief Ruiz"), TEXT("Down and locked. Welcome aboard, Commander."), 0.5f);
+	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Good work down there. Get some rest, then meet me at the war table."), 5.f);
+	UE_LOG(LogTemp, Log, TEXT("DVAscent: landed aboard, %d squadmates on deck"), Slot);
 }
 
 void ADVGameMode::SpawnBulwarks()
