@@ -64,12 +64,46 @@ void UDVRosterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		NewCampaign(/*bIronman*/ false);
 	}
+	else if (const UDVOpLogSave* Log = Cast<UDVOpLogSave>(UGameplayStatics::LoadGameFromSlot(SaveSlot + TEXT("_OpLog"), 0)))
+	{
+		OpLog = Log->Ops;
+	}
+}
+
+void UDVRosterSubsystem::RecordOperation(const FDVOpRecord& Record)
+{
+	OpLog.Add(Record);
+	SaveOpLog();
+}
+
+void UDVRosterSubsystem::SaveOpLog()
+{
+	if (UDVOpLogSave* Log = Cast<UDVOpLogSave>(UGameplayStatics::CreateSaveGameObject(UDVOpLogSave::StaticClass())))
+	{
+		Log->Ops = OpLog;
+		UGameplayStatics::SaveGameToSlot(Log, SaveSlot + TEXT("_OpLog"), 0);
+	}
+}
+
+TArray<FDVSoldierRecord> UDVRosterSubsystem::GetWounded() const
+{
+	TArray<FDVSoldierRecord> Out;
+	for (const FDVSoldierRecord& S : State.Soldiers)
+	{
+		if (S.Status == EDVSoldierStatus::Wounded)
+		{
+			Out.Add(S);
+		}
+	}
+	return Out;
 }
 
 void UDVRosterSubsystem::NewCampaign(bool bIronman, int32 Seed)
 {
 	State = FDVRosterState();
 	State.bIronman = bIronman;
+	OpLog.Reset();
+	SaveOpLog();
 	State.RecruitSeed = Seed != 0 ? Seed : FMath::Rand();
 	Rng.Initialize(State.RecruitSeed);
 

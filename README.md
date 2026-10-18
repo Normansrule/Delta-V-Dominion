@@ -73,6 +73,28 @@ Three powers remember what Delta does, from Hostile to Allied (shown at the barr
 | ![Salvage contract](Docs/media/salvage_contract.png) | ![Standing](Docs/media/standing.png) |
 | Claiming a salvage contract on Europa | Standing, perks and the commander's look at the locker |
 
+## The Kestrel remembers
+
+The hangar deck changes with what happened on your operations, and it survives quitting and reloading:
+- Every soldier you lose gets a name plate on the memorial wall and a candle, and their locker is sealed with the flag folded on top.
+- The badly wounded lie in the medbay and tell you when they'll be back.
+- After a costly or failed op, the deck crew are welding the Raven back together.
+- Bulwark heads go on the trophy shelf.
+- Port Halden families camp on the deck after Breakwater.
+- An operations board lights green or red for every op.
+- The crew's greeting names the last operation and what it cost.
+
+Test report: **[Docs/TEST_REPORT_KESTREL_REMEMBERS.md](Docs/TEST_REPORT_KESTREL_REMEMBERS.md)**.
+
+| | |
+|---|---|
+| ![Medbay](Docs/media/kestrel_remembers_medbay.png) | ![Patient](Docs/media/kestrel_remembers_patient.png) |
+| **Medbay**: Doc Pell and the wounded from your last op | **A patient** in bed one |
+| ![Memorial](Docs/media/kestrel_remembers_memorial.png) | ![Sealed locker](Docs/media/kestrel_remembers_lockers.png) |
+| **Memorial wall**: a plate for every soldier lost | **Sealed locker** of a soldier who didn't come home |
+| ![Evacuees](Docs/media/kestrel_remembers_evacuees.png) | ![Repairs](Docs/media/kestrel_remembers_repair.png) |
+| **Port Halden evacuees** on the deck after Breakwater | **Repairs** on the Raven after a costly op |
+
 ## Fly home: no loading screen
 
 When an operation ends, press **K** and Raven Two-One lifts you and your squad off the battlefield, climbs to the
@@ -433,5 +455,6 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - [x] Destructible vehicles: hull armour, enemies target crewed vehicles, wrecks burn and throw the crew clear
 - [x] Rook's Rest: a walkable Free Ports town with townsfolk, a cantina and a contract board; shuttle to and from the Kestrel
 - [x] Seamless flight home: a Raven carries you from the battlefield into the Kestrel's hangar bay, streamed in with no loading screen
+- [x] The Kestrel remembers: memorial plates, sealed lockers, medbay patients, repairs, trophies, evacuees and an ops board rebuilt from the save
 - [ ] Smoke call-in, Skitter drones, enemy vehicles
 - [ ] Vehicles, space segments, campaign map and story missions

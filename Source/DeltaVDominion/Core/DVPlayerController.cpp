@@ -3,6 +3,7 @@
 #include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
 #include "Core/DVGameMode.h"
+#include "Combat/DVAttributeSet.h"
 #include "Vehicles/DVKestrel.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVInteractable.h"
@@ -764,11 +765,11 @@ void ADVPlayerController::DVRavenMode(int32 bJet, int32 bCockpit, float Delay)
 	}), FMath::Max(Delay, 0.001f), false);
 }
 
-void ADVPlayerController::DVWarp(float X, float Y, float Z, float Yaw)
+void ADVPlayerController::DVWarp(float X, float Y, float Z, float Yaw, float Pitch)
 {
 	if (Yaw > -999.f)
 	{
-		SetControlRotation(FRotator(-5.f, Yaw, 0.f));
+		SetControlRotation(FRotator(Pitch, Yaw, 0.f));
 	}
 	ServerWarp(FVector(X, Y, Z), GetControlRotation().Yaw);
 }
@@ -905,6 +906,47 @@ void ADVPlayerController::ServerExitVehicle_Implementation()
 	{
 		Seat->Exit(this);
 	}
+}
+
+void ADVPlayerController::DVCasualty(int32 Mode)
+{
+	ServerCasualty(Mode);
+}
+
+void ADVPlayerController::ServerCasualty_Implementation(int32 Mode)
+{
+#if !UE_BUILD_SHIPPING
+	const ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(GetPawn());
+	if (Mode == 2)
+	{
+		for (TActorIterator<ADVBulwark> It(GetWorld()); It; ++It)
+		{
+			if (Me && It->TeamId != Me->TeamId && !It->IsOutOfAction())
+			{
+				It->DevKill();	// a Bulwark destroyed, for trophy and contract tests
+				return;
+			}
+		}
+		return;
+	}
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		if (Me && *It != Me && It->TeamId == Me->TeamId && !It->IsPlayerControlled() && !It->IsOutOfAction() && It->GetRosterId().IsValid()
+			&& !It->Tags.Contains(TEXT("DVCasualty")))
+		{
+			It->Tags.Add(TEXT("DVCasualty"));	// repeated calls pick different soldiers
+			if (Mode == 0)
+			{
+				It->DevKill();
+			}
+			else if (UDVAttributeSet* Attr = It->GetAttributeSet())
+			{
+				Attr->DamageTakenFraction = 0.8f;
+			}
+			return;
+		}
+	}
+#endif
 }
 
 void ADVPlayerController::DVDebugPawns()

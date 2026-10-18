@@ -24,6 +24,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town") int32 Trade = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town") bool bWanders = true;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town") float WanderRadius = 1400.f;
+	/** Says this instead of the trade's lines (crew, patients and evacuees aboard the Kestrel). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town") FString CustomLine;
+	/** Lying on a bed (medbay patients): no walking, no turning to face visitors. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town") bool bLyingDown = false;
 
 	static constexpr float TalkRange = 260.f;
 

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "GameFramework/SaveGame.h"
 #include "Core/DVRosterTypes.h"
 #include "DVRosterSubsystem.generated.h"
 
@@ -29,6 +30,19 @@ struct FDVMissionReport
  *
  * Only the authority (single player, or the co-op host) mutates the roster.
  */
+/**
+ * The operations log, saved beside the roster (its own slot, tagged properties) so the checksummed roster format
+ * doesn't change. New campaign, new log.
+ */
+UCLASS()
+class DELTAVDOMINION_API UDVOpLogSave : public USaveGame
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY() TArray<FDVOpRecord> Ops;
+};
+
 UCLASS(Config = Game)
 class DELTAVDOMINION_API UDVRosterSubsystem : public UGameInstanceSubsystem
 {
@@ -83,6 +97,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Roster")
 	void AddResources(const FDVWarResources& Delta);
 
+	/** Every operation flown this campaign, oldest first. The Kestrel's hangar rebuilds itself from this. */
+	const TArray<FDVOpRecord>& GetOpLog() const { return OpLog; }
+	void RecordOperation(const FDVOpRecord& Record);
+	/** Soldiers currently in the medbay. */
+	TArray<FDVSoldierRecord> GetWounded() const;
+
 	UPROPERTY(BlueprintAssignable) FDVOnRosterChanged OnRosterChanged;
 	UPROPERTY(BlueprintAssignable) FDVOnSoldierKilled OnSoldierKilled;
 
@@ -109,5 +129,7 @@ private:
 	void Broadcast();
 
 	UPROPERTY() FDVRosterState State;
+	UPROPERTY() TArray<FDVOpRecord> OpLog;
+	void SaveOpLog();
 	FRandomStream Rng;
 };

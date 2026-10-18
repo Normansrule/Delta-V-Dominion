@@ -92,6 +92,14 @@ void ADVTownsfolk::BeginPlay()
 		}
 	}
 	GetCharacterMovement()->MaxWalkSpeed = Trade == 4 ? 220.f : Rng.FRandRange(110.f, 160.f);
+	if (bLyingDown)
+	{
+		// On its back along the actor's +X (head end), face up; the idle animation reads as breathing.
+		bWanders = false;
+		GetCharacterMovement()->DisableMovement();
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetMesh()->SetRelativeLocationAndRotation(FVector(-85.f, 0.f, -70.f), FRotationMatrix::MakeFromYZ(FVector(0.f, 0.f, 1.f), FVector(1.f, 0.f, 0.f)).Rotator());
+	}
 	NextWander = GetWorld()->GetTimeSeconds() + Rng.FRandRange(0.5f, 5.f);
 }
 
@@ -114,7 +122,7 @@ void ADVTownsfolk::Tick(float DeltaSeconds)
 		}
 	}
 	AAIController* AI = Cast<AAIController>(GetController());
-	if (Visitor)
+	if (Visitor && !bLyingDown)
 	{
 		if (AI && GetVelocity().SizeSquared() > 1.f)
 		{
@@ -166,6 +174,10 @@ ADVTownsfolk* ADVTownsfolk::FindNear(const AActor* Listener)
 
 FString ADVTownsfolk::Line(int32 FreePortsRep) const
 {
+	if (!CustomLine.IsEmpty())
+	{
+		return CustomLine;
+	}
 	const int32 Mood = FreePortsRep < -15 ? 0 : FreePortsRep < DVFactions::Trusted ? 1 : 2;
 	return TownLines[FMath::Clamp(Trade, 0, 4)][Mood][(Seed & 0x7fffffff) % 2];
 }

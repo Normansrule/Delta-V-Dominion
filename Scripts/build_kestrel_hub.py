@@ -253,8 +253,13 @@ def build():
     block("GantryHook", (1500, 600, 1020), (120, 120, 120), steel)
 
     # --- Cargo, fuel and munitions --------------------------------------------------------------------
+    # Keep clear of the spaces DVKestrelMemory dresses: memorial, ops board, medbay, trophy shelf.
+    keep_clear = [(200, 2800, -3000, -1700), (-2300, -700, -3000, -1700), (4300, 6000, -3000, -1700), (0, 1200, 1700, 3000)]
     for i in range(14):
-        x, y = random.uniform(-4500, 4500), random.choice((-1, 1)) * random.uniform(2000, 2500)
+        while True:
+            x, y = random.uniform(-4500, 4500), random.choice((-1, 1)) * random.uniform(2000, 2500)
+            if not any(x0 - 400 < x < x1 + 400 and y0 < y < y1 for x0, x1, y0, y1 in keep_clear):
+                break
         sx, sy, sz = random.choice(((240, 160, 120), (200, 200, 200), (600, 244, 260)))
         block("Crate_%02d" % i, (x, y, sz / 2), (sx, sy, sz), random.choice((olive, rust, steel)), random.uniform(-10, 10), "Cargo")
     for i in range(4):
@@ -284,7 +289,10 @@ def build():
     table.set_editor_property("interaction", unreal.DVInteraction.WAR_TABLE)
     table.set_editor_property("prompt", "Open the war table (galaxy map)")
     block("MemorialWall", (1500, -W / 2 + 140, 700), (2400, 40, 1200), steel, folder="Stations")
-    block("MemorialPlaque", (1500, -W / 2 + 165, 700), (2200, 10, 1000), amber, folder="Stations")
+    # A dark plaque with an amber frame: the name plates (DVKestrelMemory) are the light on it.
+    block("MemorialPlaque", (1500, -W / 2 + 165, 700), (2200, 10, 1000), steel, folder="Stations")
+    for k, (dx, dz, w, h) in enumerate([(0, 495, 2200, 12), (0, -495, 2200, 12), (-1095, 0, 12, 1000), (1095, 0, 12, 1000)]):
+        block("MemorialFrame_%d" % k, (1500 + dx, -W / 2 + 172, 700 + dz), (w, 6, h), amber, folder="Stations")
     block("MemorialFlagBar", (1500, -W / 2 + 175, 1380), (2400, 20, 60), red, folder="Stations")
     memorial = spawn(inter, "Memorial", (1500, -W / 2 + 600, 0), folder="Stations")
     memorial.set_editor_property("interaction", unreal.DVInteraction.MEMORIAL)
@@ -313,6 +321,8 @@ def build():
         x = 1700 + i * 170
         block("LockerUnit_%d" % i, (x, W / 2 - 160, 110), (150, 70, 220), steel if i % 2 else hull, folder="Stations")
         block("LockerTag_%d" % i, (x, W / 2 - 198, 180), (60, 4, 14), mat("MI_Strip_Cyan"), folder="Stations")
+    # The Kestrel remembers: plaques, sealed lockers, medbay patients, repairs and trophies, rebuilt from the save.
+    spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVKestrelMemory"), "KestrelMemory", (0, 0, 0), folder="Stations")
     # Shore leave: the shuttle down to Rook's Rest, the Free Ports town under the Tharsis rim.
     shuttle = spawn(inter, "ShuttleToTown", (-2000, -700, 0), folder="Stations")
     shuttle.set_editor_property("interaction", unreal.DVInteraction.SHUTTLE)

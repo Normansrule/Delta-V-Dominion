@@ -71,6 +71,19 @@ struct FDVWarResources
 	UPROPERTY(BlueprintReadOnly, SaveGame) int32 Fuel = 100;
 };
 
+/** One operation as the Kestrel remembers it (feeds the hangar's memory: plaques, repairs, trophies, evacuees). */
+USTRUCT(BlueprintType)
+struct FDVOpRecord
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, SaveGame) FString Name;
+	UPROPERTY(BlueprintReadOnly, SaveGame) FString MapKey;
+	UPROPERTY(BlueprintReadOnly, SaveGame) bool bSuccess = false;
+	UPROPERTY(BlueprintReadOnly, SaveGame) int32 Lost = 0;
+	UPROPERTY(BlueprintReadOnly, SaveGame) int32 Bulwarks = 0;
+};
+
 /** Everything the roster persists. Serialized to bytes and checksummed by UDVSaveGame. */
 USTRUCT(BlueprintType)
 struct FDVRosterState

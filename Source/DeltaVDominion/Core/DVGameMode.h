@@ -108,6 +108,10 @@ private:
 	TArray<FTimerHandle> RadioTimers;
 	void ResolveOrbitalStrike(TWeakObjectPtr<APawn> Caller, FVector Target);
 	int32 HostileKills = 0;
+	int32 LostThisOp = 0;
+	int32 BulwarksThisOp = 0;
+	/** What the deck crew says when you come aboard, from the operations log. */
+	void KestrelGreeting(float Delay);
 	bool bIsTrainingMap = false;
 	bool bIsHub = false;
 	class ADVGameState* GetDVGameState() const;

@@ -249,7 +249,7 @@ Each planet operation runs: clear the garrison, plant charges, hold against coun
 2. **Operation Breakwater**: the Gaia harbour map, the patrol boat, the air-defence objective.
 3. **AI pilots and drivers** so every vehicle works in single player.
 4. **Rules of engagement** and less-lethal tools (foam launcher, stun) for restrained and non-lethal worlds.
-5. **The Kestrel remembers**: medbay beds, closed lockers, the damaged Raven on the repair pad.
+5. **The Kestrel remembers**: medbay beds, closed lockers, the damaged Raven on the repair pad. *(In game: see Docs/TEST_REPORT_KESTREL_REMEMBERS.md.)*
 6. **Component damage** on frames (Bulwark plates, exposed reactor).
 7. **Brasshaven, Neon Verge and Hollyhock Vale** as new Lattice destinations on the war table.
 8. **Lantern Deep, Underhang and Pelagia** maps; the Coil boss; the Maw as a ship-wide escape and Ruiz's POV level.

@@ -120,6 +120,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Soldier") float GetHealth() const;
 	UFUNCTION(BlueprintPure, Category = "Soldier") float GetSuppression() const;
 	UDVAttributeSet* GetAttributeSet() const { return AttributeSet; }
+	/** Dev/tests only (DVCasualty): killed outright, as if by enemy fire. */
+	void DevKill() { Die(nullptr); }
 	UDVCommandComponent* GetCommandComponent() const { return CommandComponent; }
 	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
 	UCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }

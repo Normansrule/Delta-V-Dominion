@@ -182,6 +182,50 @@ void ADVGameMode::SetupMissionForMap()
 		Radio(Lines[i].Key, Lines[i].Value, Times[i]);
 	}
 	GS->MissionName = MissionName;
+	if (Map.EndsWith(TEXT("Kestrel")))
+	{
+		KestrelGreeting(6.f);
+	}
+}
+
+void ADVGameMode::KestrelGreeting(float Delay)
+{
+	const UDVRosterSubsystem* Roster = GetRoster();
+	if (!Roster || Roster->GetOpLog().Num() == 0)
+	{
+		return;
+	}
+	// The crew talks about the last operation the way people would: the losses first, then the work.
+	const FDVOpRecord& Last = Roster->GetOpLog().Last();
+	FString Line;
+	if (!Last.bSuccess)
+	{
+		Line = FString::Printf(TEXT("%s went bad. The Raven came back shot up; my crew's on her now. We go again when you're ready."), *Last.Name);
+		Radio(TEXT("Deck Chief Ruiz"), Line, Delay);
+	}
+	else if (Last.Lost > 0)
+	{
+		Line = FString::Printf(TEXT("We got it done on %s. %d of ours didn't come home. Their lockers are sealed, their names are on the wall."), *Last.Name, Last.Lost);
+		Radio(TEXT("Gny. Sgt. Halloran"), Line, Delay);
+	}
+	else
+	{
+		Line = FString::Printf(TEXT("Clean op on %s. Everybody came home. That's how it's done, Delta."), *Last.Name);
+		Radio(TEXT("Gny. Sgt. Halloran"), Line, Delay);
+	}
+	if (Last.Bulwarks > 0)
+	{
+		Radio(TEXT("Deck Chief Ruiz"), TEXT("Brought you a souvenir: that Bulwark's head is on the trophy shelf by the armoury."), Delay + 7.f);
+	}
+	if (Last.bSuccess && Last.MapKey.Contains(TEXT("Breakwater")))
+	{
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Some of the Port Halden families are bunking on the hangar deck until the transports find a berth. Say hello."), Delay + 13.f);
+	}
+	const int32 Wounded = Roster->GetWounded().Num();
+	if (Wounded > 0)
+	{
+		Radio(TEXT("Doc Amara Pell"), FString::Printf(TEXT("%d in my medbay. They'll mend. Come see them when you can."), Wounded), Delay + 19.f);
+	}
 }
 
 void ADVGameMode::Radio(const FString& Speaker, const FString& Text, float Delay)
@@ -658,6 +702,7 @@ void ADVGameMode::OnAscentLanded(APlayerController* PC, ADVGunship* Raven)
 	GS->MulticastSound(TEXT("SW_AmbHangar"), FVector::ZeroVector, 0.4f, 0);
 	Radio(TEXT("Deck Chief Ruiz"), TEXT("Down and locked. Welcome aboard, Commander."), 0.5f);
 	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Good work down there. Get some rest, then meet me at the war table."), 5.f);
+	KestrelGreeting(10.f);
 	UE_LOG(LogTemp, Log, TEXT("DVAscent: landed aboard, %d squadmates on deck"), Slot);
 }
 
@@ -907,6 +952,7 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 		if (ADVGameState* GS = GetDVGameState())
 		{
 			GS->MulticastContractEvent(DVContracts::HeavyFrame);
+			++BulwarksThisOp;
 		}
 	}
 	UDVRosterSubsystem* Roster = GetRoster();
@@ -917,6 +963,7 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 			const FString Cause = Killer ? FString::Printf(TEXT("Killed in action by %s"),
 				Killer->GetSoldierName().IsEmpty() ? TEXT("enemy fire") : *Killer->GetSoldierName()) : TEXT("Killed in action");
 			Roster->ReportKIA(Victim->GetRosterId(), Cause, MissionName);
+			++LostThisOp;
 		}
 		if (Killer && Killer->GetRosterId().IsValid())
 		{
@@ -1131,6 +1178,17 @@ void ADVGameMode::EndMission(bool bSuccess)
 	}
 
 	Roster->CompleteMission(Report);
+	if (!bIsHub && !bIsTrainingMap)
+	{
+		FDVOpRecord Op;
+		Op.Name = MissionName;
+		Op.MapKey = GetWorld()->GetMapName();
+		Op.MapKey.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+		Op.bSuccess = bSuccess;
+		Op.Lost = LostThisOp;
+		Op.Bulwarks = BulwarksThisOp;
+		Roster->RecordOperation(Op);
+	}
 
 	Radio(TEXT("Capt. Vance (Kestrel)"), bSuccess
 		? (bIsTrainingMap ? FString(TEXT("Range is clear. Not bad, Delta. Not good either. Again tomorrow.")) : FString(TEXT("Relay's dark. Good work, Delta. Bringing you home.")))

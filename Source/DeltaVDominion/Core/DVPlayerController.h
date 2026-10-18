@@ -55,7 +55,7 @@ public:
 	void DVMoveDemo(int32 Mode, float Delay = 0.f);
 	/** Console (tests): "DVWarp X Y Z" teleports your soldier; "DVTakedownTest [Delay]" sneaks up behind the nearest unaware frame. */
 	UFUNCTION(Exec)
-	void DVWarp(float X, float Y, float Z, float Yaw = -1000.f);
+	void DVWarp(float X, float Y, float Z, float Yaw = -1000.f, float Pitch = -5.f);
 	UFUNCTION(Exec)
 	void DVTakedownTest(float Delay = 0.f);
 	/** Console (tests): "DVSalvageTest [Delay]" warps you onto the nearest salvage contract. */
@@ -85,6 +85,12 @@ public:
 	/** Console (dev): "DVDebugPawns" logs every pawn's class, location and visibility. */
 	UFUNCTION(Exec)
 	void DVDebugPawns();
+
+	/** Dev/tests: "DVCasualty 0" kills one AI squadmate (KIA), "DVCasualty 1" marks one badly hurt (medbay after the op), "DVCasualty 2" destroys a Bulwark. */
+	UFUNCTION(Exec)
+	void DVCasualty(int32 Mode);
+	UFUNCTION(Server, Reliable)
+	void ServerCasualty(int32 Mode);
 
 	/** Console / capture: "DVFlyHome [Delay]" is K: ride a Raven up into the Kestrel (after an operation, or in a town). */
 	UFUNCTION(Exec)
