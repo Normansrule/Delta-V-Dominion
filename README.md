@@ -51,7 +51,7 @@ Or install with one line in PowerShell. This downloads the latest release to `%L
 shortcuts, and updates if you run it again:
 
 ```powershell
-irm https://raw.githubusercontent.com/Normansrule/Delta-V-Dominion/main/Installer/Install-DeltaVDominion.ps1 | iex
+irm https://raw.githubusercontent.com/Normansrule/delta-v-dominion/main/Installer/Install-DeltaVDominion.ps1 | iex
 ```
 
 You need a 64-bit Windows PC with a DirectX 12 GPU (GTX 1060 / RX 580 or better) and 8 GB of RAM. On Linux, use Steam

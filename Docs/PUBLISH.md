@@ -24,7 +24,7 @@ git config --global user.email >/dev/null || git config --global user.email "600
 ## 3. Create the repo and push (code + Git LFS assets)
 
 ```bash
-gh repo create Normansrule/Delta-V-Dominion --public --source "$DV" --remote origin --push \
+gh repo create Normansrule/delta-v-dominion --public --source "$DV" --remote origin --push \
   --description "DELTA-V: DOMINION - Unreal Engine 5 squad shooter"
 ```
 
@@ -34,7 +34,7 @@ Use `--private` instead of `--public` to keep it private (the one-line installer
 
 ```bash
 bash "$DV/Scripts/dv.sh" package     # only if Build/Release/DeltaVDominion-Win64.zip is missing or stale
-gh release create v0.1.0 "$DV/Build/Release/DeltaVDominion-Win64.zip" --repo Normansrule/Delta-V-Dominion \
+gh release create v0.1.0 "$DV/Build/Release/DeltaVDominion-Win64.zip" --repo Normansrule/delta-v-dominion \
   --title "Boot Camp v0.1.0" --notes "Grey-box Boot Camp slice. Unzip and run DeltaVDominion.exe, or use the one-line installer in the README."
 ```
 
