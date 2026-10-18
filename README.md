@@ -1,266 +1,264 @@
-# DELTA-V: DOMINION
-
-Squad-based sci-fi shooter in **Unreal Engine 5.8** (C++, Gameplay Ability System, hardware ray-traced Lumen, Nanite).
-2189: the machine intelligence **CINDER** turns Mars's robot foundries against humanity, and the strike
-carrier **TAS Kestrel** is all that's left to fight back. Lead Delta Squadron boots-on-ground, call down
-the Kestrel's guns, and remember the names of everyone you lose. Single player and co-op.
+<h1 align="center">DELTA-V: DOMINION</h1>
 
 <p align="center">
-  <img src="Docs/media/orbital_strike.gif" width="720" alt="Painting a target for the Kestrel's orbital strike on the Hearthbound bunker">
+  <b>Bring your people home.</b><br>
+  A squad-based sci-fi shooter in <b>Unreal Engine 5.8</b>: C++, Gameplay Ability System, hardware ray-traced Lumen, Nanite.
 </p>
-
-## The Milky Way is the map
-
-![The Milky Way strategic map](Docs/media/galaxy.png)
-
-The game opens on the TAS Kestrel's strategic map: a procedural **Milky Way** of ~90,000 stars with the real
-bar, bulge and spiral arms, **Sol and Gaia (Earth)** in the Orion Spur 26,000 light-years from the core, and
-real star systems at their real galactic positions, from Alpha Centauri to the Eagle Nebula and
-Sagittarius A\*. Orbit and zoom anywhere, select a system, and launch its operations.
-
-| | |
-|---|---|
-| ![Sol and the local bubble](Docs/media/galaxy_sol.png) | ![Sagittarius arm](Docs/media/galaxy_arm.png) |
-| **Sol, Gaia and the local bubble**: launch Red Tide (Mars) or Boot Camp (Luna) | **Down the Sagittarius arm**: the Eagle Nebula, where CINDER swarms have been seen |
-
-## Planets to fight on
-
-Six generated worlds, each a different biome with its own sky, light, terrain, story and radio chatter.
-Launch any of them from the galaxy map.
-
-| | | |
-|---|---|---|
-| ![Europa](Docs/media/planet_europa.png) | ![Io](Docs/media/planet_io.png) | ![Proxima b](Docs/media/planet_proxima.png) |
-| **Glass Ocean**: Europa's ice cliffs under Jupiter | **Forgefall**: Io's lava rivers and sulphur haze | **Cold Wake**: forested hills of Proxima b under a red dwarf |
-| ![Ceres](Docs/media/planet_ceres.png) | ![Gaia](Docs/media/planet_gaia.png) | ![Mars](Docs/media/outpost.png) |
-| **Ghost Signal**: a night mining town on Ceres under sodium and neon | **Gaia Falls**: the hills outside the capital on Earth | **Red Tide**: Tharsis Ridge on Mars at dusk |
-
-## Your commander
-
-Walk to the **barracks locker** on the Kestrel to customise your commander: body frame, armour paint, optics
-colour and callsign, previewed in a mirror view and saved between sessions. Kills, operation stages and
-missions earn **commander XP**; levels unlock perks (an extra thruster charge, faster revives, more health,
-a plate carrier, faster call-ins). Moving well matters: **slide** out of a sprint, **boost** with suit
-thrusters in the air, and **dash** on the ground.
-
-<p align="center"><img src="Docs/media/commander_locker.png" width="720" alt="The barracks locker: customising the commander, with the service record and perks"></p>
-
-## Operation Breakwater (Gaia)
-
-CINDER has locked four civilian transports in Port Halden. Knock out the **air-defence controller** on the
-north headland so the Kestrel's Ravens can get in, take the **PB-9 Marlin missile boat** across the strait (the
-bridge is barricaded) to grab the **dock control key**, **hold the docks** while the transports sail for open
-water, then extract on a Raven. Launch it from the war table (Sol, second operation).
-
-| | | |
-|---|---|---|
-| ![The strait](Docs/media/breakwater_strait.png) | ![The docks](Docs/media/breakwater_docks.png) | ![The Marlin](Docs/media/breakwater_marlin.png) |
-| The strait at dawn, a transport moored in the channel | Cranes, quays and the barricaded bridge | At the Marlin's helm: deck gun, missiles (RMB) |
-
-## Reputation
-
-Three powers remember what Delta does, from Hostile to Allied (shown at the barracks locker):
-
-- **Accord Command**: completed operations raise it, failures and looting lower it. *Trusted* unlocks the Longreach DMR
-  at the armoury; *Allied* gets your orbital strikes priority on the battery.
-- **The Colonies**: the people you evacuate and defend (Port Halden, New Albion, the capital). *Trusted* means fuller
-  supply pods.
-- **The Free Ports**: smugglers and salvagers. Every planet hides three gold-lit **salvage contracts**; claim one for
-  Free Ports standing at a small cost with Command. *Trusted* unlocks the Pulse Carbine; *Allied* speeds up supply drops.
-
-| | |
-|---|---|
-| ![Salvage contract](Docs/media/salvage_contract.png) | ![Standing](Docs/media/standing.png) |
-| Claiming a salvage contract on Europa | Standing, perks and the commander's look at the locker |
-
-## The Kestrel remembers
-
-The hangar deck changes with what happened on your operations, and it survives quitting and reloading:
-- Every soldier you lose gets a name plate on the memorial wall and a candle, and their locker is sealed with the flag folded on top.
-- The badly wounded lie in the medbay and tell you when they'll be back.
-- After a costly or failed op, the deck crew are welding the Raven back together.
-- Bulwark heads go on the trophy shelf.
-- Port Halden families camp on the deck after Breakwater.
-- An operations board lights green or red for every op.
-- The crew's greeting names the last operation and what it cost.
-
-Test report: **[Docs/TEST_REPORT_KESTREL_REMEMBERS.md](Docs/TEST_REPORT_KESTREL_REMEMBERS.md)**.
-
-| | |
-|---|---|
-| ![Medbay](Docs/media/kestrel_remembers_medbay.png) | ![Patient](Docs/media/kestrel_remembers_patient.png) |
-| **Medbay**: Doc Pell and the wounded from your last op | **A patient** in bed one |
-| ![Memorial](Docs/media/kestrel_remembers_memorial.png) | ![Sealed locker](Docs/media/kestrel_remembers_lockers.png) |
-| **Memorial wall**: a plate for every soldier lost | **Sealed locker** of a soldier who didn't come home |
-| ![Evacuees](Docs/media/kestrel_remembers_evacuees.png) | ![Repairs](Docs/media/kestrel_remembers_repair.png) |
-| **Port Halden evacuees** on the deck after Breakwater | **Repairs** on the Raven after a costly op |
-
-## Fly home: no loading screen
-
-When an operation ends, press **K** and Raven Two-One lifts you and your squad off the battlefield, climbs to the
-TAS Kestrel holding station overhead, and flies in through the glowing starboard landing bay. The hangar deck is
-streamed into the carrier's hull while you fly, so you step out onto the same deck as the hub, with the war table,
-armoury and lockers, without a loading screen. The shuttle at Rook's Rest does the same.
 
 <p align="center">
-  <img src="Docs/media/fly_home.gif" width="640" alt="A Raven flies from the battlefield into the Kestrel's landing bay">
+  <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
+  <img alt="Version" src="https://img.shields.io/badge/version-0.21-blue?style=for-the-badge">
+  <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
-
-| | |
-|---|---|
-| ![Lift-off](Docs/media/fly_home_liftoff.png) | ![The Kestrel](Docs/media/fly_home_approach.png) |
-| **Dust off** from Tharsis Ridge, the Kestrel overhead | **Closing on the carrier**: the starboard bay lit in cyan |
-| ![Into the bay](Docs/media/fly_home_bay.png) | ![Aboard](Docs/media/fly_home_aboard.png) |
-| **Into the bay**: the hangar deck streamed into the hull | **Aboard**: step out on the deck, squad behind you |
-
-## Rook's Rest and the job board
-
-Take the shuttle from the Kestrel's hangar down to **Rook's Rest**, a Free Ports market town under the Tharsis rim at
-golden hour. Walk the market, step into the Rusty Rook cantina, and talk to the townsfolk: what they say depends on how
-the Free Ports feel about Delta. Mags Okafor's **job board** outside the cantina posts five contracts (silent
-takedowns, salvage, headshots, revives, Bulwark bounties). Take one, work it on your next operations (the HUD tracks
-it under the objective), and it pays standing and XP when an operation is won. The Raven on the pad flies you home.
-
-| | |
-|---|---|
-| ![Main street](Docs/media/town_street.png) | ![The Rusty Rook](Docs/media/town_cantina.png) |
-| **Main street**: stalls, string lights and the Kestrel in the sky | **The Rusty Rook** cantina and Mags Okafor's job board |
-| ![Job board](Docs/media/town_board.png) | ![Contract tracker](Docs/media/contract_tracker.png) |
-| **The job board**: one contract at a time, paid on a win | **On the job**: a silent takedown on Red Tide counts toward Quiet Money |
-| ![Townsfolk](Docs/media/town_talk.png) | ![Rook's Rest](Docs/media/town_overview.png) |
-| **Townsfolk** stop and talk; wary, neutral or friendly by your standing | **Rook's Rest** from the dunes |
-
-## Stealth
-
-Hearthbound sentries start **unaware** (a grey "- -" marker). They notice you inside a cone in front of them,
-at a range that depends on how you move: about 11 m crouched, 26 m walking, 36 m sprinting or sliding, 50 m in a
-vehicle. Being spotted, or shot at, raises the alarm for every frame within earshot (a red "!"). Your squad keeps
-**weapons tight** until the enemy knows you are there, so you choose when the fight starts. Get behind an unaware
-frame and press **F** for a silent takedown (extra commander XP).
-
-| | |
-|---|---|
-| ![Silent takedown](Docs/media/silent_takedown.png) | ![Swimming](Docs/media/swimming.png) |
-| A silent takedown: the sentries behind still have no idea | Swimming in Port Halden's harbour |
-
-## Every mission is an operation
-
-Clear the garrison, then the radio gives you the real job: **plant charges on the target** (stand on the amber
-beacon), **hold for 45 seconds** while CINDER throws two counter-attack waves at you, watch it blow, then **run for
-the landing zone** behind your drop point where a Raven settles in to extract you. Die on the way out and you were
-never extracted.
-
-| | |
-|---|---|
-| ![Hold the line](Docs/media/operation_hold.png) | ![Extraction](Docs/media/extraction.png) |
-| **Hold until the charges blow**: the target beacon pulses red, the countdown runs, waves come in | **Extraction**: Raven Two-One comes down on the cyan landing-zone beacon |
-
-## Vehicles
-
-| | | |
-|---|---|---|
-| ![Hoverbike](Docs/media/hoverbike.png) | ![Raven cockpit](Docs/media/raven_cockpit.png) | ![Jackal APC](Docs/media/jackal_apc.png) |
-| **VX-3 Skiff hoverbike**: four ducted fans, skims 1.5 m off the ground, Shift boost, Space hop, twin guns | **Raven cockpit (V)**: pitch ladder, heading tape, speed/altitude, weapon and ECM status; **F** swaps hover and jet flight, **X** dumps flares | **M-14 Jackal APC**: up-armoured, six-wheeled, roof HMG; plus the M9 Sabre tank |
-
-## Call in the Kestrel, and the Bulwark
 
 <p align="center">
-  <img src="Docs/media/strafing_run.gif" width="720" alt="A Raven gunship strafing the Hearthbound bunker on Mars">
+  <img src="Docs/media/hero.gif" width="720" alt="Gameplay montage: Red Tide firefight, the Sabre tank, the Raven cockpit, the Marlin in Port Halden, and the flight home into the Kestrel">
 </p>
 
-| | |
-|---|---|
-| ![Supply drop](Docs/media/supply_drop.png) | ![Bulwark](Docs/media/bulwark.png) |
-| **Supply drop (N)**: a pod falls from orbit onto your crosshair; stand next to it to refill ammo, health and armour (8 refills) | **The Bulwark**: a heavy war-frame with 700 HP, 60% armour and a rotary cannon that pins your squad. Flank it, focus fire or paint it for the Kestrel |
+In 2189 the machine intelligence **CINDER** turns Mars's robot foundries against humanity. The strike carrier
+**TAS Kestrel** is what's left to fight back. Lead Delta Squadron on the ground, call down the Kestrel's guns,
+fly your people home, and remember the names of everyone you lose. Single player, with co-op built in (see
+[where it stands](#where-it-stands-v021)).
 
-Vehicles are not invulnerable: the LTV, Sabre tank and Raven each have hull armour (watch HULL on the vehicle
-HUD), enemy frames shoot at crewed vehicles, and a destroyed one throws its crew clear and burns out.
+Everything in the GIFs and screenshots below was captured from the game itself, rendered off-screen by the
+engine. There are no mock-ups and no pre-rendered cinematics.
 
-<p align="center"><img src="Docs/media/vehicle_wreck.png" width="560" alt="A wrecked LTV burning on Mars"></p>
-
-Three call-ins, each on its own recharge: **orbital strike (B)**, **supply drop (N)** and **Raven strafing run (H)**,
-which walks 30 mm cannon fire through the painted spot along your line of sight (no friendly fire).
-
-## The Kestrel: home base, tanks, gunships
-
-| | |
-|---|---|
-| ![Hangar deck](Docs/media/kestrel_hangar.png) | ![War table](Docs/media/kestrel_wartable.png) |
-| **The hangar deck**: walk it with your squad; the gunships, tank and LTV are real, boardable vehicles | **The war table**: press Z to open the galaxy map; the memorial wall lists everyone you've lost |
-| ![Tank](Docs/media/tank_kestrel.png) | ![Gunship](Docs/media/vehicle_gunship.png) |
-| **M9 Sabre tank** on Mars, the Kestrel on the horizon (it fires your orbital strikes) | **AV-41 Raven gunship**: VTOL flight, 30 mm cannon and rockets |
-| ![Mars from the Kestrel](Docs/media/kestrel_mars.png) | ![Armoury](Docs/media/kestrel_armoury.png) |
-| **Mars from the hangar mouth**: a generated surface map with basalt plains, craters, a great canyon and ice caps | **The armoury**: press Z at the racks to cycle five weapons (Bastion rifle, Kite SMG, Halberd breacher, Longreach DMR, Pulse Carbine); your pick carries into every mission |
-
-> **Status: mission 2 "Red Tide" playable.** Real animated soldiers and rifles, true first-person body,
-> robot war-frame enemies, a Nanite outpost map on Mars with ray-traced dusk lighting, mission intro,
-> radio chatter, orbital strikes, HUD, after-action report and permanent casualties.
-> Story and campaign plan: **[Docs/CAMPAIGN.md](Docs/CAMPAIGN.md)**.
-
-| | |
-|---|---|
-| ![Mission intro](Docs/media/title_card.png) | ![War-frames](Docs/media/war_frames.png) |
-| **Mission intro**: title card and Captain Vance on the radio as you drop onto Tharsis Ridge | **Hearthbound war-frames**: CINDER's black-chrome robots hold the relay bunker |
-| ![The approach](Docs/media/outpost.png) | ![From the boulders](Docs/media/ridge.png) |
-| **The approach** at dusk: hardware ray-traced Lumen, volumetric fog, Nanite rocks and terrain | **From the boulders**: the low road to the compound |
-| ![First person HUD](Docs/media/first_person.png) | ![After-action report](Docs/media/after_action.png) |
-| **First person**: your own body and rifle, squad panel, objective, mission clock, orbital strike status | **After-action report**: who returned, who is in the medbay, who is gone for good |
-
-<p align="center">
-  <img src="Docs/media/firefight.gif" width="720" alt="Tracers across the bunker doorway">
-</p>
-
-### The mission loop
-
-```mermaid
-flowchart LR
-    D[Deploy: roster tops up,<br/>3 best soldiers join you] --> F[Fight: clear the<br/>Hearthbound fire team]
-    F -- all hostiles down --> W[MISSION ACCOMPLISHED]
-    F -- you fall, squad still up --> R[Reinforce on the squad<br/>after 6 s] --> F
-    F -- you and the whole squad down --> L[SQUAD LOST]
-    W --> A[After-action report:<br/>XP, promotions, medbay, KIA]
-    L --> A
-    A -- Enter --> D
-```
-
-The HUD shows hit markers (white hit, gold headshot, red kill), a red vignette and PINNED warning
-when you're suppressed, squad order confirmations, a kill feed, and a respawn screen.
+**Contents:**
+- [Download](#download-and-play-windows-1011)
+- [Where it stands](#where-it-stands-v021)
+- Milestones:
+  - [Boot Camp](#1-boot-camp)
+  - [Red Tide](#2-red-tide-the-first-operation)
+  - [The galaxy](#3-the-milky-way-is-the-map)
+  - [Vehicles and the Kestrel](#4-vehicles-and-the-kestrel)
+  - [Breakwater](#5-operation-breakwater)
+  - [Your commander and reputation](#6-your-commander-and-reputation)
+  - [Rook's Rest](#7-rooks-rest-a-town-between-operations)
+  - [Fly home](#8-fly-home-no-loading-screen)
+  - [The Kestrel remembers](#9-the-kestrel-remembers)
+- [Controls](#controls)
+- [Build from source](#build-from-source)
 
 ---
 
 ## Download and play (Windows 10/11)
 
-**One line**, in PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/Normansrule/DeltaVDominion/main/Installer/Install-DeltaVDominion.ps1 | iex
-```
-
-That downloads the latest release, installs it to `%LOCALAPPDATA%\DeltaVDominion`, installs the
-VC++/DirectX runtime if missing, and adds Desktop and Start Menu shortcuts. Run it again to update.
-
-**Or by hand:** grab `DeltaVDominion-Win64.zip` from [Releases](../../releases/latest), unzip anywhere,
+**[Download the latest release](../../releases/latest)** (`DeltaVDominion-Win64.zip`, about 550 MB). Unzip it anywhere and
 run `DeltaVDominion.exe`.
 
-Needs a 64-bit Windows PC with a DirectX 12 GPU (GTX 1060 / RX 580 or better) and 8 GB RAM.
-Unreal games are Windows-native; on Linux use Steam Proton, on macOS a Windows VM or cloud PC.
+Or install with one line in PowerShell. This downloads the latest release to `%LOCALAPPDATA%\DeltaVDominion`, adds
+shortcuts, and updates if you run it again:
 
-### Controls
+```powershell
+irm https://raw.githubusercontent.com/Normansrule/Delta-V-Dominion/main/Installer/Install-DeltaVDominion.ps1 | iex
+```
+
+You need a 64-bit Windows PC with a DirectX 12 GPU (GTX 1060 / RX 580 or better) and 8 GB of RAM. On Linux, use Steam
+Proton. On a Mac, use a Windows VM or a cloud PC.
+
+---
+
+## Where it stands (v0.21)
+
+Each entry was played in the packaged Windows build unless it says otherwise.
+
+### Done
+
+| Area | Details |
+|---|---|
+| Core combat | First-person shooting on the Gameplay Ability System with server-checked hits, 5 weapons, headshots, armour, suppression |
+| Squad | 3 AI squadmates with orders (move, hold, regroup, suppress, flank), cover search, revive |
+| Casualties | Named soldiers; downed state with 30 s bleed-out; permanent KIA; medbay; replacements |
+| Operations | Clear, plant charges, hold against waves, extract on a Raven; scripted objectives on Breakwater |
+| Call-ins | Orbital strike from the Kestrel, supply pod, Raven strafing run |
+| Stealth | Sight cones by stance, alarms, a weapons-tight squad, silent takedowns, swimming |
+| Movement | Sprint-slide, thruster boost and dash (predicted, multiplayer-safe) |
+| Vehicles | Tank, LTV, Jackal APC, hoverbike, Raven gunship (hover/jet, cockpit, flares), Marlin missile boat; hull damage and wrecks |
+| Worlds | Galaxy map, 7 planet maps, Boot Camp range, the Kestrel hangar, Rook's Rest town |
+| Progression | Commander customisation, levels and perks; reputation with 3 factions; 5 town contracts |
+| Hub | Fly home with no loading screen; a hangar that remembers losses, wounded, repairs, trophies and evacuees across reloads |
+
+### Partial
+
+| Area | What's missing |
+|---|---|
+| Co-op | The design is server-authoritative (listen host). It hasn't been played over two machines yet. The Kestrel's memory props show only for the host. |
+| Art | Built from engine primitives, the UE5 mannequins and generated materials. The environments, characters and frames are placeholders for real art. |
+| Audio | A generated placeholder sound set; no music yet |
+| Anti-cheat | Server validation and save checksums are in. EOS and Easy Anti-Cheat are a config template only. |
+
+### Planned
+
+- A giant walker to board or extract around (next)
+- Story missions with cinematic briefings
+- Brasshaven, Neon Verge and Hollyhock Vale worlds
+- The Coil and the Maw
+- Lag-compensated hit rewind
+- Command wheel and menus
+
+The full campaign plan is in **[Docs/CAMPAIGN.md](Docs/CAMPAIGN.md)**.
+
+---
+
+## 1. Boot Camp
+
+The training range on Luna, six weeks before the uprising. Learn the squad orders (F move, X flank, T suppress), the
+orbital strike (B) and the movement kit against live-fire targets.
+
+| | |
+|---|---|
+| ![Boot Camp, first person](Docs/media/bootcamp.png) | ![The range from above](Docs/media/bootcamp_range.png) |
+| **First person** on the range, with Gunnery Sergeant Halloran on the radio | **The range from above**: cover lanes and the target frames |
+
+## 2. Red Tide: the first operation
+
+Tharsis Ridge, Mars. CINDER's war-frames hold a relay bunker:
+1. Clear the garrison.
+2. Plant charges.
+3. Hold for 45 seconds against two waves.
+4. Run for the Raven at the landing zone.
+
+<p align="center"><img src="Docs/media/operation_redtide.gif" width="640" alt="Red Tide: the squad assaulting the relay bunker at dusk"></p>
+
+| | |
+|---|---|
+| ![Mission intro](Docs/media/title_card.png) | ![War-frames](Docs/media/war_frames.png) |
+| **Mission intro**: a title card, with Captain Vance on the radio | **Hearthbound war-frames** holding the relay bunker |
+| ![Hold the line](Docs/media/operation_hold.png) | ![Extraction](Docs/media/extraction.png) |
+| **Hold** until the charges blow | **Extraction**: Raven Two-One sets down on the landing-zone beacon |
+| ![Silent takedown](Docs/media/silent_takedown.png) | ![After-action report](Docs/media/after_action.png) |
+| **Stealth**: a silent takedown; the sentries behind still don't know | **After-action report**: who came back, who's in the medbay, who's gone |
+
+Call in the Kestrel: an **orbital strike (B)**, a **supply drop (N)** or a **Raven strafing run (H)**. Watch out for the
+**Bulwark**, a 700 HP heavy war-frame with a rotary cannon.
+
+| | |
+|---|---|
+| ![Orbital strike](Docs/media/orbital_strike.gif) | ![Strafing run](Docs/media/strafing_run.gif) |
+| ![Supply drop](Docs/media/supply_drop.png) | ![Bulwark](Docs/media/bulwark.png) |
+
+## 3. The Milky Way is the map
+
+The game opens on the Kestrel's strategic map. It's a procedural Milky Way of about 90,000 stars with the real bar and
+spiral arms. Sol and Gaia (Earth) sit in the Orion Spur, and real star systems are at their real positions. Pick a
+system, then launch its operation.
+
+| | |
+|---|---|
+| ![The galaxy](Docs/media/galaxy.png) | ![Sol](Docs/media/galaxy_sol.png) |
+
+| | | |
+|---|---|---|
+| ![Europa](Docs/media/planet_europa.png) | ![Io](Docs/media/planet_io.png) | ![Proxima b](Docs/media/planet_proxima.png) |
+| **Glass Ocean**, Europa | **Forgefall**, Io | **Cold Wake**, Proxima b |
+| ![Ceres](Docs/media/planet_ceres.png) | ![Gaia](Docs/media/planet_gaia.png) | ![Mars](Docs/media/outpost.png) |
+| **Ghost Signal**, Ceres | **Gaia Falls**, Earth | **Red Tide**, Mars |
+
+<p align="center"><img src="Docs/media/europa_glass_ocean.gif" width="560" alt="Europa's ice under Jupiter"></p>
+
+## 4. Vehicles and the Kestrel
+
+Every vehicle is real and boardable (Z). They have hull armour, enemies target crewed vehicles, and a destroyed
+vehicle burns out and throws its crew clear.
+
+| | |
+|---|---|
+| ![Sabre tank](Docs/media/tank_assault.gif) | ![Raven flight](Docs/media/raven_flight.gif) |
+| **M9 Sabre tank** assaulting the bunker | **AV-41 Raven** gunship: hover and jet flight |
+| ![Raven cockpit](Docs/media/raven_cockpit.gif) | ![Hoverbike](Docs/media/hoverbike_ride.gif) |
+| **Raven cockpit (V)**: pitch ladder, heading, flares (X) | **VX-3 Skiff hoverbike**: boost and hop |
+
+The **TAS Kestrel** hangar is home base: the war table, the armoury, the barracks lockers and the memorial wall.
+
+<p align="center"><img src="Docs/media/kestrel_hangar.gif" width="560" alt="The Kestrel's hangar deck"></p>
+
+| | |
+|---|---|
+| ![War table](Docs/media/kestrel_wartable.png) | ![Armoury](Docs/media/kestrel_armoury.png) |
+| ![Jackal APC](Docs/media/jackal_apc.png) | ![Wreck](Docs/media/vehicle_wreck.png) |
+
+## 5. Operation Breakwater
+
+Gaia. CINDER has locked four civilian transports in Port Halden:
+1. Knock out the air-defence site so the Ravens can get in.
+2. Take the **PB-9 Marlin missile boat** across the strait for the dock key.
+3. Hold the docks while the transports sail.
+4. Extract.
+
+<p align="center"><img src="Docs/media/breakwater_marlin.gif" width="640" alt="The Marlin missile boat in Port Halden's strait"></p>
+
+| | | |
+|---|---|---|
+| ![The strait](Docs/media/breakwater_strait.png) | ![The docks](Docs/media/breakwater_docks.png) | ![Mission accomplished](Docs/media/breakwater_after_action.png) |
+| The strait at dawn | Cranes, quays and the barricaded bridge | **Mission accomplished**, with one killed, one wounded and one promoted |
+
+## 6. Your commander and reputation
+
+At the barracks locker you set your commander's frame, paint, optics and callsign. XP earns levels and perks.
+Three powers remember what you do: **Accord Command**, **the Colonies** and **the Free Ports**. Their standing gates
+weapons and call-in bonuses. Every planet hides three salvage contracts for the Free Ports.
+
+| | | |
+|---|---|---|
+| ![Locker](Docs/media/commander_locker.png) | ![Standing](Docs/media/standing.png) | ![Salvage](Docs/media/salvage_contract.png) |
+
+## 7. Rook's Rest: a town between operations
+
+A Free Ports market town on the Tharsis rim at golden hour, one shuttle ride from the hangar. Townsfolk wander and
+talk to you differently depending on your standing. Mags Okafor's job board posts contracts that you work on your
+next operations, and they pay when you win.
+
+<p align="center"><img src="Docs/media/town_walk.gif" width="560" alt="Rook's Rest main street with townsfolk walking"></p>
+
+| | |
+|---|---|
+| ![The Rusty Rook](Docs/media/town_cantina.png) | ![Job board](Docs/media/town_board.png) |
+| ![Townsfolk](Docs/media/town_talk.png) | ![Contract on Red Tide](Docs/media/contract_tracker.png) |
+
+## 8. Fly home: no loading screen
+
+After an operation, press **K**. Raven Two-One lifts the squad off the battlefield, flies to the Kestrel holding
+station overhead, and lands through the starboard bay. The hangar streams into the hull during the flight.
+
+<p align="center"><img src="Docs/media/fly_home.gif" width="560" alt="A Raven flies from the battlefield into the Kestrel's landing bay"></p>
+
+| | |
+|---|---|
+| ![Lift-off](Docs/media/fly_home_liftoff.png) | ![Into the bay](Docs/media/fly_home_bay.png) |
+
+## 9. The Kestrel remembers
+
+The hangar deck shows what your operations cost and won, and it survives quitting and reloading:
+- name plates and candles for the fallen, and their lockers sealed;
+- the wounded in medbay beds;
+- deck crew welding a damaged Raven;
+- Bulwark trophies;
+- evacuees on the deck;
+- a light per operation on the ops board.
+
+Test report: **[Docs/TEST_REPORT_KESTREL_REMEMBERS.md](Docs/TEST_REPORT_KESTREL_REMEMBERS.md)**.
+
+| | | |
+|---|---|---|
+| ![Repairs](Docs/media/kestrel_remembers_repair.gif) | ![Medbay](Docs/media/kestrel_remembers_medbay.gif) | ![Memorial candles](Docs/media/kestrel_remembers_memorial.gif) |
+| Deck crew welding the Raven | The medbay after Breakwater | Candles under the memorial wall |
+| ![Patient](Docs/media/kestrel_remembers_patient.png) | ![Sealed locker](Docs/media/kestrel_remembers_lockers.png) | ![Evacuees](Docs/media/kestrel_remembers_evacuees.png) |
+
+---
+
+## Controls
 
 | Key | Action | Key | Action |
 |---|---|---|---|
-| WASD / Mouse | Move / look | F | Squad: move to crosshair |
-| LMB / RMB | Fire / aim down sights | G | Squad: hold position |
-| R | Reload | V | Squad: regroup on me |
-| Shift | Sprint | T | Squad: suppress target |
-| C / Ctrl | Crouch; **slide** while sprinting | X | Squad: flank target |
-| Q / E | Lean left / right | Space | Jump; in the air, **thruster boost** |
-| Left Alt | **Thruster dash** (charges shown as THRUST) | Z (hold) | Revive a downed squadmate |
-| F (behind an unaware frame) | **Silent takedown** | Space (in water) | Swim up and climb out |
-| B / N / H | Orbital strike (danger close) / supply drop / strafing run on the crosshair | Enter / K / M | After a mission: redeploy / **fly home to the Kestrel** / galaxy map |
-| **Galaxy map** | Left-drag orbit, right-drag or WASD pan, wheel zoom, click a system, **1-3** launch, H home, G galaxy | | |
-| Z | Board / exit vehicles; use the war table, memorial, armoury, barracks locker (1-4 customise), job board, shuttle | `~` then `DVShowcase 0`..`4` / `DVLoadout 0`..`4` | Spectator cameras / pick a weapon |
-| **Driving** | W/S throttle, A/D steer, mouse aims, LMB fires, Space handbrake | **Flying** | W/S/A/D move, Space up, C down, LMB cannon, RMB rockets |
+| WASD / Mouse | Move / look | F | Squad: move to crosshair (behind an unaware frame: **silent takedown**) |
+| LMB / RMB | Fire / aim down sights | G / V | Squad: hold / regroup on me |
+| R | Reload | T / X | Squad: suppress / flank target |
+| Shift | Sprint | Space | Jump; in the air, **thruster boost**; in water, swim up |
+| C / Ctrl | Crouch; **slide** while sprinting | Left Alt | **Thruster dash** |
+| Q / E | Lean left / right | Z | Use or board; hold to revive a squadmate |
+| B / N / H | Orbital strike / supply drop / strafing run | Enter / K / M | After a mission: redeploy / **fly home** / galaxy map |
+| **Galaxy map** | Drag to orbit, wheel to zoom, click a system, 1-3 to launch | **Locker** | 1-4 customise your commander |
+| **Driving** | W/S throttle, A/D steer, LMB fire | **Flying** | WASD move, Space up, C down, F jet mode, V cockpit, X flares |
 
 ---
 
@@ -392,12 +390,14 @@ Source/DeltaVDominion/
                 DVWeaponBase (+ grey-box rifle and tracers), DVWeaponData
   Net/          DVRateLimiter (token bucket for server RPCs)
   Strategy/     DVGalaxyStarfield (procedural Milky Way), DVStarSystem, DVGalaxy (map mode, camera, HUD)
-  Vehicles/     DVGroundVehicle (LTV), DVTank, DVGunship, DVKestrel, DVVehicleKit (seats, kit-bash helpers)
+  Vehicles/     DVGroundVehicle (LTV, tank, APC), DVGunship, DVHoverbike, DVBoat, DVKestrel, DVVehicleKit (seats, kit-bash helpers)
   UI/           DVHUD (canvas HUD: crosshair, hit markers, vitals, ammo, squad, objective, kill feed, AAR)
-  Vehicles/ Space/ Campaign/ Strategy/ Physics/ Narrative/   later milestones
+  Core/DVAscent      the flight home (streams the hangar into the Kestrel), Core/DVKestrelMemory (the hangar remembers)
+  Characters/DVTownsfolk   townsfolk, crew, patients and evacuees
 Content/Maps/Galaxy.umap          start screen: Milky Way strategic map, generated by Scripts/build_galaxy_map.py
 Content/Maps/Kestrel.umap         home base hangar deck, generated by Scripts/build_kestrel_hub.py
-Content/Maps/Outpost|Europa|Io|Proxima|Ceres|Gaia.umap   planets, generated by Scripts/build_planet_map.py
+Content/Maps/Outpost|Europa|Io|Proxima|Ceres|Gaia|Breakwater|RooksRest.umap
+                                  planets and the town, generated by Scripts/build_planet_map.py
 Content/Maps/BootCamp.umap        training range, generated by Scripts/build_bootcamp_map.py
 Art/Planets/T_Mars.png            orbital surface map, generated by Scripts/make_planet_textures.py (numpy + pillow)
 Art/Audio/*.wav                   the whole sound set (guns, explosions, radio, ambience, engines), generated by
@@ -428,33 +428,11 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
 - Saves are SHA-1 checksummed and rejected if edited; in co-op only the host's save counts.
 - EOS + Easy Anti-Cheat config template in `Config/DefaultEngine.ini` (fill in portal credentials).
 
-## Roadmap
+---
 
-- [x] Milestone 1: soldier, GAS weapons, squad AI and orders, roster attrition, Boot Camp range
-- [x] Mission loop: objective, HUD, win/lose, after-action report, redeploy
-- [x] Visual pass: animated soldiers and rifles, true first person, robot war-frames, Outpost map, ray-traced lighting
-- [x] Campaign tone: mission intro, radio chatter, CINDER, orbital strike call-in
-- [x] Milky Way strategic map as the start screen; Gaia-centred campaign across real star systems
-- [x] Drivable LTV and tank, flyable gunship, the Kestrel physically over the battlefield firing the strikes
-- [x] Six planets (Mars, Europa, Io, Proxima b, Ceres, Gaia) and the Kestrel hangar as home base
-- [x] Armoury with five weapon profiles that carry into missions
-- [ ] Lag-compensated rewind (replaces the tolerance check), EOS sessions + EAC
-- [x] Multi-stage operations: clear, plant charges, hold against waves, extract on a Raven
-- [x] Sound: per-weapon reports, explosions, gunship cannon, engines, radio squelch, hit markers, planet wind and hangar hum
-- [ ] Story missions: cinematic briefings, unique set pieces per planet
-- [ ] Command wheel and menus (CommonUI), StateTree wrappers for AI behaviours
-- [ ] AAA art drop-in: Megascans/Fab environments, armoured marine and war-frame models, Niagara VFX, MetaSounds
-- [x] Kestrel hub ship between missions, supply drop and strafing run call-ins, Bulwark heavy war-frame
-- [x] Faction reputation (Accord Command, the Colonies, the Free Ports): salvage contracts, standing-gated weapons and call-in bonuses
-- [x] Stealth: unaware sentries, sight cones by stance, alarms, weapons-tight squad, silent takedowns; swimming
-- [x] Operation Breakwater: harbour map with water, missile boat, air-defence and dock-key objectives, transports that sail
-- [x] Hoverbike, Raven jet mode + cockpit HUD + flares, Jackal APC armour, vehicles that right themselves
-- [x] Movement: sprint-slide, thruster boost jump and dash (predicted, multiplayer-safe)
-- [x] Customisable commander (frame, paint, optics, callsign) and commander levels with perks
-- [x] Down, not dead: wounded soldiers bleed out for 30 s; squadmates (or you, holding Z) revive them
-- [x] Destructible vehicles: hull armour, enemies target crewed vehicles, wrecks burn and throw the crew clear
-- [x] Rook's Rest: a walkable Free Ports town with townsfolk, a cantina and a contract board; shuttle to and from the Kestrel
-- [x] Seamless flight home: a Raven carries you from the battlefield into the Kestrel's hangar bay, streamed in with no loading screen
-- [x] The Kestrel remembers: memorial plates, sealed lockers, medbay patients, repairs, trophies, evacuees and an ops board rebuilt from the save
-- [ ] Smoke call-in, Skitter drones, enemy vehicles
-- [ ] Vehicles, space segments, campaign map and story missions
+## Credits and originality
+
+All the characters, places, factions, story, maps, sounds and code are original to this project. The worlds and
+vehicles are built in code and Python from engine primitives. Characters use the UE5 template mannequins that ship
+with the engine. The design references (Halo, Helldivers, Star Wars Outlaws, Red Dead Redemption 2 and others) are
+studied for principles only; nothing is copied from them.

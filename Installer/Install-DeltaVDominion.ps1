@@ -1,14 +1,14 @@
 # DELTA-V: DOMINION installer for Windows 10/11 (64-bit).
 #
 # One line, in PowerShell:
-#   irm https://raw.githubusercontent.com/Normansrule/DeltaVDominion/main/Installer/Install-DeltaVDominion.ps1 | iex
+#   irm https://raw.githubusercontent.com/Normansrule/Delta-V-Dominion/main/Installer/Install-DeltaVDominion.ps1 | iex
 #
 # Downloads the newest release from GitHub, installs it to %LOCALAPPDATA%\DeltaVDominion,
 # installs the Visual C++ / DirectX runtime if needed, and adds Desktop + Start Menu shortcuts.
 # Re-run it any time to update. Uninstall: delete that folder and the two shortcuts.
 
 param(
-    [string]$Repo = "Normansrule/DeltaVDominion",
+    [string]$Repo = "Normansrule/Delta-V-Dominion",
     [string]$InstallDir = (Join-Path $env:LOCALAPPDATA "DeltaVDominion")
 )
 
