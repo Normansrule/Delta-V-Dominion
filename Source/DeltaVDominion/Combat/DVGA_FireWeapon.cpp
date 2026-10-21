@@ -1,4 +1,5 @@
 #include "Combat/DVGA_FireWeapon.h"
+#include "Characters/DVTownsfolk.h"
 #include "Combat/DVWeaponBase.h"
 #include "Combat/DVWeaponData.h"
 #include "Vehicles/DVVehicleKit.h"
@@ -264,6 +265,11 @@ void UDVGA_FireWeapon::ProcessShotOnServer(const FGameplayAbilityTargetDataHandl
 		if (UDVSeatComponent* Seat = UDVSeatComponent::FindOn(HitActor))
 		{
 			Seat->ApplyHullDamage(WeaponData->Damage, Soldier);
+		}
+
+		if (ADVTownsfolk* Civilian = Soldier->TeamId == 1 ? Cast<ADVTownsfolk>(HitActor) : nullptr)
+		{
+			Civilian->OnShot(Soldier);
 		}
 
 		ApplySuppressionAlongShot(Hit->TraceStart, Hit->ImpactPoint, HitActor);

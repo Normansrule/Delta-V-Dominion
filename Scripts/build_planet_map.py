@@ -84,6 +84,13 @@ BIOMES = {
                        sun=(-34, 60), sun_color=(255, 205, 165), sun_lux=7.5, atmosphere=True, mie=0.03, sky_light=1.2,
                        fog=0.02, fog_color=(0.45, 0.27, 0.17), clouds=True, saturation=1.05, contrast=1.12, exposure=-0.2,
                        extras=["walker"]),
+    # Brasshaven (Wolf 359 b): a brick-and-brass city in a smoky canyon, cut off from the Lattice for eighty years.
+    "brasshaven": dict(map="/Game/Maps/Brasshaven", env="/Game/Environment/Planets/Brasshaven", seed=101, dunes=40.0, rim=2400.0, mesa=5200.0,
+                       sand_a=(0.13, 0.085, 0.055), sand_b=(0.06, 0.042, 0.032), slope_rock=(0.2, 0.085, 0.045),
+                       rock_dark=(0.06, 0.03, 0.02), rock_light=(0.24, 0.12, 0.07),
+                       sun=(-14, 235), sun_color=(255, 178, 110), sun_lux=6.5, atmosphere=True, mie=0.045, sky_light=1.0,
+                       fog=0.028, fog_color=(0.5, 0.31, 0.16), clouds=True, saturation=1.02, contrast=1.15, exposure=-0.15,
+                       extras=["brass"]),
 }
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
@@ -180,6 +187,9 @@ def terrain_height(x, y):
     if "harbour" in B["extras"]:
         # A deep strait runs north to south through the arena: the harbour, open to the sea at both ends.
         h -= 780.0 * (1.0 - smoothstep(850.0, 1250.0, abs(x)))
+    if "brass" in B["extras"]:
+        # The city floor is level; the canyon walls rise sheer past the last streets.
+        h *= smoothstep(5200.0, 6800.0, math.sqrt(x * x + y * y * 1.5))
     if "town" in B["extras"]:
         # The town sits on a levelled plaza; the land rises back into dunes and mesas past the last buildings.
         h *= smoothstep(4400.0, 6000.0, math.sqrt(x * x + y * y * 1.6))
@@ -950,6 +960,199 @@ def build_town(mats):
 
 
 # --------------------------------------------------------------------------------------------
+# Brasshaven
+# --------------------------------------------------------------------------------------------
+
+def tube(label, a, b, dia, material, folder):
+    """A pipe from a to b (straight, any direction) out of the engine cylinder."""
+    cyl = lib.load_asset("/Engine/BasicShapes/Cylinder")
+    dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
+    length = math.sqrt(dx * dx + dy * dy + dz * dz)
+    mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
+    r = unreal.MathLibrary.make_rot_from_z(unreal.Vector(dx, dy, dz))   # the cylinder's axis is +Z: point it along a->b
+    place(cyl, label, mid, r, (dia / 100.0, dia / 100.0, length / 100.0), material, folder)
+
+
+def gas_lamp(label, x, y, mats):
+    gz = ground(x, y)
+    block(label + "_Post", (x, y, gz + 210), (16, 16, 420), mats["soot"], folder="Lamps")
+    block(label + "_Arm", (x, y, gz + 420), (60, 8, 8), mats["soot"], folder="Lamps")
+    block(label + "_Head", (x, y, gz + 405), (34, 34, 44), mats["gaslamp"], folder="Lamps")
+    block(label + "_Cap", (x, y, gz + 435), (46, 46, 10), mats["brass"], folder="Lamps")
+    town_light(label + "_Light", (x, y, gz + 380), (255, 165, 80), 260.0, 900.0)
+
+
+def brass_house(label, x, y, w, d, h, mats):
+    """A narrow brick townhouse: brass cornice, a pitched slate roof, chimney, warm windows on the street side."""
+    cube = lib.load_asset("/Engine/BasicShapes/Cube")
+    gz = ground(x, y)
+    block(label, (x, y, gz + h / 2), (w, d, h), random.choice([mats["brick"], mats["brick"], mats["brick_dark"]]), folder="Houses")
+    block(label + "_Cornice", (x, y, gz + h + 12), (w + 30, d + 30, 24), mats["brass"], folder="Houses")
+    pitch = 32.0
+    run = d / 2.0 + 20
+    slab = run / math.cos(math.radians(pitch))
+    for side in (-1, 1):
+        place(cube, label + "_Roof%d" % side, (x, y + side * run / 2, gz + h + 24 + run / 2 * math.tan(math.radians(pitch))),
+              rot(roll=-side * pitch), ((w + 50) / 100.0, slab / 100.0, 0.18), mats["soot"], "Houses")
+    cx = x + random.uniform(-w / 3, w / 3)
+    block(label + "_Chimney", (cx, y, gz + h + 260), (90, 90, 420), mats["brick_dark"], folder="Houses")
+    block(label + "_ChimneyCap", (cx, y, gz + h + 475), (110, 110, 18), mats["copper"], folder="Houses")
+    face = -1 if y > 0 else 1
+    fy = y + face * (d / 2 + 2)
+    block(label + "_Door", (x, fy, gz + 130), (120, 6, 250), mats["wood"], folder="Houses")
+    block(label + "_Fanlight", (x, fy, gz + 280), (120, 6, 30), mats["windows_dim"], folder="Houses")
+    floors = int((h - 120) // 300)
+    for f in range(floors):
+        for k in range(int(w // 260)):
+            wx = x - w / 2 + 130 + k * 260
+            if f == 0 and abs(wx - x) < 120:
+                continue
+            block(label + "_Win%d_%d" % (f, k), (wx, fy, gz + 200 + f * 300), (80, 6, 140),
+                  mats["windows"] if random.random() < 0.55 else mats["windows_dim"], folder="Houses")
+            block(label + "_Sill%d_%d" % (f, k), (wx, fy + face * 6, gz + 125 + f * 300), (100, 14, 10), mats["brass"], folder="Houses")
+
+
+def build_brasshaven(mats):
+    """The Valve Quarter: a cobbled street of brick townhouses, the clock tower, the Steamheart foundry, a moored airship."""
+    cyl = lib.load_asset("/Engine/BasicShapes/Cylinder")
+    sphere = lib.load_asset("/Engine/BasicShapes/Sphere")
+    cone = lib.load_asset("/Engine/BasicShapes/Cone")
+
+    # Street and square.
+    block("Cobbles", (-500, 0, ground(-500, 0) - 4), (6400, 1500, 20), mats["brick_dark"], folder="Street")
+    block("FoundryYard", (2300, 0, ground(2300, 0) - 3), (1600, 2600, 18), mats["concrete_dark"], folder="Street")
+    for i in range(14):
+        block("Kerb_N_%d" % i, (-3200 + i * 420, 740, ground(-3200 + i * 420, 740) + 8), (400, 30, 18), mats["brass"], folder="Street")
+        block("Kerb_S_%d" % i, (-3200 + i * 420, -740, ground(-3200 + i * 420, -740) + 8), (400, 30, 18), mats["brass"], folder="Street")
+
+    # Two rows of townhouses facing the street.
+    xs = [-2900, -2000, -1100, -200, 700]
+    for i, x in enumerate(xs):
+        brass_house("House_N%d" % i, x, 1250, random.choice([700, 800, 860]), 700, random.choice([720, 900, 1020, 1200]), mats)
+        brass_house("House_S%d" % i, x + 300, -1250, random.choice([700, 800, 860]), 700, random.choice([720, 900, 1020, 1200]), mats)
+
+    # Tube-mail: copper pipes along both rows, and crossings over the street with brass junction drums.
+    for side in (-1, 1):
+        y = side * 880
+        tube("TubeMail_Row%d" % side, (-3300, y, 560), (1300, y, 560), 24, mats["copper"], "TubeMail")
+    for i, x in enumerate((-2500, -1300, -100, 1000)):
+        tube("TubeMail_Cross%d" % i, (x, -880, 660), (x, 880, 660), 20, mats["copper"], "TubeMail")
+        for side in (-1, 1):
+            place(cyl, "TubeMail_Drum%d_%d" % (i, side), (x, side * 880, 610), None, (0.6, 0.6, 1.2), mats["brass"], "TubeMail")
+            tube("TubeMail_Riser%d_%d" % (i, side), (x, side * 880, 560), (x, side * 880, 660), 20, mats["copper"], "TubeMail")
+
+    # Gas lamps down both kerbs.
+    for i, x in enumerate(range(-3100, 1500, 650)):
+        gas_lamp("Lamp_N%d" % i, x, 640, mats)
+        gas_lamp("Lamp_S%d" % i, x + 325, -640, mats)
+
+    # The clock tower over the north row.
+    tx, ty = -600, 2350
+    tz = ground(tx, ty)
+    block("ClockTower", (tx, ty, tz + 1300), (720, 720, 2600), mats["brick"], folder="ClockTower")
+    for k in range(4):
+        block("ClockTower_Band%d" % k, (tx, ty, tz + 500 + k * 600), (750, 750, 30), mats["brass"], folder="ClockTower")
+    place(cyl, "ClockFace", (tx, ty - 365, tz + 2200), rot(roll=90), (5.2, 5.2, 0.12), mats["clockface"], "ClockTower")
+    place(cyl, "ClockRim", (tx, ty - 360, tz + 2200), rot(roll=90), (5.6, 5.6, 0.1), mats["brass"], "ClockTower")
+    block("ClockHand_H", (tx + 60, ty - 375, tz + 2240), (150, 8, 18), mats["soot"], 0, folder="ClockTower")
+    block("ClockHand_M", (tx, ty - 380, tz + 2300), (14, 8, 210), mats["soot"], folder="ClockTower")
+    place(cone, "ClockSpire", (tx, ty, tz + 2600 + 450), None, (8.0, 8.0, 9.0), mats["copper"], "ClockTower")
+    town_light("ClockGlow", (tx, ty - 600, tz + 2200), (255, 210, 150), 500.0, 1500.0)
+
+    # The Steamheart: a brick foundry hall with a great gear over its doors and three smoking stacks.
+    hx, hy = 3700, 0
+    hz = ground(hx, hy)
+    W, D, H = 1800.0, 1800.0, 1100.0
+    block("Steamheart_Back", (hx + W / 2, hy, hz + H / 2), (60, D, H), mats["brick"], folder="Steamheart")
+    block("Steamheart_N", (hx, hy + D / 2, hz + H / 2), (W, 60, H), mats["brick"], folder="Steamheart")
+    block("Steamheart_S", (hx, hy - D / 2, hz + H / 2), (W, 60, H), mats["brick"], folder="Steamheart")
+    block("Steamheart_FrontN", (hx - W / 2, hy + 600, hz + H / 2), (60, 600, H), mats["brick"], folder="Steamheart")
+    block("Steamheart_FrontS", (hx - W / 2, hy - 600, hz + H / 2), (60, 600, H), mats["brick"], folder="Steamheart")
+    block("Steamheart_Lintel", (hx - W / 2, hy, hz + 800 + (H - 800) / 2), (60, 600, H - 800), mats["brick_dark"], folder="Steamheart")
+    block("Steamheart_Roof", (hx, hy, hz + H + 20), (W + 100, D + 100, 40), mats["soot"], folder="Steamheart")
+    block("Steamheart_Cornice", (hx - W / 2 - 20, hy, hz + H - 20), (40, D + 60, 50), mats["brass"], folder="Steamheart")
+    block("Steamheart_Glow", (hx + W / 2 - 60, hy, hz + 300), (20, 900, 500), mats["ember"], folder="Steamheart")
+    town_light("Steamheart_Furnace", (hx, hy, hz + 400), (255, 120, 40), 1500.0, 2600.0)
+    gx, gz = hx - W / 2 - 50, hz + 950
+    place(cyl, "Gear_Disc", (gx, hy, gz), rot(pitch=90), (6.5, 6.5, 0.4), mats["brass"], "Steamheart")
+    place(cyl, "Gear_Hub", (gx - 25, hy, gz), rot(pitch=90), (1.6, 1.6, 0.6), mats["copper"], "Steamheart")
+    for k in range(14):
+        a = k * 2 * math.pi / 14
+        place(lib.load_asset("/Engine/BasicShapes/Cube"), "Gear_Tooth%d" % k, (gx, hy + math.cos(a) * 360, gz + math.sin(a) * 360),
+              rot(roll=-math.degrees(a)), (0.36, 0.7, 0.6), mats["brass"], "Steamheart")
+    for k, y in enumerate((-500, 0, 500)):
+        sx = hx + 400
+        place(cyl, "Stack%d" % k, (sx, y, hz + H + 1300), None, (2.6, 2.6, 26.0), mats["soot"], "Steamheart")
+        for r in range(3):
+            place(cyl, "Stack%d_Ring%d" % (k, r), (sx, y, hz + H + 400 + r * 700), None, (2.9, 2.9, 0.25), mats["brass"], "Steamheart")
+        block("Stack%d_Ember" % k, (sx, y, hz + H + 2620), (180, 180, 20), mats["ember"], folder="Steamheart")
+    # Pipes from the hall out to the manifold in the yard.
+    tube("FeedPipe_N", (hx - W / 2, 400, 380), (2600, 400, 380), 40, mats["copper"], "Steamheart")
+    tube("FeedPipe_S", (hx - W / 2, -400, 380), (2600, -400, 380), 40, mats["copper"], "Steamheart")
+    spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVPressureManifold"), "SteamheartManifold", (2250, 0, ground(2250, 0)), rot(yaw=0), "Gameplay")
+
+    # A Guild airship at its mooring mast, and a bigger one far off in the haze.
+    ax, ay, az = -1400, -3000, 2500
+    place(sphere, "Airship_Envelope", (ax, ay, az), None, (32.0, 9.0, 9.0), mats["canvas_cream"], "Airship")
+    for k in range(7):
+        place(cyl, "Airship_Rib%d" % k, (ax - 1200 + k * 400, ay, az), rot(pitch=90),
+              (9.2 * math.sqrt(max(0.05, 1 - ((k - 3) / 3.6) ** 2)), 9.2 * math.sqrt(max(0.05, 1 - ((k - 3) / 3.6) ** 2)), 0.12), mats["brass"], "Airship")
+    block("Airship_Gondola", (ax, ay, az - 620), (1100, 300, 230), mats["wood"], folder="Airship")
+    block("Airship_GondolaWin", (ax, ay - 152, az - 600), (900, 6, 70), mats["windows"], folder="Airship")
+    for side in (-1, 1):
+        tube("Airship_Strut%d" % side, (ax, ay + side * 120, az - 500), (ax, ay + side * 300, az - 300), 14, mats["copper"], "Airship")
+        place(cyl, "Airship_Prop%d" % side, (ax - 700, ay + side * 260, az - 560), rot(pitch=90), (0.5, 0.5, 0.6), mats["brass"], "Airship")
+        block("Airship_Blade%d" % side, (ax - 735, ay + side * 260, az - 560), (8, 30, 320), mats["wood"], 0, folder="Airship")
+    for k, (fy, fz) in enumerate([(0, 900), (900, 0), (-900, 0)]):
+        block("Airship_Fin%d" % k, (ax + 1500, ay + fy * 0.6, az + fz * 0.6), (400, 20 if fz else 500, 500 if fz else 20), mats["brass"], folder="Airship")
+    mx, my = ax - 2050, ay
+    for k, (ox, oy) in enumerate([(-90, -90), (90, -90), (-90, 90), (90, 90)]):
+        block("Mast_Leg%d" % k, (mx + ox, my + oy, ground(mx, my) + az / 2), (20, 20, az), mats["soot"], folder="Airship")
+    for h in range(300, int(az), 400):
+        block("Mast_Brace%d" % h, (mx, my, ground(mx, my) + h), (200, 200, 12), mats["brass"], folder="Airship")
+    tube("Mast_Cable", (mx, my, ground(mx, my) + az), (ax - 1550, ay, az), 10, mats["soot"], "Airship")
+    place(sphere, "FarAirship", (-9000, 11000, 5200), rot(yaw=30), (60.0, 16.0, 16.0), mats["canvas_cream"], "Airship")
+    block("FarAirship_Gondola", (-9000, 11000, 4100), (1800, 500, 380), mats["wood"], 30, folder="Airship")
+
+    # Cover in the square: crates, barrels, handcarts and low brick walls.
+    spots = [(-2600, -300), (-2200, 350), (-1600, -150), (-900, 400), (-500, -350), (100, 250), (500, -300), (1300, 150),
+             (1600, -600), (1700, 700), (-300, 600), (-1300, -550)]
+    for i, (x, y) in enumerate(spots):
+        gz = ground(x, y)
+        kind = i % 4
+        if kind == 0:
+            block("Crate_%d" % i, (x, y, gz + 60), (120, 120, 120), mats["wood"], random.uniform(0, 90), folder="Cover")
+            block("Crate_%d_Top" % i, (x + 20, y - 10, gz + 165), (90, 90, 90), mats["wood"], random.uniform(0, 90), folder="Cover")
+        elif kind == 1:
+            for k in range(3):
+                place(cyl, "Barrel_%d_%d" % (i, k), (x + (k - 1) * 75, y + random.uniform(-15, 15), gz + 55), None, (0.65, 0.65, 1.1), mats["copper"], "Cover")
+        elif kind == 2:
+            block("Wall_%d" % i, (x, y, gz + 60), (420, 50, 120), mats["brick_dark"], random.choice([0, 90]), folder="Cover")
+        else:
+            block("Cart_%d" % i, (x, y, gz + 80), (260, 140, 70), mats["wood"], random.uniform(-30, 30), folder="Cover")
+            for side in (-1, 1):
+                place(cyl, "Cart_%d_Wheel%d" % (i, side), (x, y + side * 80, gz + 50), rot(roll=90), (1.0, 1.0, 0.08), mats["brass"], "Cover")
+
+    # The people of the Valve Quarter, and the Guildmaster at the foundry gate.
+    folk = [("Lamplighter", 1, "Eighty years without a ship from the sky, and the first one brings soldiers."),
+            ("Guild apprentice", 3, "Don't touch the constables' keys. They're wound to the Guild's own pattern."),
+            ("Tube-mail runner", 1, "Three hundred stations and not one wire. Nothing out there can listen to a pipe."),
+            ("Boilermaker", 3, "Can you hear the Steamheart? She's singing too high. That's never good."),
+            ("Glassblower", 0, "Your helmet lenses are very fine work. Who blew them? A machine? Oh."),
+            ("Schoolmistress", 2, "Inside, children. The soldiers are only passing through."),
+            ("Guild child", 4, "Is it true there are cities with no gears in them at all?"),
+            ("Coal porter", 1, "My father said the Lattice went quiet and we were lucky. I believe him now."),
+            ("Pensioner", 2, "I remember the last ship. I was six. It was smaller than yours."),
+            ("Clocksmith", 3, "Somebody punched those cards by hand. Good hand, too. That's what frightens me.")]
+    for i, (name, trade, line) in enumerate(folk):
+        p = townsperson("Citizen_%d" % i, (random.uniform(-2800, 600), random.uniform(-500, 500), ground(0, 0) + 100), random.uniform(0, 360), name, trade, radius=1500.0)
+        p.set_editor_property("custom_line", line)
+    g = townsperson("Guildmaster_Ottilie", (1950, 700, ground(1950, 700) + 100), -150, "Guildmaster Ottilie Cogsworth-Vane", 0, wanders=False)
+    g.set_editor_property("custom_line", "The Steamheart is the last forge in the sky that the Static cannot reach. Keep your hands off anything with a chip.")
+    log("brasshaven built")
+
+
+# --------------------------------------------------------------------------------------------
 # Build
 # --------------------------------------------------------------------------------------------
 
@@ -992,6 +1195,15 @@ def build():
         "canvas_red": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Canvas_Red", (0.45, 0.07, 0.04), roughness=0.9),
         "canvas_teal": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Canvas_Teal", (0.04, 0.22, 0.22), roughness=0.9),
         "canvas_sand": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Canvas_Sand", (0.55, 0.42, 0.24), roughness=0.9),
+        "brass": tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_Brass", (0.55, 0.36, 0.12), metallic=1.0, roughness=0.3),
+        "copper": tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_Copper", (0.6, 0.22, 0.1), metallic=1.0, roughness=0.38),
+        "brick": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Brick", (0.24, 0.075, 0.045), roughness=0.92),
+        "brick_dark": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Brick_Dark", (0.11, 0.04, 0.028), roughness=0.95),
+        "soot": tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_Soot", (0.03, 0.028, 0.026), metallic=0.4, roughness=0.75),
+        "canvas_cream": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Canvas_Cream", (0.6, 0.52, 0.38), roughness=0.85),
+        "gaslamp": glow("MI_GasLamp", (1.0, 0.62, 0.25), 30.0),
+        "clockface": glow("MI_ClockFace", (0.95, 0.88, 0.7), 2.5),
+        "ember": glow("MI_Ember", (1.0, 0.35, 0.08), 25.0),
     }
     terrain = make_terrain()
     rocks = [make_rock(i) for i in range(6)]
@@ -1005,6 +1217,7 @@ def build():
         raise RuntimeError("Could not create " + MAP_PATH)
 
     town = "town" in B["extras"]
+    brass = "brass" in B["extras"]
 
     # --- Terrain and rocks --------------------------------------------------------------
     place(terrain, "MoonTerrain", (0, 0, 0), material=terrain_mat, folder="Terrain")
@@ -1019,7 +1232,7 @@ def build():
     # Boulders as cover across the approach, plus big outcrops on the slopes.
     cover_rocks = [(-2600, -1300), (-2300, 900), (-1600, -300), (-900, 1500), (-700, -1600), (-200, 400),
                    (300, -900), (700, 1700), (1100, -2100), (-3300, 300), (-1200, -2600), (200, 2600)]
-    for i, (x, y) in enumerate([] if town else cover_rocks):
+    for i, (x, y) in enumerate([] if town or brass else cover_rocks):
         s = random.uniform(1.1, 1.8)
         place(random.choice(rocks), "CoverRock_%02d" % i, (x, y, ground(x, y) - 10), rot(yaw=random.uniform(0, 360)),
               (s * random.uniform(0.9, 1.4), s, s * random.uniform(0.8, 1.1)), rock_mat, "Rocks")
@@ -1034,7 +1247,7 @@ def build():
 
     # --- Hearthbound compound (east) ----------------------------------------------------
     bx, by = 3000.0, 0.0
-    if not town and "walker" not in B["extras"]:   # the Ironstride's loop needs the plain clear
+    if not town and not brass and "walker" not in B["extras"]:   # the Ironstride's loop needs the plain clear
         bz = ground(bx, by)
         # Bunker: thick walls with a doorway facing west, roof slab with overhang, glowing strips.
         block("Bunker_Floor", (bx, by, bz + 10), (1400, 1000, 30), mats["concrete_dark"])
@@ -1092,9 +1305,14 @@ def build():
         soldier = unreal.load_class(None, "/Script/DeltaVDominion.DVSoldierCharacter")
         enemy_spots = [(bx - 900, by - 250), (bx - 900, by + 450), (bx - 1300, by + 1000), (bx - 1200, by - 1100),
                        (bx - 300, by + 1250), (bx - 450, by), (1300, -500), (1400, 800)]
+        if brass:
+            # The Guild's clockwork constables, rewound to shoot uniforms: around the square and the Steamheart's yard.
+            enemy_spots = [(2300, -650), (2400, 750), (1700, 1050), (1800, -1050), (900, -400), (1000, 600), (-200, 850), (0, -800)]
         for i, (x, y) in enumerate(enemy_spots):
-            e = spawn(soldier, "Hearthbound_%02d" % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
+            e = spawn(soldier, ("Constable_%02d" if brass else "Hearthbound_%02d") % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
             e.set_editor_property("team_id", 2)
+            if brass:
+                e.set_editor_property("clockwork", True)
 
         # --- Free Ports salvage contracts: optional, off the main path ------------------------------------
         salvage = unreal.load_class(None, "/Script/DeltaVDominion.DVSalvage")
@@ -1118,7 +1336,8 @@ def build():
     kestrel = unreal.load_class(None, "/Script/DeltaVDominion.DVKestrel")
     if not town:
         spawn(ltv, "LTV_Jackal", (-3700, 950, ground(-3700, 950) + 120), rot(yaw=10), "Vehicles")
-        spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
+        if not brass:   # the Guild allows no armour in its streets
+            spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
     bike = unreal.load_class(None, "/Script/DeltaVDominion.DVHoverbike")
     for i, (bx, by) in enumerate([(2900, -650), (2600, -650)] if town else [(-3300, 300), (-3300, -300)]):
         spawn(bike, "Hoverbike_%d" % i, (bx, by, ground(bx, by) + 160), rot(yaw=8), "Vehicles")
@@ -1141,7 +1360,12 @@ def build():
              ((750, -380, 200), (-150, 900, 330)),             # 1: the Rusty Rook cantina and the job board
              ((4600, 3400, 1200), (-700, -400, 100)),          # 2: the town from the dunes, sun behind the camera
              ((900, -150, 170), (1500, -700, 180)),            # 3: a market stall up close
-             ((-3000, -2300, 260), (-3600, -1300, 220))] if town else [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
+             ((-3000, -2300, 260), (-3600, -1300, 220))] if town else [
+             ((-3300, 0, 320), (2400, 0, 420)),               # 0: down the Valve Quarter's main street toward the Steamheart
+             ((1550, -520, 190), (2250, 0, 260)),             # 1: the pressure manifold in the foundry yard
+             ((-4800, -4600, 1900), (0, -600, 900)),          # 2: over the rooftops, the moored airship in the haze
+             ((-1850, -300, 200), (-600, 2300, 1300)),        # 3: gas lamps and the clock tower
+             ((1100, 1000, 200), (3600, 0, 1700))] if brass else [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
              ((-2200, -1500, 220), (2600, 300, 220)),        # 1: low, behind the boulders, looking at the bunker
              ((5600, 2600, 900), (-800, -400, 0)),           # 2: reverse from behind the compound, sun in the lens
              ((bx - 1700, by - 700, 170), (bx - 600, by + 100, 250)),  # 3: close on the bunker doorway
@@ -1217,6 +1441,8 @@ def build():
     pp.settings = s
 
     build_extras(mats, rocks, rock_mat)
+    if brass:
+        build_brasshaven(mats)
     if town:
         build_town(mats)
     if "walker" in B["extras"]:

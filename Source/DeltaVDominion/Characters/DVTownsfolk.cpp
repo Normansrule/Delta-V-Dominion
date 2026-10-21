@@ -1,5 +1,6 @@
 #include "Characters/DVTownsfolk.h"
 #include "Core/DVProfileSubsystem.h"
+#include "Core/DVGameMode.h"
 
 #include "AIController.h"
 #include "Animation/AnimInstance.h"
@@ -9,6 +10,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NavigationSystem.h"
+#include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
 namespace
@@ -110,6 +112,10 @@ void ADVTownsfolk::Tick(float DeltaSeconds)
 	{
 		return;
 	}
+	if (GetWorld()->GetTimeSeconds() < FleeUntil)
+	{
+		return;	// running from the shooting; nobody stops to chat
+	}
 	// Someone in a uniform walked up: stop and face them.
 	const APawn* Visitor = nullptr;
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -170,6 +176,50 @@ ADVTownsfolk* ADVTownsfolk::FindNear(const AActor* Listener)
 		}
 	}
 	return Best;
+}
+
+void ADVTownsfolk::OnShot(AActor* Shooter)
+{
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (!HasAuthority() || bLyingDown || Now - LastShot < 3.0)
+	{
+		return;	// one burst is one incident, not ten
+	}
+	LastShot = Now;
+	FleeUntil = Now + 9.0;
+	NextWander = FleeUntil;
+	// Run directly away from whoever fired.
+	const FVector From = Shooter ? Shooter->GetActorLocation() : GetActorLocation() - GetActorForwardVector() * 100.f;
+	const FVector Away = (GetActorLocation() - From).GetSafeNormal2D();
+	GetCharacterMovement()->MaxWalkSpeed = 420.f;
+	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
+	FNavLocation Spot;
+	AAIController* AI = Cast<AAIController>(GetController());
+	if (AI && Nav && Nav->ProjectPointToNavigation(GetActorLocation() + Away * 1100.f, Spot, FVector(600.f, 600.f, 400.f)))
+	{
+		AI->MoveToLocation(Spot.Location, 60.f);
+	}
+	FTimerHandle Calm;
+	GetWorldTimerManager().SetTimer(Calm, FTimerDelegate::CreateWeakLambda(this, [this]() { GetCharacterMovement()->MaxWalkSpeed = 140.f; }), 9.f, false);
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->NotifyCivilianHurt(this, Shooter);
+	}
+}
+
+void ADVTownsfolk::BlastNear(UWorld* World, const FVector& Center, float Radius, AActor* Shooter)
+{
+	if (!World)
+	{
+		return;
+	}
+	for (TActorIterator<ADVTownsfolk> It(World); It; ++It)
+	{
+		if (FVector::Dist(It->GetActorLocation(), Center) <= Radius)
+		{
+			It->OnShot(Shooter);
+		}
+	}
 }
 
 FString ADVTownsfolk::Line(int32 FreePortsRep) const

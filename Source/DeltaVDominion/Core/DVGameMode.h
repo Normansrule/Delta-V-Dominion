@@ -59,6 +59,11 @@ public:
 	void OnWalkerCoupling(int32 Count);
 	void OnWalkerDown();
 
+	/** Brasshaven: a valve on the Steamheart's manifold turned; bSolved when all three gauges sit in the green. */
+	void OnManifoldTurned(int32 Valve, bool bSolved);
+	/** A townsperson was shot at or caught in a blast by Delta. Costs standing with whoever's town it is. */
+	void NotifyCivilianHurt(class ADVTownsfolk* Civilian, AActor* Shooter);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float PlantSeconds = 4.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float HoldSeconds = 45.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Mission|Operation") float RavenInboundSeconds = 12.f;
@@ -98,6 +103,10 @@ private:
 	/** Breakwater-style operations: objectives come from actors tagged DV_Obj_1 / DV_Obj_2 / DV_LZ in the map. */
 	bool bScriptedObjectives = false;
 	bool bWalkerOp = false;
+	bool bManifoldOp = false;
+	/** The faction whose people live on this map (who minds if they get hurt). */
+	int32 LocalFaction = -1;
+	bool bWarnedRoE = false;
 	FVector SecondObjective = FVector::ZeroVector;
 	void StartExtract();
 	void SpawnWave(int32 Count);

@@ -83,6 +83,12 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bMultiStage = false;
 	/** Ironstride: the objective is the walker's power couplings (see ADVWalker). */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bWalkerOp = false;
+	/** Restrained rules of engagement (Brasshaven): civilians on the streets, no orbital fire or strafing runs. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bRestrained = false;
+	/** Brasshaven: the objective is the Steamheart's pressure manifold (see ADVPressureManifold). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bManifoldOp = false;
+	/** Civilians Delta fired on or caught in a blast this operation. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 CiviliansHurt = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") EDVMissionStage Stage = EDVMissionStage::Clear;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FVector_NetQuantize ObjectiveLocation;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FVector_NetQuantize ExtractLocation;

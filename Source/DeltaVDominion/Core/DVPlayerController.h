@@ -65,6 +65,16 @@ public:
 	/** Console (tests): "DVRavenMode Jet Cockpit [Delay]" sets the Raven's flight mode and camera. */
 	UFUNCTION(Exec)
 	void DVRavenMode(int32 bJet, int32 bCockpit, float Delay = 0.f);
+	/** Console (tests): "DVValve Valve [Times] [Delay]" walks you to a Steamheart valve (0 A, 1 B, 2 C) and turns it, like pressing Z there; Valve -1 solves the manifold that way. */
+	UFUNCTION(Exec)
+	void DVValve(int32 Valve, int32 Times = 1, float Delay = 0.f);
+	/** Console (tests): "DVCivilianTest [Delay]" fires on the nearest townsperson (restrained rules of engagement test). */
+	UFUNCTION(Exec)
+	void DVCivilianTest(float Delay = 0.f);
+	UFUNCTION(Server, Reliable) void ServerTurnValve(uint8 Valve);
+	/** Console (tests, standalone): "DVClearHostiles [Delay] [Spacing]" takes every hostile out of the fight one by one, as if the squad had (constables wind down). */
+	UFUNCTION(Exec)
+	void DVClearHostiles(float Delay = 0.f, float Spacing = 0.4f);
 	/** Console (dev builds): "DVSkipStage [Delay]" advances the operation (clear > plant > hold > extract). */
 	UFUNCTION(Exec)
 	void DVSkipStage(float Delay = 0.f);

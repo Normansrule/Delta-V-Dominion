@@ -1,4 +1,5 @@
 #include "Core/DVFx.h"
+#include "Characters/DVTownsfolk.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundAttenuation.h"
@@ -254,6 +255,10 @@ void DVCombat::RadialDamage(ADVSoldierCharacter* Shooter, const FVector& Center,
 		{
 			ApplyDamage(Shooter, *It, Damage * (1.f - 0.7f * Dist / Radius), bFriendlyFire);
 		}
+	}
+	if (Shooter->TeamId == 1)
+	{
+		ADVTownsfolk::BlastNear(Shooter->GetWorld(), Center, Radius * 0.8f, Shooter);
 	}
 	// Vehicles take blast damage on their hulls (measured to the hull, which is bigger than a soldier).
 	for (TActorIterator<APawn> It(Shooter->GetWorld()); It; ++It)

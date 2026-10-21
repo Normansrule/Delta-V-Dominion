@@ -50,7 +50,7 @@ mock-ups and no pre-rendered cinematics.
 - **Stealth.** Sentries have sight cones that shrink when you crouch. Alarms spread, your squad holds fire until
   you start it, and you can take a sentry down silently from behind.
 - **Operations, not arenas.** Clear a position, plant charges, hold against counter-attack waves, then run for the
-  extraction ship. Eight operations across six worlds plus a training range, picked from a galaxy map built on
+  extraction ship. Nine operations across seven worlds plus a training range, picked from a galaxy map built on
   the real Milky Way.
 - **Everything is a vehicle.** You can drive or fly every vehicle you see:
   - a tank, a light tactical vehicle (LTV), an armoured personnel carrier (APC) and a hoverbike;
@@ -60,10 +60,13 @@ mock-ups and no pre-rendered cinematics.
 - **A home that remembers.** Between operations you walk the Kestrel's hangar. You get there with no loading
   screen: a Raven flies you up from the battlefield and into the carrier. The hangar shows what your operations
   cost: name plates for the fallen, the wounded in medbay beds, crews repairing the ship that brought you back.
+- **Rules of engagement that change the fight.** On Brasshaven, a steampunk city with people in its streets, the
+  Kestrel refuses fire from orbit, hurting a citizen costs you, and the Guild's clockwork constables wind down
+  instead of dying. The objective is a pressure-valve puzzle you solve with your hands, not your rifle.
 - **A town with jobs.** Rook's Rest is a frontier market whose townsfolk talk to you based on your reputation. Its
   job board has contracts you work on your next operations.
 - **Your commander.** Customise your commander's look and callsign. Earn experience points (XP), levels and perks,
-  and standing with three factions that unlock weapons and support.
+  and standing with four factions that unlock weapons and support.
 
 ---
 
@@ -77,13 +80,13 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 | Area | Progress | What's built | What's left |
 |---|---|---|---|
 | Combat and squad | <img src="docs/media/progress/combat.svg" width="260" alt="80%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
-| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="45%"> | 8 operations on planet maps plus Boot Camp, including Ironstride; multi-stage objectives | The rest of the campaign's maps |
+| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="50%"> | 9 operations on planet maps plus Boot Camp, including Ironstride and Brasshaven; multi-stage objectives, a valve puzzle | The rest of the campaign's maps |
 | Vehicles | <img src="docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
 | Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="75%"> | Hangar, war table, armoury, lockers, memorial; fly home with no loading screen; the hangar remembers | Launching from the Kestrel to orbit; talking with the crew |
-| Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="35%"> | Rook's Rest, 3 factions with standing, 5 contracts, townsfolk | Towns on Brasshaven, Neon Verge and Hollyhock Vale; more factions |
+| Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="42%"> | Rook's Rest, Brasshaven's Valve Quarter, 4 factions with standing, 5 contracts, townsfolk who flee gunfire | A Guild town hub and contracts; Neon Verge and Hollyhock Vale |
 | Co-op | <img src="docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions through Epic Online Services (EOS), Easy Anti-Cheat |
 | Art and audio | <img src="docs/media/progress/art.svg" width="260" alt="15%"> | Kit-bashed geometry, UE5 mannequins, generated materials and sounds | Real character, vehicle and environment art; music |
-| Campaign and story | <img src="docs/media/progress/campaign.svg" width="260" alt="20%"> | Story bible, mission intros, radio chatter, Acts I and II settings | Cinematics, Acts III and IV, the Static virus arc |
+| Campaign and story | <img src="docs/media/progress/campaign.svg" width="260" alt="24%"> | Story bible, mission intros, radio chatter, Acts I and II settings, the first Act IV cure world | Cinematics, Acts III and IV, the Static virus arc |
 
 ## Roadmap
 
@@ -99,7 +102,8 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 - [x] The Ironstride walker: board a moving giant, overload its couplings, ride it down
 - [ ] Launch from the Kestrel to orbit and the galaxy map
 - [ ] Co-op played and tested over two machines
-- [ ] Brasshaven (steampunk), Neon Verge (cyberpunk), Hollyhock Vale (non-lethal)
+- [x] Brasshaven (steampunk): restrained rules, clockwork constables, the Steamheart valve puzzle
+- [ ] Neon Verge (cyberpunk) and Hollyhock Vale (non-lethal)
 - [ ] Story missions with cinematic briefings
 - [ ] Real art pass: characters, war-frames, vehicles, environments, music
 
@@ -273,6 +277,31 @@ Test report: **[docs/TEST_REPORT_IRONSTRIDE.md](docs/TEST_REPORT_IRONSTRIDE.md)*
 | ![Kneeling](docs/media/walker_kneel.png) | ![The last coupling](docs/media/walker_last_coupling.png) |
 | Kneeling with the ramp down: board now | The last coupling blows |
 
+### Brasshaven: Operation Steamheart
+
+Wolf 359 b, eighty years off the Lattice. Somebody fed forged punch-cards to the Guild's clockwork constables, and
+the Steamheart, the one foundry the Static can't touch, is running toward red:
+1. Wind the constables down. They're Guild property: they slump where they stand instead of dying.
+2. Balance the Steamheart by hand. Three valves feed three gauges through shared pipes, so every turn moves more than
+   one needle. Get all three into the green.
+3. Hold the street for 45 s while it relights, then extract.
+
+Civilians are on the streets. The Kestrel won't fire from orbit, the Raven won't strafe, and every citizen you hit
+costs standing with the Guild Council, the game's fourth faction.
+
+Test report: **[docs/TEST_REPORT_BRASSHAVEN.md](docs/TEST_REPORT_BRASSHAVEN.md)**.
+
+<p align="center"><img src="docs/media/brasshaven/brass_street.gif" width="720" alt="The Valve Quarter's main street, constables winding down"></p>
+
+| | |
+|---|---|
+| ![The Steamheart manifold](docs/media/brasshaven/brass_manifold.png) | ![Turning a valve](docs/media/brasshaven/brass_valve_hud.png) |
+| The Steamheart's manifold: three valves, three gauges, shared pipes | Turning valve B: the readout shows which gauges it feeds |
+| ![A wound-down constable](docs/media/brasshaven/brass_wound_down.png) | ![The airship](docs/media/brasshaven/brass_airship.png) |
+| A constable, wound down, waiting for the Guild | A Guild airship at its mooring mast over the rooftops |
+| ![The Steamheart foundry](docs/media/brasshaven/brass_foundry.png) | ![After action](docs/media/brasshaven/brass_after_action.png) |
+| The Steamheart's gear and stacks | The after-action report counts the civilians you fired on |
+
 ---
 
 ## Setup and usage
@@ -372,6 +401,8 @@ Press `~` in a development build. These commands are how the screenshots and tes
 | `DVCapture Name Frames Interval Delay UI` | Render frames off-screen to `Saved/Screenshots` |
 | `DVEndMission 1` / `DVFlyHome` | End the operation as a win / fly home |
 | `DVWalker 0`..`3`, `DVBoardTest` | Ironstride tests: kneel, collapse, deck, clear the field; scripted boarding |
+| `DVValve 0`..`2` [Times], `DVValve -1` | Brasshaven: turn a valve, or solve the manifold the way a player would |
+| `DVClearHostiles`, `DVCivilianTest` | Take every hostile out one by one; fire on the nearest citizen (rules of engagement test) |
 | `DVCasualty 0`..`2` | Kill or wound a squadmate, or destroy a Bulwark (tests the Kestrel's memory) |
 
 ---

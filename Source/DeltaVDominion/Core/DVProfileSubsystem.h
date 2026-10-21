@@ -31,13 +31,14 @@ public:
 	UPROPERTY() int32 ContractProgress = 0;
 };
 
-/** The three powers that remember what Delta does (-100..100 each). */
+/** The powers that remember what Delta does (-100..100 each). */
 namespace DVFactions
 {
 	constexpr int32 Accord = 0;		// Accord Command: the chain of command and the fleet
 	constexpr int32 Colonies = 1;	// the civilian colonies you evacuate, defend or fail
 	constexpr int32 FreePorts = 2;	// smugglers and salvagers who trade in what the war leaves behind
-	constexpr int32 Num = 3;
+	constexpr int32 Guild = 3;		// Brasshaven's Guild Council: trusts nothing with a chip in it
+	constexpr int32 Num = 4;
 	constexpr int32 Trusted = 20;
 	constexpr int32 Allied = 50;
 }

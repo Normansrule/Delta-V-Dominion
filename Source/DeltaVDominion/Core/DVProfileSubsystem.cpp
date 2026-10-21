@@ -1,4 +1,4 @@
-﻿#include "Core/DVProfileSubsystem.h"
+#include "Core/DVProfileSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "Engine/GameInstance.h"
@@ -169,6 +169,7 @@ FString UDVProfileSubsystem::FactionName(int32 Faction)
 	case DVFactions::Accord: return TEXT("Accord Command");
 	case DVFactions::Colonies: return TEXT("The Colonies");
 	case DVFactions::FreePorts: return TEXT("The Free Ports");
+	case DVFactions::Guild: return TEXT("The Guild Council");
 	default: return TEXT("");
 	}
 }

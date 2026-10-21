@@ -239,6 +239,7 @@ These set palettes and set dressing; nothing is copied.
 | Ceres | Ghost Signal | Occator District, Ceres (night mining town) |
 | Gaia | Gaia Falls | Lagos Arcology outskirts, Earth |
 | Breakwater | Breakwater | Port Halden harbour, Earth: air defence, the Marlin boat across the strait, hold the docks, extract |
+| Brasshaven | Steamheart | The Valve Quarter, Wolf 359 b: restrained rules, clockwork constables, the pressure-valve puzzle |
 | BootCamp | Boot Camp | Copernicus Range, Luna |
 
 Each planet operation runs: clear the garrison, plant charges, hold against counter-attacks, extract on a Raven.
@@ -254,13 +255,15 @@ Each planet operation runs: clear the garrison, plant charges, hold against coun
 7. **Brasshaven, Neon Verge and Hollyhock Vale** as new Lattice destinations on the war table.
 8. **Lantern Deep, Underhang and Pelagia** maps; the Coil boss; the Maw as a ship-wide escape and Ruiz's POV level.
 
+Brasshaven from **7** is in game (Operation Steamheart, see docs/TEST_REPORT_BRASSHAVEN.md), with the restrained half of **4** (orbital fire refused, civilians who flee and cost standing). Neon Verge, Hollyhock Vale and the less-lethal tools are still to come.
+
 Done so far from this list: **1** (downed, revive, bleed-out; AI squadmates come for you) and **2** (Operation Breakwater: harbour map, PB-9 Marlin missile boat, air-defence objective, transports, extraction).
 
 ## Star Wars Outlaws as a reference (mechanics and look, nothing copied)
 
 - **Speeder travel**: the VX-3 Skiff hoverbike is the fast, fragile scout's ride between objectives (in game).
 - **Seamless planet to ship**: in game. After an operation (K) or from Rook's Rest's shuttle, a Raven carries the squad up into the Kestrel holding station over the battlefield, through a landing bay in the hull, onto the hangar deck, which streams in during the flight. Next step: the same flight from the Kestrel out to orbit and the galaxy map.
-- **Faction reputation**: in game for Accord Command, the Colonies and the Free Ports (salvage contracts, standing-gated weapons and call-ins). Brasshaven's Guild Council, Neon Verge's brokers and Hollyhock Vale join the same system when their worlds are built.
+- **Faction reputation**: in game for Accord Command, the Colonies and the Free Ports (salvage contracts, standing-gated weapons and call-ins). Brasshaven's Guild Council has joined (in game); Neon Verge's brokers and Hollyhock Vale join when their worlds are built.
 - **Open hubs**: in game. The Kestrel's hangar, and **Rook's Rest**, a Free Ports market town on the Tharsis rim reached by shuttle from the hangar: market stalls, the Rusty Rook cantina, townsfolk who talk to you differently as your Free Ports standing changes, and Mags Okafor's job board. Each new world gets its own town like it.
 - **Contracts**: in game. Five jobs on the board (silent takedowns, salvage, headshots, revives, Bulwark bounties) posted by the Free Ports, an Accord liaison and Colonies relief. Take one in town, work it across your next operations, get paid in standing and XP when an operation is won.
 - **Stealth and takedowns**: in game. Unaware sentries with sight cones by stance, alarms that spread, a weapons-tight squad, and silent takedowns from behind.

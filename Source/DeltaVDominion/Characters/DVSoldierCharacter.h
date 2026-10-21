@@ -146,6 +146,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Weapon") TSubclassOf<ADVWeaponBase> WeaponClass;
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Abilities") TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
 	UPROPERTY(EditAnywhere, Replicated, Category = "Soldier|Team") uint8 TeamId = 1;
+	/** Brasshaven's clockwork constables: brass-painted, and they wind down instead of dying (Guild property, not scrap). */
+	UPROPERTY(EditAnywhere, Replicated, Category = "Soldier|Team") bool bClockwork = false;
 	/** Body used for non-player teams (the Hearthbound). Falls back to Mesh when unset. */
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Appearance") TObjectPtr<USkeletalMesh> HostileBodyMesh;
 	/** Armour paint and visor glow per team (mannequin "Paint Tint" / emissive). */
@@ -226,6 +228,8 @@ private:
 	void Revive();
 	void TickDowned(float DeltaSeconds);
 	void EnterRagdoll();
+	/** Clockwork: the spring runs down; it slumps where it stands, optics dark, and stays there. */
+	void WindDown();
 	void SetupPlaceholderBody();
 	void ApplyTeamAppearance();
 	/** Local player sees their own body (head hidden) instead of floating arms. */

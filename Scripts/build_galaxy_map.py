@@ -181,6 +181,10 @@ def build():
     system("Barnard's Star", galactic(5.96, 31.0, 14.1), "Local Bubble", 5.96, CINDER,
            "Automated mining relay seized in the first hour of the uprising. Skitter drones roll off its lines by the thousand.",
            (1.0, 0.45, 0.25), 1.0)
+    system("Wolf 359", galactic(7.9, 244.1, 56.1), "Local Bubble", 7.9, CONTESTED,
+           "A dim red dwarf and Brasshaven, the colony that lost the Lattice eighty years ago and rebuilt itself on steam and brass. "
+           "CINDER cannot reach a machine with no chip in it, which makes the Guild Council's foundries the last place the cure can be made.",
+           (1.0, 0.42, 0.22), 0.9, [op("Steamheart", "The Valve Quarter, Brasshaven", "/Game/Maps/Brasshaven")])
     system("Sirius", galactic(8.6, 227.2, -8.9), "Local Bubble", 8.6, ACCORD,
            "Twin-star fleet anchorage. What remains of the Accord's Second Fleet is regrouping here.", (0.75, 0.85, 1.0), 1.6)
     system("Epsilon Eridani", galactic(10.5, 195.8, -48.1), "Local Bubble", 10.5, CONTESTED,

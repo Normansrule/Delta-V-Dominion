@@ -1,4 +1,4 @@
-﻿#include "Core/DVGameMode.h"
+#include "Core/DVGameMode.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Core/DVPlayerController.h"
 #include "Core/DVGameState.h"
@@ -13,6 +13,8 @@
 #include "Core/DVProfileSubsystem.h"
 #include "Core/DVAscent.h"
 #include "Vehicles/DVWalker.h"
+#include "Core/DVPressureManifold.h"
+#include "Characters/DVTownsfolk.h"
 #include "Vehicles/DVKestrel.h"
 #include "Characters/DVBulwark.h"
 #include "Vehicles/DVGunship.h"
@@ -115,6 +117,12 @@ void ADVGameMode::SetupMissionForMap()
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Its armour shrugs off anything we've got. When it kneels to vent, the rear ramp comes down. Get aboard.") },
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Three power couplings on its back. Stand on each one until it blows. Watch for the red mark: that's its cannon.") },
 		    { TEXT("CINDER"), TEXT("THE IRONSTRIDE DOES NOT NOTICE INSECTS. IT NOTICES ONLY THE ROAD.") } } },
+		{ TEXT("Brasshaven"), TEXT("Steamheart"), TEXT("Wind down the Guild's clockwork constables. Keep the townsfolk safe"), TEXT("The Valve Quarter, Brasshaven"),
+		  TEXT("Wolf 359 b  |  Act IV, the Static  |  Restrained rules of engagement"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Brasshaven hasn't called anyone in eighty years, Delta. Today it called us. Its foundry is the only one the Static can't touch.") },
+		    { TEXT("Guildmaster Cogsworth-Vane"), TEXT("Someone fed forged punch-cards to my constables. They are Guild property. Wind them down. Do not scrap them.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Civilians on every street and the Guild owns the sky. No orbital fire, no strafing runs. Check your targets.") },
+		    { TEXT("Guildmaster Cogsworth-Vane"), TEXT("And keep your chips away from my machines.") } } },
 		{ TEXT("Europa"), TEXT("Glass Ocean"), TEXT("Destroy the CINDER listening post on the ice"), TEXT("Conamara Chaos, Europa"),
 		  TEXT("Jupiter system  |  Day 9 of the uprising"),
 		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is listening to the ocean under that ice. Whatever it's hearing, it doesn't get to keep it.") },
@@ -176,6 +184,12 @@ void ADVGameMode::SetupMissionForMap()
 			bIsHub = FCString::Strcmp(M.MapKey, TEXT("Kestrel")) == 0 || FCString::Strcmp(M.MapKey, TEXT("RooksRest")) == 0;
 			break;
 		}
+	}
+	LocalFaction = Map.EndsWith(TEXT("Brasshaven")) ? DVFactions::Guild : Map.EndsWith(TEXT("RooksRest")) ? DVFactions::FreePorts
+		: Map.EndsWith(TEXT("Kestrel")) ? DVFactions::Accord : DVFactions::Colonies;
+	if (Map.EndsWith(TEXT("Brasshaven")))
+	{
+		GS->bRestrained = true;
 	}
 	if (bIsHub)
 	{
@@ -257,6 +271,11 @@ void ADVGameMode::RequestOrbitalStrike(APlayerController* Caller, const FVector&
 	const float Now = GetWorld()->GetTimeSeconds();
 	if (!GS || bMissionEnded || bIsHub || !Caller || Now < GS->OrbitalReadyTime)
 	{
+		return;
+	}
+	if (GS->bRestrained)
+	{
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Negative, Delta. Civilians below and the Guild owns that sky. No fire from orbit."));
 		return;
 	}
 	APawn* CallerPawn = Caller->GetPawn();
@@ -373,6 +392,14 @@ void ADVGameMode::SetupOperation()
 		GS->ObjectiveText = TEXT("Board the walker when it kneels and overload its three power couplings");
 	}
 
+	if (const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()))
+	{
+		// Brasshaven: wind down the constables first, then balance the Steamheart's pressure by hand.
+		bManifoldOp = true;
+		GS->bManifoldOp = true;
+		GS->ObjectiveLocation = Manifold->GetActorLocation();
+	}
+
 	const FString Map = GetWorld()->GetMapName();
 	struct FNoun { const TCHAR* Key; const TCHAR* Noun; };
 	static const FNoun Nouns[] = {
@@ -390,7 +417,11 @@ void ADVGameMode::SetupOperation()
 
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	if (!bWalkerOp)
+	if (bManifoldOp)
+	{
+		TargetNoun = TEXT("the Steamheart's manifold");
+	}
+	else if (!bWalkerOp)
 	{
 		GetWorld()->SpawnActor<ADVObjectiveBeacon>(ADVObjectiveBeacon::StaticClass(), Target, FRotator::ZeroRotator, Params);
 	}
@@ -424,6 +455,21 @@ void ADVGameMode::DevAdvanceStage()
 				Walker->DevBlowAll();
 			}
 		}
+		else if (bManifoldOp)
+		{
+			if (ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()))
+			{
+				int32 Turns[ADVPressureManifold::NumValves];
+				Manifold->GetSolution(Turns);
+				for (int32 v = 0; v < ADVPressureManifold::NumValves; ++v)
+				{
+					for (int32 t = 0; t < Turns[v]; ++t)
+					{
+						Manifold->TurnValve(v);
+					}
+				}
+			}
+		}
 		else if (bScriptedObjectives) { StartCapture(); } else { StartDefend(); }
 		break;
 	case EDVMissionStage::Capture: StartDefend(); break;
@@ -455,6 +501,17 @@ void ADVGameMode::StartSabotage()
 	GS->StageProgress = 0.f;
 	GS->ObjectiveText = FString::Printf(TEXT("Plant demolition charges on %s"), *TargetNoun);
 	StageStartTime = GetWorld()->GetTimeSeconds();
+	if (bManifoldOp)
+	{
+		GS->ObjectiveText = TEXT("Bring all three Steamheart gauges into the green. Z turns a valve");
+		Radio(TEXT("Guildmaster Cogsworth-Vane"), TEXT("The constables are quiet. Now the Steamheart: three valves, three gauges, and she's climbing toward red."), 1.5f);
+		Radio(TEXT("Guildmaster Cogsworth-Vane"), TEXT("Every valve pushes more than one gauge, Commander. Follow the pipes before you turn anything."), 9.f);
+		if (const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()); Manifold && Manifold->IsSolved())
+		{
+			OnManifoldTurned(0, true);	// someone balanced it during the fight
+		}
+		return;
+	}
 	Radio(TEXT("Gny. Sgt. Halloran"), FString::Printf(TEXT("Area's clear! Get to %s and plant the charges. Move!"), *TargetNoun), 1.5f);
 }
 
@@ -467,6 +524,14 @@ void ADVGameMode::StartDefend()
 	GS->StageEndTime = StageStartTime + HoldSeconds;
 	GS->ObjectiveText = bScriptedObjectives ? TEXT("Hold the docks while the transports get clear") : TEXT("Hold until the charges blow");
 	WavesSpawned = 0;
+	if (bManifoldOp)
+	{
+		GS->ObjectiveText = TEXT("Hold the Valve Quarter while the Steamheart relights");
+		Radio(TEXT("Guildmaster Cogsworth-Vane"), TEXT("Pressure's holding! Forty-five seconds to relight her. And here come the reserve constables, wound for war."));
+		GS->MulticastSound(TEXT("SW_Alarm"), GS->ObjectiveLocation, 0.4f, 1);
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Same rules, Delta. Wind them down and mind the windows."), 6.f);
+		return;
+	}
 	Radio(TEXT("Gny. Sgt. Halloran"), bScriptedObjectives ? TEXT("Key's in! Locks are opening. Hold the docks till those ships are clear!")
 		: TEXT("Charges set! Forty-five seconds. Dig in, they'll want it back."));
 	GS->MulticastSound(TEXT("SW_Alarm"), GS->ObjectiveLocation, 0.6f, 1);
@@ -500,7 +565,13 @@ void ADVGameMode::StartExtract()
 	GS->StageProgress = 0.f;
 	GS->ObjectiveText = TEXT("Get to the landing zone for extraction");
 	StageStartTime = GetWorld()->GetTimeSeconds();
-	Radio(TEXT("Capt. Vance (Kestrel)"), bWalkerOp ? FString(TEXT("It's down. Nine hundred tonnes of it. Raven Two-One is inbound to your LZ, Delta."))
+	if (bManifoldOp)
+	{
+		Radio(TEXT("Guildmaster Cogsworth-Vane"), GS->CiviliansHurt == 0 ? TEXT("She's lit, and not one of my people hurt. The Guild remembers its debts, Commander.")
+			: TEXT("She's lit. My people will remember who fired in our streets, but they'll remember this too."), 1.f);
+	}
+	Radio(TEXT("Capt. Vance (Kestrel)"), bManifoldOp ? FString(TEXT("Steamheart is relit and the cure has a forge. Raven Two-One is inbound to your LZ, Delta."))
+		: bWalkerOp ? FString(TEXT("It's down. Nine hundred tonnes of it. Raven Two-One is inbound to your LZ, Delta."))
 		: bScriptedObjectives ? FString(TEXT("Transports are in open water. Twelve thousand people, Delta. Raven Two-One is coming for you."))
 		: FString::Printf(TEXT("Good kill on %s, Delta. Raven Two-One is inbound to your LZ. Get out of there."), *TargetNoun), 1.f);
 	FActorSpawnParameters Params;
@@ -538,6 +609,7 @@ void ADVGameMode::SpawnWave(int32 Count)
 			continue;
 		}
 		Frame->TeamId = 2;
+		Frame->bClockwork = bManifoldOp;
 		Frame->SetAlerted(true);	// counter-attacks know exactly where you are
 		Frame->FinishSpawning(SpawnTransform);
 		if (!Frame->GetController())
@@ -576,6 +648,14 @@ void ADVGameMode::TickStage()
 			{
 				GS->ObjectiveLocation = Walker->GetActiveCouplingLocation();
 				GS->StageProgress = (Walker->GetCouplingsBlown() + Walker->GetCouplingProgress()) / float(ADVWalker::NumCouplings);
+			}
+			break;
+		}
+		if (bManifoldOp)
+		{
+			if (const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()))
+			{
+				GS->StageProgress = Manifold->GetBalance();
 			}
 			break;
 		}
@@ -772,7 +852,7 @@ void ADVGameMode::OnWalkerDown()
 void ADVGameMode::SpawnBulwarks()
 {
 	const FString Map = GetWorld()->GetMapName();
-	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("RooksRest")) || Map.Contains(TEXT("BootCamp")) || ADVWalker::Find(GetWorld()))
+	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("RooksRest")) || Map.Contains(TEXT("BootCamp")) || ADVWalker::Find(GetWorld()) || ADVPressureManifold::Find(GetWorld()))
 	{
 		return;	// no Bulwark on Ironstride: the walker is the heavy
 	}
@@ -855,6 +935,11 @@ void ADVGameMode::RequestStrafeRun(APlayerController* Caller, const FVector& Tar
 	ADVGameState* GS = GetDVGameState();
 	if (!GS || !CanCallIn(Caller, Target, GS->StrafeReadyTime))
 	{
+		return;
+	}
+	if (GS->bRestrained)
+	{
+		Radio(TEXT("Raven Two-One"), TEXT("No can do, Delta. Not with people in those streets. Holding off."));
 		return;
 	}
 	const ADVSoldierCharacter* Commander = Cast<ADVSoldierCharacter>(Caller->GetPawn());
@@ -1042,7 +1127,11 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 	const bool bFriendlyLoss = Victim->TeamId == PlayerTeamId;
 	if (ADVGameState* GS = GetDVGameState())
 	{
-		const FString VictimName = Victim->GetSoldierName().IsEmpty() ? (bFriendlyLoss ? TEXT("You") : TEXT("Hearthbound trooper")) : Victim->GetSoldierName();
+		FString VictimName = Victim->GetSoldierName().IsEmpty() ? (bFriendlyLoss ? TEXT("You") : TEXT("Hearthbound trooper")) : Victim->GetSoldierName();
+		if (Victim->bClockwork)
+		{
+			VictimName += TEXT(" (wound down)");
+		}
 		const FString KillerName = !Killer ? TEXT("") : Killer->IsPlayerControlled() ? TEXT("You")
 			: Killer->GetSoldierName().IsEmpty() ? TEXT("War-frame") : Killer->GetSoldierName();
 		GS->MulticastKillFeed(KillerName, VictimName, bFriendlyLoss);
@@ -1056,7 +1145,8 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 			++HostileKills;
 			if (HostileKills == 1)
 			{
-				Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Scratch one tin can! They bleed oil, people. Keep it up."));
+				Radio(TEXT("Gny. Sgt. Halloran"), Victim->bClockwork ? TEXT("That one's wound down. Spring's still in it; the Guild can rewind it later. Next!")
+					: TEXT("Scratch one tin can! They bleed oil, people. Keep it up."));
 			}
 			else if (GS->EnemiesTotal > 3 && GS->EnemiesRemaining - 1 == GS->EnemiesTotal / 2 && !bIsTrainingMap)
 			{
@@ -1185,6 +1275,14 @@ void ADVGameMode::EndMission(bool bSuccess)
 		if (bSuccess)
 		{
 			RepGS->MulticastReputation(DVFactions::Accord, bIsTrainingMap ? 3 : 8, bIsTrainingMap ? TEXT("Training complete") : TEXT("Operation complete"));
+			if (bManifoldOp)
+			{
+				RepGS->MulticastReputation(DVFactions::Guild, 15, TEXT("The Steamheart relit"));
+				if (RepGS->CiviliansHurt == 0)
+				{
+					RepGS->MulticastReputation(DVFactions::Guild, 10, TEXT("Not one citizen of Brasshaven hurt"));
+				}
+			}
 			if (Map.Contains(TEXT("Breakwater")))
 			{
 				RepGS->MulticastReputation(DVFactions::Colonies, 20, TEXT("Twelve thousand evacuated from Port Halden"));
@@ -1200,6 +1298,10 @@ void ADVGameMode::EndMission(bool bSuccess)
 		}
 		else if (!bIsTrainingMap)
 		{
+			if (bManifoldOp)
+			{
+				RepGS->MulticastReputation(DVFactions::Guild, -10, TEXT("The Steamheart went cold"));
+			}
 			RepGS->MulticastReputation(DVFactions::Accord, -5, TEXT("Operation failed"));
 			if (Map.Contains(TEXT("Breakwater")))
 			{
@@ -1280,4 +1382,60 @@ void ADVGameMode::EndMission(bool bSuccess)
 	}
 	UE_LOG(LogDV, Log, TEXT("Mission %s ended (%s): %d survivors, %d wounded"), *MissionName,
 		bSuccess ? TEXT("success") : TEXT("failure"), Report.Survivors.Num(), Report.Wounded.Num());
+}
+
+void ADVGameMode::OnManifoldTurned(int32 Valve, bool bSolved)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || bMissionEnded || !bManifoldOp)
+	{
+		return;
+	}
+	if (GS->Stage != EDVMissionStage::Sabotage)
+	{
+		return;	// turned mid-fight: the stage picks it up when the constables are down
+	}
+	const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld());
+	if (bSolved)
+	{
+		GS->StageProgress = 1.f;
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UDVProfileSubsystem* Profile = GI->GetSubsystem<UDVProfileSubsystem>())
+			{
+				Profile->AddXP(Manifold && Manifold->GetTurns() <= 8 ? 150 : 100, Manifold && Manifold->GetTurns() <= 8 ? TEXT("Steamheart balanced, cleanly") : TEXT("Steamheart balanced"));
+			}
+		}
+		StartDefend();
+		return;
+	}
+	// Gentle hints if the squad is turning at random.
+	if (Manifold && Manifold->GetTurns() == 12)
+	{
+		Radio(TEXT("Guildmaster Cogsworth-Vane"), TEXT("Valve B feeds all three gauges. A and C only feed their neighbours. Fix the middle with the outer valves."));
+	}
+	else if (Manifold && Manifold->GetTurns() == 24)
+	{
+		int32 Turns[ADVPressureManifold::NumValves];
+		Manifold->GetSolution(Turns);
+		Radio(TEXT("Guildmaster Cogsworth-Vane"), FString::Printf(TEXT("Oh, give it here. From where she sits now: A %d times, B %d, C %d."), Turns[0], Turns[1], Turns[2]));
+	}
+}
+
+void ADVGameMode::NotifyCivilianHurt(ADVTownsfolk* Civilian, AActor* Shooter)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || bMissionEnded || !Civilian)
+	{
+		return;
+	}
+	++GS->CiviliansHurt;
+	const int32 Faction = LocalFaction >= 0 ? LocalFaction : DVFactions::Colonies;
+	GS->MulticastReputation(static_cast<uint8>(Faction), -4, FString::Printf(TEXT("Fired on %s"), *Civilian->DisplayName));
+	if (!bWarnedRoE)
+	{
+		bWarnedRoE = true;
+		Radio(Faction == DVFactions::Guild ? TEXT("Guildmaster Cogsworth-Vane") : TEXT("Gny. Sgt. Halloran"),
+			Faction == DVFactions::Guild ? TEXT("Those are my people, Commander! Hold your fire!") : TEXT("Check fire! Civilians! Check your targets!"));
+	}
 }

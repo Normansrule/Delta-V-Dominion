@@ -36,10 +36,18 @@ public:
 	/** What they say to the local commander right now (depends on Free Ports standing). */
 	FString Line(int32 FreePortsRep) const;
 
+	/** Server: a shot or blast from Shooter hit or landed beside them. They run, and the game mode counts a civilian hurt
+	 *  (restrained rules of engagement: see ADVGameMode::NotifyCivilianHurt). Never fatal. */
+	void OnShot(AActor* Shooter);
+	/** Server: every civilian within Radius of Center reacts to a blast that Shooter set off. */
+	static void BlastNear(UWorld* World, const FVector& Center, float Radius, AActor* Shooter);
+
 protected:
 	void Wander();
 	UPROPERTY() TObjectPtr<USkeletalMesh> AltBody;
 	FVector Home = FVector::ZeroVector;
 	double NextWander = 0.0;
 	int32 Seed = 0;
+	double LastShot = -100.0;
+	double FleeUntil = -100.0;
 };

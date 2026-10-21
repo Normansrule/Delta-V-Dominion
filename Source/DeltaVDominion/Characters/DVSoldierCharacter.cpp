@@ -125,6 +125,7 @@ void ADVSoldierCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(ADVSoldierCharacter, RosterId);
 	DOREPLIFETIME(ADVSoldierCharacter, SoldierName);
 	DOREPLIFETIME(ADVSoldierCharacter, TeamId);
+	DOREPLIFETIME(ADVSoldierCharacter, bClockwork);
 	DOREPLIFETIME(ADVSoldierCharacter, bIsDead);
 	DOREPLIFETIME(ADVSoldierCharacter, bDowned);
 	DOREPLIFETIME(ADVSoldierCharacter, Look);
@@ -185,6 +186,16 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 				Mat->SetScalarParameterValue(TEXT("EmissivePower"), 14.f);
 				continue;
 			}
+			if (!bFriendly && bClockwork)
+			{
+				// Guild constables: polished brass plate, warm amber optics behind glass.
+				Mat->SetVectorParameterValue(TEXT("Paint Tint"), FLinearColor(0.5f, 0.32f, 0.1f));
+				Mat->SetVectorParameterValue(TEXT("LogoTint"), FLinearColor(1.f, 0.55f, 0.12f));
+				Mat->SetScalarParameterValue(TEXT("MetalPaintMetallic"), 1.f);
+				Mat->SetScalarParameterValue(TEXT("MetalPaintRoughness"), 0.3f);
+				Mat->SetScalarParameterValue(TEXT("EmissivePower"), bIsDead ? 0.f : 16.f);
+				continue;
+			}
 			// Accord marines: matte olive armour, cyan unit markings.
 			// Hearthbound war-frames: black chrome chassis, hot red optics and seams.
 			Mat->SetVectorParameterValue(TEXT("Paint Tint"), bFriendly ? FriendlyPaint : HostilePaint);
@@ -196,7 +207,8 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 	}
 	if (!bFriendly && HasAuthority() && SoldierName.IsEmpty())
 	{
-		SoldierName = FString::Printf(TEXT("Warden-%03d"), FMath::RandRange(100, 999));
+		SoldierName = bClockwork ? FString::Printf(TEXT("Constable No. %d"), FMath::RandRange(100, 999))
+			: FString::Printf(TEXT("Warden-%03d"), FMath::RandRange(100, 999));
 	}
 }
 
@@ -928,7 +940,10 @@ void ADVSoldierCharacter::Die(AActor* DamageInstigator)
 	}
 
 	OnRep_IsDead();
-	SetLifeSpan(90.f);
+	if (!bClockwork)
+	{
+		SetLifeSpan(90.f);	// wound-down constables stay where they stopped, for the Guild to collect
+	}
 }
 
 void ADVSoldierCharacter::OnRep_IsDead()
@@ -941,7 +956,35 @@ void ADVSoldierCharacter::OnRep_IsDead()
 	{
 		AbilitySystemComponent->AddLooseGameplayTag(DVTags::State_Dead);
 	}
+	if (bClockwork)
+	{
+		WindDown();
+		return;
+	}
 	EnterRagdoll();
+}
+
+void ADVSoldierCharacter::WindDown()
+{
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	FirstPersonMesh->SetVisibility(false, true);
+	USkeletalMeshComponent* Body = GetMesh();
+	Body->SetOwnerNoSee(false);
+	Body->UnHideBoneByName(TEXT("neck_01"));
+	Body->bPauseAnims = true;
+	// Slump forward onto its knees, more or less: sink and pitch over, then the optics go dark.
+	SetActorLocationAndRotation(GetActorLocation() - FVector(0.f, 0.f, 45.f), FRotator(-24.f, GetActorRotation().Yaw, 0.f));
+	ApplyTeamAppearance();
+	DVFx::Flash(GetWorld(), GetActorLocation() + FVector(0.f, 0.f, 60.f), FLinearColor(1.f, 0.85f, 0.6f), 900.f, 500.f, 0.4f);
+	DVSound::At(GetWorld(), TEXT("SW_Thruster"), GetActorLocation(), 0.45f, 0, 0.2f);
+	if (PlaceholderBody)
+	{
+		PlaceholderBody->SetOwnerNoSee(false);
+		PlaceholderBody->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -40.f), FRotator(-30.f, 0.f, 0.f));
+		PlaceholderVisor->SetVisibility(false);
+	}
 }
 
 void ADVSoldierCharacter::EnterRagdoll()

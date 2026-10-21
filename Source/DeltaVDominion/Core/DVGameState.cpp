@@ -45,6 +45,9 @@ void ADVGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ADVGameState, MissionName);
 	DOREPLIFETIME(ADVGameState, Ascent);
 	DOREPLIFETIME(ADVGameState, bWalkerOp);
+	DOREPLIFETIME(ADVGameState, bRestrained);
+	DOREPLIFETIME(ADVGameState, bManifoldOp);
+	DOREPLIFETIME(ADVGameState, CiviliansHurt);
 	DOREPLIFETIME(ADVGameState, ObjectiveText);
 	DOREPLIFETIME(ADVGameState, EnemiesTotal);
 	DOREPLIFETIME(ADVGameState, EnemiesRemaining);

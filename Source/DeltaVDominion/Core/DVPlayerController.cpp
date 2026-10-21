@@ -1,4 +1,4 @@
-﻿#include "Core/DVPlayerController.h"
+#include "Core/DVPlayerController.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
@@ -36,6 +36,8 @@
 #include "UnrealClient.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "Core/DVPressureManifold.h"
+#include "Characters/DVTownsfolk.h"
 
 ADVPlayerController::ADVPlayerController()
 {
@@ -530,6 +532,10 @@ void ADVPlayerController::OnInteractPressed()
 		{
 			ServerExitVehicle();
 		}
+	}
+	else if (const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()); Manifold && Manifold->FindValveNear(MyPawn) >= 0)
+	{
+		ServerTurnValve(static_cast<uint8>(Manifold->FindValveNear(MyPawn)));
 	}
 	else if (ADVInteractable* Thing = ADVInteractable::FindNear(MyPawn))
 	{
@@ -1145,6 +1151,120 @@ void ADVPlayerController::DVBoard(const FString& Which, float Delay)
 				GetPawn()->TeleportTo(It->GetActorLocation() + FVector(0.f, -300.f, 120.f), GetPawn()->GetActorRotation());
 				ServerEnterVehicle(*It);
 				return;
+			}
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+#endif
+}
+
+void ADVPlayerController::ServerTurnValve_Implementation(uint8 Valve)
+{
+	ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld());
+	const ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn());
+	// The server checks the reach itself: a client can only turn the wheel it is standing at.
+	if (Manifold && Soldier && !Soldier->IsOutOfAction() && Manifold->FindValveNear(Soldier) == Valve)
+	{
+		Manifold->TurnValve(Valve);
+	}
+}
+
+void ADVPlayerController::DVValve(int32 Valve, int32 Times, float Delay)
+{
+#if !UE_BUILD_SHIPPING
+	if (Valve < 0)
+	{
+		// Solve it the way a player would: walk to each wheel in turn and press Z the right number of times.
+		FTimerHandle Plan;
+		GetWorldTimerManager().SetTimer(Plan, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld());
+			if (!Manifold)
+			{
+				return;
+			}
+			int32 Turns[ADVPressureManifold::NumValves];
+			Manifold->GetSolution(Turns);
+			UE_LOG(LogTemp, Display, TEXT("DVValve: gauges %d %d %d, solving with A x%d B x%d C x%d"),
+				Manifold->GetGauge(0), Manifold->GetGauge(1), Manifold->GetGauge(2), Turns[0], Turns[1], Turns[2]);
+			float At = 0.f;
+			for (int32 v = 0; v < ADVPressureManifold::NumValves; ++v)
+			{
+				if (Turns[v] > 0)
+				{
+					DVValve(v, Turns[v], At);
+					At += 1.5f + Turns[v] * 0.6f;
+				}
+			}
+		}), FMath::Max(Delay, 0.001f), false);
+		return;
+	}
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Valve, Times]()
+	{
+		const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld());
+		APawn* Me = GetPawn();
+		if (!Manifold || !Me)
+		{
+			return;
+		}
+		// Stand at the wheel, facing the panel, then turn it the way Z does.
+		const FVector At = Manifold->GetValveLocation(Valve) - Manifold->GetActorForwardVector() * 175.f;
+		Me->TeleportTo(FVector(At.X, At.Y, At.Z - 10.f), Manifold->GetActorRotation());
+		SetControlRotation(FRotator(-4.f, Manifold->GetActorRotation().Yaw, 0.f));
+		for (int32 i = 0; i < Times; ++i)
+		{
+			FTimerHandle Turn;
+			GetWorldTimerManager().SetTimer(Turn, FTimerDelegate::CreateWeakLambda(this, [this]() { OnInteractPressed(); }), 0.4f + i * 0.6f, false);
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+#endif
+}
+
+void ADVPlayerController::DVCivilianTest(float Delay)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		APawn* Me = GetPawn();
+		ADVTownsfolk* Nearest = nullptr;
+		float Best = TNumericLimits<float>::Max();
+		for (TActorIterator<ADVTownsfolk> It(GetWorld()); Me && It; ++It)
+		{
+			const float D = FVector::Dist(It->GetActorLocation(), Me->GetActorLocation());
+			if (D < Best)
+			{
+				Best = D;
+				Nearest = *It;
+			}
+		}
+		if (Nearest && HasAuthority())
+		{
+			UE_LOG(LogTemp, Display, TEXT("DVCivilianTest: firing on %s (%.0f m)"), *Nearest->DisplayName, Best / 100.f);
+			Nearest->OnShot(Me);
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+#endif
+}
+
+void ADVPlayerController::DVClearHostiles(float Delay, float Spacing)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Spacing]()
+	{
+		if (!HasAuthority())
+		{
+			return;
+		}
+		int32 n = 0;
+		for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+		{
+			if (It->TeamId != 1 && !It->IsDead())
+			{
+				TWeakObjectPtr<ADVSoldierCharacter> Target = *It;
+				FTimerHandle Each;
+				GetWorldTimerManager().SetTimer(Each, FTimerDelegate::CreateWeakLambda(this, [Target]() { if (Target.IsValid()) { Target->DevKill(); } }), 0.05f + Spacing * n++, false);
 			}
 		}
 	}), FMath::Max(Delay, 0.001f), false);

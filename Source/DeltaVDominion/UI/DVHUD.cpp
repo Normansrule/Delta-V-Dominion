@@ -1,4 +1,4 @@
-﻿#include "UI/DVHUD.h"
+#include "UI/DVHUD.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCommandComponent.h"
 #include "Combat/DVAttributeSet.h"
@@ -21,6 +21,7 @@
 #include "Vehicles/DVBoat.h"
 #include "Vehicles/DVKestrel.h"
 #include "Vehicles/DVWalker.h"
+#include "Core/DVPressureManifold.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -463,13 +464,22 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 				}
 				Text(Hint, CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
 			}
+			else if (const ADVPressureManifold* Manifold = GS->bManifoldOp ? ADVPressureManifold::Find(GetWorld()) : nullptr)
+			{
+				Right = FString::Printf(TEXT("GREEN %d / %d"), FMath::RoundToInt(Manifold->GetBalance() * ADVPressureManifold::NumValves), ADVPressureManifold::NumValves);
+				const APawn* Me = GetOwningPawn();
+				if (Me && FVector::Dist(Me->GetActorLocation(), Manifold->GetActorLocation()) > 1600.f)
+				{
+					Text(TEXT("The manifold is in the Steamheart's yard. Follow the marker"), CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
+				}
+			}
 			else
 			{
 				Right = FString::Printf(TEXT("PLANTING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f));
 			}
 			break;
 		case EDVMissionStage::Capture: Right = FString::Printf(TEXT("CAPTURING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
-		case EDVMissionStage::Defend: Right = FString::Printf(TEXT("DETONATION %ds"), FMath::Max(0, FMath::CeilToInt(GS->StageEndTime - GetWorld()->GetTimeSeconds()))); Color = DVHudColors::Hostile; break;
+		case EDVMissionStage::Defend: { const int32 Secs = FMath::Max(0, FMath::CeilToInt(GS->StageEndTime - GetWorld()->GetTimeSeconds())); Right = GS->bManifoldOp ? FString::Printf(TEXT("RELIGHT %ds"), Secs) : FString::Printf(TEXT("DETONATION %ds"), Secs); } Color = DVHudColors::Hostile; break;
 		case EDVMissionStage::Extract: Right = GS->StageProgress < 1.f ? FString(TEXT("RAVEN INBOUND")) : FString(TEXT("RAVEN ON THE PAD")); Color = Cyan; break;
 		default: break;
 		}
@@ -509,7 +519,7 @@ void ADVHUD::DrawKillFeed(const ADVGameState* GS)
 		const float Alpha = Age > 6.0 ? 1.f - static_cast<float>((Age - 6.0) / 2.0) : 1.f;
 		FLinearColor Color = Entry.bFriendlyLoss ? DVHudColors::Hostile : DVHudColors::Text;
 		Color.A = Alpha;
-		const FString Line = Entry.Killer.IsEmpty() ? FString::Printf(TEXT("%s killed"), *Entry.Victim)
+		const FString Line = Entry.Killer.IsEmpty() ? (Entry.Victim.EndsWith(TEXT("(wound down)")) ? Entry.Victim : FString::Printf(TEXT("%s killed"), *Entry.Victim))
 			: FString::Printf(TEXT("%s  >  %s"), *Entry.Killer, *Entry.Victim);
 		Text(Line, Right, Y, Color, GEngine->GetSmallFont(), DVType::Body, false, true);
 		Y += S(26.f);
@@ -578,6 +588,14 @@ void ADVHUD::DrawAfterAction(const ADVGameState* GS)
 		Y += S(54.f);
 	}
 
+	if (GS->bRestrained || GS->CiviliansHurt > 0)
+	{
+		Y += S(12.f);
+		Text(GS->CiviliansHurt == 0 ? FString(TEXT("Civilians hurt: none. The Guild noticed."))
+			: FString::Printf(TEXT("Civilians fired on: %d. Their town will remember."), GS->CiviliansHurt), CX, Y,
+			GS->CiviliansHurt == 0 ? DVHudColors::Health : DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
+		Y += S(40.f);
+	}
 	if (GS->AfterAction.ContainsByPredicate([](const FDVAfterActionLine& L) { return L.bKIA; }))
 	{
 		Y += S(12.f);
@@ -652,7 +670,11 @@ void ADVHUD::DrawOrbital(const ADVGameState* GS)
 	const float Remaining = GS->OrbitalReadyTime - Now;
 	const float CX = Canvas->ClipX * 0.5f;
 	const float Y = Canvas->ClipY - S(70.f);
-	if (Remaining <= 0.f)
+	if (GS->bRestrained)
+	{
+		Text(TEXT("RESTRAINED RULES  -  CIVILIANS PRESENT"), CX, Y, DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);
+	}
+	else if (Remaining <= 0.f)
 	{
 		const float Pulse = 0.7f + 0.3f * FMath::Sin(GetWorld()->GetRealTimeSeconds() * 4.f);
 		Text(TEXT("ORBITAL STRIKE READY  [B]"), CX, Y, DVHudColors::A(DVHudColors::Accent, Pulse), GEngine->GetMediumFont(), DVType::Emph, true);
@@ -684,6 +706,12 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 	if (const UDVSeatComponent* Seat = UDVSeatComponent::FindNear(Soldier))
 	{
 		Text(FString::Printf(TEXT("[Z]  Board %s"), *Seat->VehicleName), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Friendly, GEngine->GetMediumFont(), DVType::Emph, true);
+	}
+	else if (const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()); Manifold && Manifold->FindValveNear(Soldier) >= 0)
+	{
+		const int32 Valve = Manifold->FindValveNear(Soldier);
+		Text(FString::Printf(TEXT("[Z]  Turn valve %s"), *ADVPressureManifold::ValveName(Valve)), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
+		DrawManifold(Manifold, Valve);
 	}
 	else if (const ADVInteractable* Thing = ADVInteractable::FindNear(Soldier))
 	{
@@ -848,6 +876,11 @@ void ADVHUD::DrawCallIns(const ADVGameState* GS)
 	{
 		const float X = Canvas->ClipX * 0.5f + (i == 0 ? -S(150.f) : S(150.f));
 		const float Remaining = Items[i].Ready - Now;
+		if (i == 1 && GS->bRestrained)
+		{
+			Text(TEXT("STRAFING RUN  NOT CLEARED"), X, Y, DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);
+			continue;
+		}
 		if (Remaining <= 0.f)
 		{
 			Text(FString::Printf(TEXT("%s READY  [%s]"), Items[i].Name, Items[i].Key), X, Y, i == 0 ? DVHudColors::Health : DVHudColors::Accent, GEngine->GetSmallFont(), DVType::Body, true);
@@ -1009,11 +1042,12 @@ void ADVHUD::DrawLocker()
 	// Standing with the three powers, from Hostile to Allied.
 	const float FX = RX + S(500.f);
 	float FY = Canvas->ClipY * 0.22f;
-	DrawRect(DVHudColors::A(DVHudColors::PanelStrong, 0.82f), FX - S(20.f), FY - S(20.f), S(440.f), S(330.f));
+	DrawRect(DVHudColors::A(DVHudColors::PanelStrong, 0.82f), FX - S(20.f), FY - S(20.f), S(440.f), S(76.f + 86.f * DVFactions::Num));
 	Text(TEXT("Standing"), FX, FY, DVHudColors::Gold, GEngine->GetLargeFont(), DVType::Title);
 	FY += S(56.f);
 	const TCHAR* Perks[DVFactions::Num] = { TEXT("Trusted: Longreach DMR  |  Allied: orbital priority"),
-		TEXT("Trusted: fuller supply pods"), TEXT("Trusted: Pulse Carbine  |  Allied: faster supply drops") };
+		TEXT("Trusted: fuller supply pods"), TEXT("Trusted: Pulse Carbine  |  Allied: faster supply drops"),
+		TEXT("Earned in Brasshaven: wind down, don't scrap, and mind the townsfolk") };
 	for (int32 F = 0; F < DVFactions::Num; ++F)
 	{
 		const int32 V = Profile->GetRep(F);
@@ -1244,4 +1278,35 @@ void ADVHUD::DrawAscent(const ADVGameState* GS)
 	Text(Dist > 60.f ? FString::Printf(TEXT("Starboard bay  %.1f km"), Dist / 1000.f) : FString(TEXT("Coming aboard")), W * 0.5f, H * 0.925f,
 		DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);
 	DrawRadio(GS);
+}
+
+void ADVHUD::DrawManifold(const ADVPressureManifold* Manifold, int32 NearValve)
+{
+	// Three dials as five-step ladders: the target step is outlined in green, the current step lit in its warning colour.
+	const float W = S(420.f);
+	const float X0 = Canvas->ClipX * 0.66f;	// beside the crosshair, clear of the radio subtitles below
+	const float Y0 = Canvas->ClipY * 0.4f;
+	DrawRect(DVHudColors::Panel, X0, Y0, W, S(196.f));
+	Text(TEXT("Steamheart pressure"), X0 + S(20.f), Y0 + S(12.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Caption);
+	const float ColW = W / ADVPressureManifold::NumValves;
+	for (int32 g = 0; g < ADVPressureManifold::NumValves; ++g)
+	{
+		const float CX = X0 + ColW * (g + 0.5f);
+		const bool bFed = ADVPressureManifold::Feeds(NearValve, g);
+		Text(FString::Printf(TEXT("Gauge %d"), g + 1), CX, Y0 + S(40.f), bFed ? DVHudColors::Text : DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Caption, true);
+		const int32 Step = Manifold->GetGauge(g);
+		for (int32 k = 0; k < ADVPressureManifold::Steps; ++k)
+		{
+			const float SY = Y0 + S(150.f) - k * S(18.f);
+			const FLinearColor Lit = k == ADVPressureManifold::Green ? DVHudColors::Health : k == ADVPressureManifold::Steps - 1 ? DVHudColors::Hostile : DVHudColors::Accent;
+			DrawRect(k == Step ? Lit : DVHudColors::A(DVHudColors::Text, 0.12f), CX - S(36.f), SY, S(72.f), S(12.f));
+			if (k == ADVPressureManifold::Green && k != Step)
+			{
+				DrawRect(DVHudColors::A(DVHudColors::Health, 0.55f), CX - S(40.f), SY + S(4.f), S(4.f), S(4.f));
+				DrawRect(DVHudColors::A(DVHudColors::Health, 0.55f), CX + S(36.f), SY + S(4.f), S(4.f), S(4.f));
+			}
+		}
+	}
+	Text(FString::Printf(TEXT("Valve %s feeds %s"), *ADVPressureManifold::ValveName(NearValve), NearValve == 1 ? TEXT("all three gauges") : NearValve == 0 ? TEXT("gauges 1 and 2") : TEXT("gauges 2 and 3")),
+		X0 + W * 0.5f, Y0 + S(168.f), DVHudColors::Warn, GEngine->GetSmallFont(), DVType::Caption, true);
 }
