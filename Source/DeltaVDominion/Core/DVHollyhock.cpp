@@ -280,7 +280,7 @@ void ADVPuffbot::Tick(float DeltaSeconds)
 	{
 		return;
 	}
-	NextThink = Now + 0.38;
+	NextThink = Now + 0.3;
 	// Who's closest? Anyone inside Skittish sends it running directly away from them.
 	const APawn* Threat = nullptr;
 	float ThreatDist = Skittish;
