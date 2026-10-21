@@ -65,10 +65,14 @@ private:
 
 	// Helpers (all positions in 1080p reference units, scaled to the viewport).
 	float S(float V) const { return V * UIScale; }
-	void Text(const FString& Str, float X, float Y, const FLinearColor& Color, UFont* Font, float Scale = 1.f, bool bCentre = false, bool bRight = false);
+	void Text(const FString& Str, float X, float Y, const FLinearColor& Color, UFont* Font, float Scale = 1.f, bool bCentre = false, bool bRight = false, bool bShadow = true);
+	/** A painted deck marking (flat amber fill by default); text on it is drawn in DeckInk without a shadow. */
+	void DeckBand(float X, float Y, float W, float H, const FLinearColor& Fill = FLinearColor(0.888f, 0.434f, 0.012f, 1.f));
 	void Bar(float X, float Y, float W, float H, float Fraction, const FLinearColor& Fill);
 
 	float UIScale = 1.f;
+	/** Set while the job board is open this frame, so toasts that would sit under it stay away. */
+	bool bBoardOpen = false;
 	TWeakObjectPtr<UDVCommandComponent> BoundCommand;
 	FString OrderToast;
 	double OrderToastTime = -100.0;

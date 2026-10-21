@@ -1,12 +1,12 @@
-"""Draws the README progress bars as SVG files in Docs/media/progress (GitHub renders them as images).
+"""Draws the README progress bars as SVG files in docs/media/progress (GitHub renders them as images).
 
 Edit PROGRESS below at each milestone and re-run:  python Scripts/make_progress_bars.py
-Percentages are judged against the plan in Docs/CAMPAIGN.md, not against a finished AAA game.
+Percentages are judged against the plan in docs/CAMPAIGN.md, not against a finished AAA game.
 """
 
 import os
 
-OUT = os.path.join(os.path.dirname(__file__), "..", "Docs", "media", "progress")
+OUT = os.path.join(os.path.dirname(__file__), "..", "docs", "media", "progress")
 
 # key: (label, percent)
 PROGRESS = {

@@ -83,7 +83,7 @@ void ADVGameMode::SetupMissionForMap()
 	{
 		return;
 	}
-	// Per-map mission text and radio script (see Docs/CAMPAIGN.md). Data-driven missions come with the mission system.
+	// Per-map mission text and radio script (see docs/CAMPAIGN.md). Data-driven missions come with the mission system.
 	struct FMissionScript
 	{
 		const TCHAR* MapKey;

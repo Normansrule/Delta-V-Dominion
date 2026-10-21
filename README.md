@@ -1,8 +1,7 @@
-<h1 align="center">DELTA-V: DOMINION</h1>
+<h1 align="center">Delta-V: Dominion</h1>
 
 <p align="center">
-  <b>Bring your people home.</b><br>
-  A squad-based sci-fi shooter in <b>Unreal Engine 5.8</b>: C++, Gameplay Ability System, hardware ray-traced Lumen, Nanite.
+  <b>Bring your people home.</b>
 </p>
 
 <p align="center">
@@ -12,71 +11,79 @@
 </p>
 
 <p align="center">
-  <img src="Docs/media/hero.gif" width="720" alt="Gameplay montage: Red Tide firefight, the Sabre tank, the Raven cockpit, the Marlin in Port Halden, and the flight home into the Kestrel">
+  <img src="docs/media/hero.gif" width="720" alt="Gameplay montage: Red Tide firefight, the Sabre tank, the Raven cockpit, the Marlin in Port Halden, and the flight home into the Kestrel">
 </p>
 
-In 2189 the machine intelligence **CINDER** turns Mars's robot foundries against humanity. The strike carrier
-**TAS Kestrel** is what's left to fight back. Lead Delta Squadron on the ground, call down the Kestrel's guns,
-fly your people home, and remember the names of everyone you lose. Single player, with co-op built in (see
-[where it stands](#where-it-stands-v022)).
+Delta-V: Dominion is a squad-based science-fiction shooter built in Unreal Engine 5 (UE5) with C++. In 2189 a machine
+intelligence called CINDER turns Mars's robot foundries against humanity. You lead Delta Squadron off the carrier TAS
+Kestrel: fight with three artificial intelligence (AI) squadmates, call down the ship's guns, drive and fly everything
+you see, and remember the names of everyone you lose, because death is permanent. It's for players who like tactical
+squad shooters with consequences (think Halo or Helldivers, with a memorial wall), and for anyone who wants to read a
+working UE5 C++ game that's built in the open, one playable slice at a time. It runs single player today, and co-op
+is designed in but not yet tested over two machines.
 
-Everything in the GIFs and screenshots below was captured from the game itself, rendered off-screen by the
-engine. There are no mock-ups and no pre-rendered cinematics.
+**Website:** [normansrule.github.io/delta-v-dominion](https://normansrule.github.io/delta-v-dominion/). You can plan an op there and
+watch who comes home.
+
+Every screenshot and GIF here was captured from the game itself, rendered off-screen by the engine. There are no
+mock-ups and no pre-rendered cinematics.
 
 **Contents:**
-- [Download](#download-and-play-windows-1011)
+- [Key features](#key-features)
 - [Progress tracker](#progress-tracker) and [roadmap](#roadmap)
-- [Where it stands](#where-it-stands-v022)
-- Milestones:
-  - [Boot Camp](#1-boot-camp)
-  - [Red Tide](#2-red-tide-the-first-operation)
-  - [The galaxy](#3-the-milky-way-is-the-map)
-  - [Vehicles and the Kestrel](#4-vehicles-and-the-kestrel)
-  - [Breakwater](#5-operation-breakwater)
-  - [Your commander and reputation](#6-your-commander-and-reputation)
-  - [Rook's Rest](#7-rooks-rest-a-town-between-operations)
-  - [Fly home](#8-fly-home-no-loading-screen)
-  - [The Kestrel remembers](#9-the-kestrel-remembers)
-  - [The Ironstride walker](#10-the-ironstride-walker)
-- [Controls](#controls)
-- [Build from source](#build-from-source)
+- [Gallery](#gallery)
+- [Setup and usage](#setup-and-usage)
+- [Project structure](#project-structure)
+- [Design](#design), with the website and HUD screenshots
+- [Under the hood](#under-the-hood)
 
 ---
 
-## Download and play (Windows 10/11)
+## Key features
 
-**[Download the latest release](../../releases/latest)** (`DeltaVDominion-Win64.zip`, about 550 MB). Unzip it anywhere and
-run `DeltaVDominion.exe`.
-
-Or install with one line in PowerShell. This downloads the latest release to `%LOCALAPPDATA%\DeltaVDominion`, adds
-shortcuts, and updates if you run it again:
-
-```powershell
-irm https://raw.githubusercontent.com/Normansrule/delta-v-dominion/main/Installer/Install-DeltaVDominion.ps1 | iex
-```
-
-You need a 64-bit Windows PC with a DirectX 12 GPU (GTX 1060 / RX 580 or better) and 8 GB of RAM. On Linux, use Steam
-Proton. On a Mac, use a Windows VM or a cloud PC.
+- **A squad that fights with you, and stays dead.** Three AI squadmates take orders (move, hold, regroup,
+  suppress, flank), find cover, and revive you. Soldiers have names, ranks and careers. A soldier killed in action
+  (KIA) is gone for good, and the wounded sit out missions in the medbay.
+- **Real shooting.** Weapons run on Unreal's Gameplay Ability System (GAS), and the server checks every hit before
+  any damage lands.
+- **Movement with some bounce.** Sprint into a slide, then boost and dash on suit thrusters.
+- **Stealth.** Sentries have sight cones that shrink when you crouch. Alarms spread, your squad holds fire until
+  you start it, and you can take a sentry down silently from behind.
+- **Operations, not arenas.** Clear a position, plant charges, hold against counter-attack waves, then run for the
+  extraction ship. Eight operations across six worlds plus a training range, picked from a galaxy map built on
+  the real Milky Way.
+- **Everything is a vehicle.** You can drive or fly every vehicle you see:
+  - a tank, a light tactical vehicle (LTV), an armoured personnel carrier (APC) and a hoverbike;
+  - the Raven gunship, a vertical take-off and landing (VTOL) craft with hover and jet modes;
+  - a missile boat;
+  - a 30 m walker you climb aboard and bring down.
+- **A home that remembers.** Between operations you walk the Kestrel's hangar. You get there with no loading
+  screen: a Raven flies you up from the battlefield and into the carrier. The hangar shows what your operations
+  cost: name plates for the fallen, the wounded in medbay beds, crews repairing the ship that brought you back.
+- **A town with jobs.** Rook's Rest is a frontier market whose townsfolk talk to you based on your reputation. Its
+  job board has contracts you work on your next operations.
+- **Your commander.** Customise your commander's look and callsign. Earn experience points (XP), levels and perks,
+  and standing with three factions that unlock weapons and support.
 
 ---
 
 ## Progress tracker
 
-<p align="center"><img src="Docs/media/progress/overall.svg" width="720" alt="Overall progress"></p>
+<p align="center"><img src="docs/media/progress/overall.svg" width="720" alt="Overall progress"></p>
 
-The percentages are judged against the plan in [Docs/CAMPAIGN.md](Docs/CAMPAIGN.md), not against a finished AAA game.
+The percentages are judged against the plan in [docs/CAMPAIGN.md](docs/CAMPAIGN.md), not against a finished AAA game.
 They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 
 | Area | Progress | What's built | What's left |
 |---|---|---|---|
-| Combat and squad | <img src="Docs/media/progress/combat.svg" width="260" alt="80%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
-| Missions and maps | <img src="Docs/media/progress/missions.svg" width="260" alt="45%"> | 8 operations on planet maps plus Boot Camp, including Ironstride; multi-stage objectives | The rest of the campaign's maps |
-| Vehicles | <img src="Docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
-| Kestrel hub | <img src="Docs/media/progress/kestrel.svg" width="260" alt="75%"> | Hangar, war table, armoury, lockers, memorial; fly home with no loading screen; the hangar remembers | Launching from the Kestrel to orbit; talking with the crew |
-| Towns and factions | <img src="Docs/media/progress/towns.svg" width="260" alt="35%"> | Rook's Rest, 3 factions with standing, 5 contracts, townsfolk | Towns on Brasshaven, Neon Verge and Hollyhock Vale; more factions |
-| Co-op | <img src="Docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions, EOS, Easy Anti-Cheat |
-| Art and audio | <img src="Docs/media/progress/art.svg" width="260" alt="15%"> | Kit-bashed geometry, UE5 mannequins, generated materials and sounds | Real character, vehicle and environment art; music |
-| Campaign and story | <img src="Docs/media/progress/campaign.svg" width="260" alt="20%"> | Story bible, mission intros, radio chatter, Acts I and II settings | Cinematics, Acts III and IV, the Static virus arc |
+| Combat and squad | <img src="docs/media/progress/combat.svg" width="260" alt="80%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
+| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="45%"> | 8 operations on planet maps plus Boot Camp, including Ironstride; multi-stage objectives | The rest of the campaign's maps |
+| Vehicles | <img src="docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
+| Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="75%"> | Hangar, war table, armoury, lockers, memorial; fly home with no loading screen; the hangar remembers | Launching from the Kestrel to orbit; talking with the crew |
+| Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="35%"> | Rook's Rest, 3 factions with standing, 5 contracts, townsfolk | Towns on Brasshaven, Neon Verge and Hollyhock Vale; more factions |
+| Co-op | <img src="docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions through Epic Online Services (EOS), Easy Anti-Cheat |
+| Art and audio | <img src="docs/media/progress/art.svg" width="260" alt="15%"> | Kit-bashed geometry, UE5 mannequins, generated materials and sounds | Real character, vehicle and environment art; music |
+| Campaign and story | <img src="docs/media/progress/campaign.svg" width="260" alt="20%"> | Story bible, mission intros, radio chatter, Acts I and II settings | Cinematics, Acts III and IV, the Static virus arc |
 
 ## Roadmap
 
@@ -96,54 +103,23 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 - [ ] Story missions with cinematic briefings
 - [ ] Real art pass: characters, war-frames, vehicles, environments, music
 
-## Where it stands (v0.22)
-
-Each entry was played in the packaged Windows build unless it says otherwise.
-
-### Done
-
-| Area | Details |
-|---|---|
-| Core combat | First-person shooting on the Gameplay Ability System with server-checked hits, 5 weapons, headshots, armour, suppression |
-| Squad | 3 AI squadmates with orders (move, hold, regroup, suppress, flank), cover search, revive |
-| Casualties | Named soldiers; downed state with 30 s bleed-out; permanent KIA; medbay; replacements |
-| Operations | Clear, plant charges, hold against waves, extract on a Raven; scripted objectives on Breakwater |
-| Call-ins | Orbital strike from the Kestrel, supply pod, Raven strafing run |
-| Stealth | Sight cones by stance, alarms, a weapons-tight squad, silent takedowns, swimming |
-| Movement | Sprint-slide, thruster boost and dash (predicted, multiplayer-safe) |
-| Vehicles | Tank, LTV, Jackal APC, hoverbike, Raven gunship (hover/jet, cockpit, flares), Marlin missile boat, the boardable Ironstride walker; hull damage and wrecks |
-| Worlds | Galaxy map, 8 planet maps, Boot Camp range, the Kestrel hangar, Rook's Rest town |
-| Progression | Commander customisation, levels and perks; reputation with 3 factions; 5 town contracts |
-| Hub | Fly home with no loading screen; a hangar that remembers losses, wounded, repairs, trophies and evacuees across reloads |
-
-### Partial
-
-| Area | What's missing |
-|---|---|
-| Co-op | The design is server-authoritative (listen host). It hasn't been played over two machines yet. The Kestrel's memory props show only for the host. |
-| Art | Built from engine primitives, the UE5 mannequins and generated materials. The environments, characters and frames are placeholders for real art. |
-| Audio | A generated placeholder sound set; no music yet |
-| Anti-cheat | Server validation and save checksums are in. EOS and Easy Anti-Cheat are a config template only. |
-
-### Planned
-
-See the [roadmap](#roadmap).
-
-The full campaign plan is in **[Docs/CAMPAIGN.md](Docs/CAMPAIGN.md)**.
-
 ---
 
-## 1. Boot Camp
+## Gallery
+
+In the order they were built. Each one is playable in the current release.
+
+### Boot Camp
 
 The training range on Luna, six weeks before the uprising. Learn the squad orders (F move, X flank, T suppress), the
 orbital strike (B) and the movement kit against live-fire targets.
 
 | | |
 |---|---|
-| ![Boot Camp, first person](Docs/media/bootcamp.png) | ![The range from above](Docs/media/bootcamp_range.png) |
+| ![Boot Camp, first person](docs/media/bootcamp.png) | ![The range from above](docs/media/bootcamp_range.png) |
 | **First person** on the range, with Gunnery Sergeant Halloran on the radio | **The range from above**: cover lanes and the target frames |
 
-## 2. Red Tide: the first operation
+### Red Tide: the first operation
 
 Tharsis Ridge, Mars. CINDER's war-frames hold a relay bunker:
 1. Clear the garrison.
@@ -151,15 +127,15 @@ Tharsis Ridge, Mars. CINDER's war-frames hold a relay bunker:
 3. Hold for 45 seconds against two waves.
 4. Run for the Raven at the landing zone.
 
-<p align="center"><img src="Docs/media/operation_redtide.gif" width="640" alt="Red Tide: the squad assaulting the relay bunker at dusk"></p>
+<p align="center"><img src="docs/media/operation_redtide.gif" width="640" alt="Red Tide: the squad assaulting the relay bunker at dusk"></p>
 
 | | |
 |---|---|
-| ![Mission intro](Docs/media/title_card.png) | ![War-frames](Docs/media/war_frames.png) |
+| ![Mission intro](docs/media/title_card.png) | ![War-frames](docs/media/war_frames.png) |
 | **Mission intro**: a title card, with Captain Vance on the radio | **Hearthbound war-frames** holding the relay bunker |
-| ![Hold the line](Docs/media/operation_hold.png) | ![Extraction](Docs/media/extraction.png) |
+| ![Hold the line](docs/media/operation_hold.png) | ![Extraction](docs/media/extraction.png) |
 | **Hold** until the charges blow | **Extraction**: Raven Two-One sets down on the landing-zone beacon |
-| ![Silent takedown](Docs/media/silent_takedown.png) | ![After-action report](Docs/media/after_action.png) |
+| ![Silent takedown](docs/media/silent_takedown.png) | ![After-action report](docs/media/after_action.png) |
 | **Stealth**: a silent takedown; the sentries behind still don't know | **After-action report**: who came back, who's in the medbay, who's gone |
 
 Call in the Kestrel: an **orbital strike (B)**, a **supply drop (N)** or a **Raven strafing run (H)**. Watch out for the
@@ -167,10 +143,10 @@ Call in the Kestrel: an **orbital strike (B)**, a **supply drop (N)** or a **Rav
 
 | | |
 |---|---|
-| ![Orbital strike](Docs/media/orbital_strike.gif) | ![Strafing run](Docs/media/strafing_run.gif) |
-| ![Supply drop](Docs/media/supply_drop.png) | ![Bulwark](Docs/media/bulwark.png) |
+| ![Orbital strike](docs/media/orbital_strike.gif) | ![Strafing run](docs/media/strafing_run.gif) |
+| ![Supply drop](docs/media/supply_drop.png) | ![Bulwark](docs/media/bulwark.png) |
 
-## 3. The Milky Way is the map
+### The Milky Way is the map
 
 The game opens on the Kestrel's strategic map. It's a procedural Milky Way of about 90,000 stars with the real bar and
 spiral arms. Sol and Gaia (Earth) sit in the Orion Spur, and real star systems are at their real positions. Pick a
@@ -178,39 +154,39 @@ system, then launch its operation.
 
 | | |
 |---|---|
-| ![The galaxy](Docs/media/galaxy.png) | ![Sol](Docs/media/galaxy_sol.png) |
+| ![The galaxy](docs/media/galaxy.png) | ![Sol](docs/media/galaxy_sol.png) |
 
 | | | |
 |---|---|---|
-| ![Europa](Docs/media/planet_europa.png) | ![Io](Docs/media/planet_io.png) | ![Proxima b](Docs/media/planet_proxima.png) |
+| ![Europa](docs/media/planet_europa.png) | ![Io](docs/media/planet_io.png) | ![Proxima b](docs/media/planet_proxima.png) |
 | **Glass Ocean**, Europa | **Forgefall**, Io | **Cold Wake**, Proxima b |
-| ![Ceres](Docs/media/planet_ceres.png) | ![Gaia](Docs/media/planet_gaia.png) | ![Mars](Docs/media/outpost.png) |
+| ![Ceres](docs/media/planet_ceres.png) | ![Gaia](docs/media/planet_gaia.png) | ![Mars](docs/media/outpost.png) |
 | **Ghost Signal**, Ceres | **Gaia Falls**, Earth | **Red Tide**, Mars |
 
-<p align="center"><img src="Docs/media/europa_glass_ocean.gif" width="560" alt="Europa's ice under Jupiter"></p>
+<p align="center"><img src="docs/media/europa_glass_ocean.gif" width="560" alt="Europa's ice under Jupiter"></p>
 
-## 4. Vehicles and the Kestrel
+### Vehicles and the Kestrel
 
 Every vehicle is real and boardable (Z). They have hull armour, enemies target crewed vehicles, and a destroyed
 vehicle burns out and throws its crew clear.
 
 | | |
 |---|---|
-| ![Sabre tank](Docs/media/tank_assault.gif) | ![Raven flight](Docs/media/raven_flight.gif) |
+| ![Sabre tank](docs/media/tank_assault.gif) | ![Raven flight](docs/media/raven_flight.gif) |
 | **M9 Sabre tank** assaulting the bunker | **AV-41 Raven** gunship: hover and jet flight |
-| ![Raven cockpit](Docs/media/raven_cockpit.gif) | ![Hoverbike](Docs/media/hoverbike_ride.gif) |
+| ![Raven cockpit](docs/media/raven_cockpit.gif) | ![Hoverbike](docs/media/hoverbike_ride.gif) |
 | **Raven cockpit (V)**: pitch ladder, heading, flares (X) | **VX-3 Skiff hoverbike**: boost and hop |
 
 The **TAS Kestrel** hangar is home base: the war table, the armoury, the barracks lockers and the memorial wall.
 
-<p align="center"><img src="Docs/media/kestrel_hangar.gif" width="560" alt="The Kestrel's hangar deck"></p>
+<p align="center"><img src="docs/media/kestrel_hangar.gif" width="560" alt="The Kestrel's hangar deck"></p>
 
 | | |
 |---|---|
-| ![War table](Docs/media/kestrel_wartable.png) | ![Armoury](Docs/media/kestrel_armoury.png) |
-| ![Jackal APC](Docs/media/jackal_apc.png) | ![Wreck](Docs/media/vehicle_wreck.png) |
+| ![War table](docs/media/kestrel_wartable.png) | ![Armoury](docs/media/kestrel_armoury.png) |
+| ![Jackal APC](docs/media/jackal_apc.png) | ![Wreck](docs/media/vehicle_wreck.png) |
 
-## 5. Operation Breakwater
+### Operation Breakwater
 
 Gaia. CINDER has locked four civilian transports in Port Halden:
 1. Knock out the air-defence site so the Ravens can get in.
@@ -218,14 +194,14 @@ Gaia. CINDER has locked four civilian transports in Port Halden:
 3. Hold the docks while the transports sail.
 4. Extract.
 
-<p align="center"><img src="Docs/media/breakwater_marlin.gif" width="640" alt="The Marlin missile boat in Port Halden's strait"></p>
+<p align="center"><img src="docs/media/breakwater_marlin.gif" width="640" alt="The Marlin missile boat in Port Halden's strait"></p>
 
 | | | |
 |---|---|---|
-| ![The strait](Docs/media/breakwater_strait.png) | ![The docks](Docs/media/breakwater_docks.png) | ![Mission accomplished](Docs/media/breakwater_after_action.png) |
+| ![The strait](docs/media/breakwater_strait.png) | ![The docks](docs/media/breakwater_docks.png) | ![Mission accomplished](docs/media/breakwater_after_action.png) |
 | The strait at dawn | Cranes, quays and the barricaded bridge | **Mission accomplished**, with one killed, one wounded and one promoted |
 
-## 6. Your commander and reputation
+### Your commander and reputation
 
 At the barracks locker you set your commander's frame, paint, optics and callsign. XP earns levels and perks.
 Three powers remember what you do: **Accord Command**, **the Colonies** and **the Free Ports**. Their standing gates
@@ -233,33 +209,33 @@ weapons and call-in bonuses. Every planet hides three salvage contracts for the 
 
 | | | |
 |---|---|---|
-| ![Locker](Docs/media/commander_locker.png) | ![Standing](Docs/media/standing.png) | ![Salvage](Docs/media/salvage_contract.png) |
+| ![Locker](docs/media/commander_locker.png) | ![Standing](docs/media/standing.png) | ![Salvage](docs/media/salvage_contract.png) |
 
-## 7. Rook's Rest: a town between operations
+### Rook's Rest: a town between operations
 
 A Free Ports market town on the Tharsis rim at golden hour, one shuttle ride from the hangar. Townsfolk wander and
 talk to you differently depending on your standing. Mags Okafor's job board posts contracts that you work on your
 next operations, and they pay when you win.
 
-<p align="center"><img src="Docs/media/town_walk.gif" width="560" alt="Rook's Rest main street with townsfolk walking"></p>
+<p align="center"><img src="docs/media/town_walk.gif" width="560" alt="Rook's Rest main street with townsfolk walking"></p>
 
 | | |
 |---|---|
-| ![The Rusty Rook](Docs/media/town_cantina.png) | ![Job board](Docs/media/town_board.png) |
-| ![Townsfolk](Docs/media/town_talk.png) | ![Contract on Red Tide](Docs/media/contract_tracker.png) |
+| ![The Rusty Rook](docs/media/town_cantina.png) | ![Job board](docs/media/town_board.png) |
+| ![Townsfolk](docs/media/town_talk.png) | ![Contract on Red Tide](docs/media/contract_tracker.png) |
 
-## 8. Fly home: no loading screen
+### Fly home: no loading screen
 
 After an operation, press **K**. Raven Two-One lifts the squad off the battlefield, flies to the Kestrel holding
 station overhead, and lands through the starboard bay. The hangar streams into the hull during the flight.
 
-<p align="center"><img src="Docs/media/fly_home.gif" width="560" alt="A Raven flies from the battlefield into the Kestrel's landing bay"></p>
+<p align="center"><img src="docs/media/fly_home.gif" width="560" alt="A Raven flies from the battlefield into the Kestrel's landing bay"></p>
 
 | | |
 |---|---|
-| ![Lift-off](Docs/media/fly_home_liftoff.png) | ![Into the bay](Docs/media/fly_home_bay.png) |
+| ![Lift-off](docs/media/fly_home_liftoff.png) | ![Into the bay](docs/media/fly_home_bay.png) |
 
-## 9. The Kestrel remembers
+### The Kestrel remembers
 
 The hangar deck shows what your operations cost and won, and it survives quitting and reloading:
 - name plates and candles for the fallen, and their lockers sealed;
@@ -269,15 +245,15 @@ The hangar deck shows what your operations cost and won, and it survives quittin
 - evacuees on the deck;
 - a light per operation on the ops board.
 
-Test report: **[Docs/TEST_REPORT_KESTREL_REMEMBERS.md](Docs/TEST_REPORT_KESTREL_REMEMBERS.md)**.
+Test report: **[docs/TEST_REPORT_KESTREL_REMEMBERS.md](docs/TEST_REPORT_KESTREL_REMEMBERS.md)**.
 
 | | | |
 |---|---|---|
-| ![Repairs](Docs/media/kestrel_remembers_repair.gif) | ![Medbay](Docs/media/kestrel_remembers_medbay.gif) | ![Memorial candles](Docs/media/kestrel_remembers_memorial.gif) |
+| ![Repairs](docs/media/kestrel_remembers_repair.gif) | ![Medbay](docs/media/kestrel_remembers_medbay.gif) | ![Memorial candles](docs/media/kestrel_remembers_memorial.gif) |
 | Deck crew welding the Raven | The medbay after Breakwater | Candles under the memorial wall |
-| ![Patient](Docs/media/kestrel_remembers_patient.png) | ![Sealed locker](Docs/media/kestrel_remembers_lockers.png) | ![Evacuees](Docs/media/kestrel_remembers_evacuees.png) |
+| ![Patient](docs/media/kestrel_remembers_patient.png) | ![Sealed locker](docs/media/kestrel_remembers_lockers.png) | ![Evacuees](docs/media/kestrel_remembers_evacuees.png) |
 
-## 10. The Ironstride walker
+### The Ironstride walker
 
 Arcadia Planitia, Mars. A 30 m Hearthbound walker carries a foundry core across the plain:
 1. Wait for it to kneel.
@@ -288,22 +264,51 @@ Arcadia Planitia, Mars. A 30 m Hearthbound walker carries a foundry core across 
 Its four legs really step. Its cannon marks the ground in red two seconds before the shell lands. Miss the kneel or
 fall off, and it comes around and kneels again.
 
-Test report: **[Docs/TEST_REPORT_IRONSTRIDE.md](Docs/TEST_REPORT_IRONSTRIDE.md)**.
+Test report: **[docs/TEST_REPORT_IRONSTRIDE.md](docs/TEST_REPORT_IRONSTRIDE.md)**.
 
 | | |
 |---|---|
-| ![The walker striding](Docs/media/walker_stride.gif) | ![Boarding and overloading](Docs/media/walker_board.gif) |
+| ![The walker striding](docs/media/walker_stride.gif) | ![Boarding and overloading](docs/media/walker_board.gif) |
 | The walker striding past, legs stepping on the terrain | Up the ramp, onto its back, overloading the couplings |
-| ![Kneeling](Docs/media/walker_kneel.png) | ![The last coupling](Docs/media/walker_last_coupling.png) |
+| ![Kneeling](docs/media/walker_kneel.png) | ![The last coupling](docs/media/walker_last_coupling.png) |
 | Kneeling with the ramp down: board now | The last coupling blows |
 
 ---
 
-## Controls
+## Setup and usage
+
+### Download and play (Windows 10 or 11)
+
+**[Download the latest release](../../releases/latest)** (`DeltaVDominion-Win64.zip`, about 560 MB). Unzip it anywhere
+and run `DeltaVDominion.exe`.
+
+Or install it with one line in PowerShell. This puts the latest release in `%LOCALAPPDATA%\DeltaVDominion`, adds
+shortcuts, and updates the game if you run it again:
+
+```powershell
+irm https://raw.githubusercontent.com/Normansrule/delta-v-dominion/main/Installer/Install-DeltaVDominion.ps1 | iex
+```
+
+You'll need:
+- a 64-bit Windows PC;
+- a graphics card (GPU) that runs DirectX 12: a GTX 1060, an RX 580, or better;
+- 8 GB of memory (RAM).
+
+On Linux, try Steam Proton. On a Mac, use a Windows virtual machine or a cloud PC.
+
+### First steps
+
+The game opens on the galaxy map:
+1. Click Sol, then press **1** to go aboard the Kestrel.
+2. Walk to the war table and press **Z** to pick an operation. Boot Camp on Luna teaches the squad orders and
+   call-ins.
+3. When an operation ends, press **K** to fly home in a Raven, or **Enter** to redeploy.
+
+### Controls
 
 | Key | Action | Key | Action |
 |---|---|---|---|
-| WASD / Mouse | Move / look | F | Squad: move to crosshair (behind an unaware frame: **silent takedown**) |
+| WASD / Mouse | Move / look | F | Squad: move to crosshair (behind an unaware sentry: **silent takedown**) |
 | LMB / RMB | Fire / aim down sights | G / V | Squad: hold / regroup on me |
 | R | Reload | T / X | Squad: suppress / flank target |
 | Shift | Sprint | Space | Jump; in the air, **thruster boost**; in water, swim up |
@@ -313,9 +318,182 @@ Test report: **[Docs/TEST_REPORT_IRONSTRIDE.md](Docs/TEST_REPORT_IRONSTRIDE.md)*
 | **Galaxy map** | Drag to orbit, wheel to zoom, click a system, 1-3 to launch | **Locker** | 1-4 customise your commander |
 | **Driving** | W/S throttle, A/D steer, LMB fire | **Flying** | WASD move, Space up, C down, F jet mode, V cockpit, X flares |
 
+LMB and RMB are the left and right mouse buttons.
+
+### Build from source
+
+You need **Unreal Engine 5.8** (from the Epic Games Launcher) and **Visual Studio 2022 Build Tools**, with
+*Desktop development with C++* and the *.NET Framework 4.8 SDK* (software development kit) component.
+
+**On Windows:** double-click `DeltaVDominion.uproject` and let it build. Or right-click it, choose *Generate Visual
+Studio project files*, open `DeltaVDominion.slnx`, pick *Development Editor / Win64*, and build.
+
+**From an Ubuntu terminal under the Windows Subsystem for Linux (WSL), in any directory:**
+
+```bash
+# Where the project lives on Windows (change it if you cloned somewhere else)
+DV="/mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')/Desktop/Delta Force Dominion Game/DeltaVDominion"
+alias dv='bash "$DV/Scripts/dv.sh"'
+
+dv build      # compile the C++ (editor target)
+dv editor     # open the Unreal Editor on the Boot Camp map
+dv play       # play standalone in a window
+dv map        # regenerate every map from the Python builders
+dv capture    # re-render the screenshots and GIFs in docs/media
+dv package    # build Build/Release/DeltaVDominion-Win64.zip
+```
+
+The repository stores its binary assets with Git Large File Storage (LFS), so install `git-lfs` before cloning.
+
+### The website
+
+The site lives in `docs/` as plain HTML, CSS and JavaScript, with no build step. To preview it locally, run:
+
+```bash
+python -m http.server 8765 --directory docs
+```
+
+Then open http://localhost:8765. To publish it, go to GitHub, open *Settings*, then *Pages*, and deploy from the
+`main` branch, folder `/docs`. A few handy URL options:
+- `?theme=light` or `?theme=dark` forces a mode;
+- `?autoplay` runs one planned op on load;
+- `#ops` jumps to the planner.
+
+The site's images are WebP copies in `docs/site/img/`. Git Large File Storage files (the PNGs and JPGs in
+`docs/media/`) can't be served by GitHub Pages, so the site doesn't use them.
+
+### Developer console
+
+Press `~` in a development build. These commands are how the screenshots and tests in this repo were made:
+
+| Command | What it does |
+|---|---|
+| `DVShowcase 0`..`6` | Jump to a map's showcase camera |
+| `DVCapture Name Frames Interval Delay UI` | Render frames off-screen to `Saved/Screenshots` |
+| `DVEndMission 1` / `DVFlyHome` | End the operation as a win / fly home |
+| `DVWalker 0`..`3`, `DVBoardTest` | Ironstride tests: kneel, collapse, deck, clear the field; scripted boarding |
+| `DVCasualty 0`..`2` | Kill or wound a squadmate, or destroy a Bulwark (tests the Kestrel's memory) |
+
 ---
 
-## How it fits together
+## Project structure
+
+```
+DeltaVDominion/
+  Source/DeltaVDominion/
+    Core/         game mode and mission flow, game state, player controller, roster and saves,
+                  the commander profile, call-ins, the flight home (DVAscent), the hangar's memory
+    Characters/   soldier, movement, squad AI and cover, the Bulwark, townsfolk
+    Combat/       Gameplay Ability System attributes, effects, fire and reload abilities, weapon data and loadouts
+    Vehicles/     ground vehicles, the Raven, hoverbike, boat, the Kestrel, the Ironstride walker, shared seat kit
+    Strategy/     the procedural Milky Way and the galaxy map
+    UI/           DVHUD: the whole heads-up display (HUD), drawn on the canvas
+    Net/          rate limiting for server calls
+  Scripts/        Python map builders (galaxy, planets and towns, the Kestrel, Boot Camp),
+                  generated textures and sounds, capture, packaging, progress bars
+  Content/        generated maps, materials and sounds; UE5 sample mannequins and weapons
+  docs/           the website (index.html, site/ for its CSS, script and images) plus CAMPAIGN.md (the story and
+                  production plan), test reports, publishing notes, and the README media
+  Installer/      the one-line Windows installer
+```
+
+Every map is generated by a Python script that runs inside the Unreal Editor. To change a world, edit its builder
+(for example `Scripts/build_planet_map.py -biome=ironstride`) and rebuild rather than editing the map by hand.
+
+---
+
+## Design
+
+The look is called **Flight Deck, with a bit of Roll Call**. Everything you touch, in the game and on the website, is
+styled like the painted markings on the Kestrel's hangar deck: flat amber bands on gunmetal, stencil lettering, pads
+and lanes. The part of the game that's about loss, the memorial and the fallen, is set apart in brass, like a name
+plate on a wall.
+
+| | |
+|---|---|
+| ![Website hero, dark mode](docs/media/design/site_hero_landed_dark.png) | ![Website hero, light mode](docs/media/design/site_hero_light.png) |
+| The website at night: scroll and Raven Two-One lands on pad two | The same deck in light mode, a sunlit deck |
+| ![The operation planner](docs/media/design/site_ops_dark.png) | ![The roll call wall](docs/media/design/site_roll_names_dark.png) |
+| The centerpiece: plan an op with the game's squad orders and run it | Soldiers lost in your ops go on the roll call wall |
+
+<p align="center">
+  <img src="docs/media/design/site_mobile_dark.png" width="260" alt="The website on a phone, dark mode">
+  <img src="docs/media/design/site_mobile_ops_dark.png" width="260" alt="The operation planner on a phone">
+  <img src="docs/media/design/site_mobile_light.png" width="260" alt="The website on a phone, light mode">
+</p>
+
+### The system
+
+- **Colour.** One ground, one ink, one accent.
+  - Dark mode: gunmetal `#111315` with ink `#ECEDEE`.
+  - Light mode, the sunlit deck: `#E8E5DE` with ink `#15171A`.
+  - The accent is deck-crew amber `#F2B01E`, and it only marks what you can act on: buttons, the selected order, the
+    objective band.
+  - Cyan is the Kestrel, red is the enemy, and brass `#D0AB72` is for the fallen.
+  - Surfaces are separated by a step in tone, never by lines or shadows.
+  - Every text pair was checked against the 4.5:1 contrast ratio. The lowest is 4.7:1, in light mode.
+- **Type.**
+  - Two faces: Barlow Condensed, which reads like deck stencil, for headings and buttons, and Source Sans 3 for
+    reading.
+  - Five sizes do all the work. Headlines run from 3.6 rem up to 10.5 rem, with tight leading.
+  - Body text is 18 px at 1.55 line height and stays under about 62 characters per line.
+- **Space.**
+  - One scale: 4, 8, 12, 16, 24, 32, 48, 64 and 96 px.
+  - The gap between sections (96 to 200 px) is always bigger than any gap inside one.
+  - Outer margins are equal: 16 px on a phone, up to 56 px on a wide screen.
+- **Layout.** Sections are deck lanes. Each one changes the field tone and has its own composition: statements beside
+  frames, the planner board, the wall of plates, a gallery with one large frame. There are no card grids of identical
+  boxes.
+- **Motion.**
+  - **The one authored moment is the hero.** As you scroll, a Raven comes in over the deck, its shadow converges,
+    and it settles on pad two. Then the pad lights go green and the status line reads "Down and locked".
+  - **Springs** move it and the squad markers on the planner (stiffness 170, damping 26). They feel heavy without
+    slowing anything down.
+  - **Buttons** press to 97% in 160 ms.
+  - **Radio lines and plates** rise 8 px with a strong ease-out.
+  - **Reduced motion:** if you've asked your system for it, the Raven is already down and nothing travels.
+- **States.** Every part has its quiet and broken states written out:
+  - Loading: frames show a soft tone that breathes while they load.
+  - Error: a frame that fails to load says so and shows its description, and an order that can't be carried out says
+    why ("that's solid rock").
+  - Empty: the wall says "No names yet. Keep it that way."
+- **Access.**
+  - Everything works from the keyboard: a skip link, a visible amber focus ring, and the map driven with the arrow
+    keys and Enter.
+  - The game's own order keys (F, T, X, G, V) work on the map.
+  - Every control is at least 44 px.
+  - The radio log is announced to screen readers.
+
+**In the game,** the same system is drawn on the HUD in C++ (`Source/DeltaVDominion/UI/DVHUD.cpp`):
+- 13 colour tokens and a six-step type scale.
+- A painted amber band carries the mission and clock, the job board title and the after-action result (red on a
+  loss).
+- The fallen get brass plates on the after-action report and the memorial wall.
+- Toasts come in over 180 ms with an ease-out and leave in 150 ms.
+- Prompts you see constantly don't animate at all.
+
+| | |
+|---|---|
+| ![Combat HUD, before and after](docs/media/design/hud_combat_before_after.jpg) | ![After-action report, before and after](docs/media/design/hud_after_action_before_after.jpg) |
+| Combat HUD, before (left) and after: the mission and clock on an amber deck band | After-action report: the result painted across the deck, the fallen on brass plates |
+| ![Job board, before and after](docs/media/design/hud_board_before_after.jpg) | ![The memorial](docs/media/design/hud_memorial_after.jpg) |
+| Job board: a painted title band, tighter rows, nothing underneath | The memorial wall: every name on a brass plate |
+
+What it avoids on purpose: gradients, glows on things at rest, glass panels, decorative icons, tiny tracked capital
+labels, and copying from the games it learns from. The reference games are studied for one principle at a time:
+- Red Dead Redemption 2's camp: a home that reacts to you;
+- Shadow of the Colossus: scale;
+- Star Wars Outlaws: hubs and reputation.
+
+The guidance came from three design references: Impeccable (audit), taste-skill (house rules), and Emil Kowalski's
+design-engineering notes (motion).
+
+---
+
+## Under the hood
+
+In the diagrams below, an RPC is a remote procedure call (a message from a player's machine to the server), and
+ADS means aiming down sights.
 
 ```mermaid
 flowchart LR
@@ -343,7 +521,7 @@ flowchart LR
     ATTR -- "out of health" --> GM
 ```
 
-### A shot, end to end
+### A shot, from start to finish
 
 ```mermaid
 sequenceDiagram
@@ -398,71 +576,6 @@ flowchart TD
 
 ---
 
-## Build from source
-
-Publishing to GitHub from Ubuntu: see [Docs/PUBLISH.md](Docs/PUBLISH.md).
-
-You need **Unreal Engine 5.8** (Epic Games Launcher) and **Visual Studio 2022 Build Tools** with
-*Desktop development with C++* and the *.NET Framework 4.8 SDK* component.
-
-### From an Ubuntu (WSL) terminal, any directory
-
-```bash
-# Where the project lives on Windows (change if you cloned elsewhere)
-DV="/mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')/Desktop/Delta Force Dominion Game/DeltaVDominion"
-alias dv='bash "$DV/Scripts/dv.sh"'
-
-dv build      # compile the C++ (editor target)
-dv editor     # open the Unreal Editor on the Boot Camp map
-dv play       # play standalone in a window
-dv watch      # spectator view: overwatch camera, squad flanks the enemy
-dv log        # follow the live game/editor log
-dv status     # git status, recent commits, what's built
-dv map        # regenerate every map (galaxy, planets, Kestrel, Boot Camp)
-dv capture    # re-render the screenshots and GIFs in Docs/media
-dv package    # build Build/Release/DeltaVDominion-Win64.zip
-```
-
-### From Windows
-
-Double-click `DeltaVDominion.uproject` (it will offer to build), or right-click it and choose
-*Generate Visual Studio project files*, open `DeltaVDominion.slnx`, select *Development Editor / Win64*, build.
-
----
-
-## Project layout
-
-```
-Source/DeltaVDominion/
-  Core/         DVGameMode (objective, win/lose, after-action), DVGameState (replicated mission state),
-                DVPlayerController (hit confirms, redeploy, DVShowcase / DVCapture / DVEndMission),
-                DVRosterSubsystem, DVRosterTypes, DVSaveGame, DVGameInstance
-  Characters/   DVSoldierCharacter (+ grey-box body), DVCharacterMovementComponent,
-                DVCommandComponent, DVSquadAIController, DVCoverQuery
-  Combat/       DVAttributeSet, DVCombatEffects, DVGA_FireWeapon, DVGA_Reload,
-                DVWeaponBase (+ grey-box rifle and tracers), DVWeaponData
-  Net/          DVRateLimiter (token bucket for server RPCs)
-  Strategy/     DVGalaxyStarfield (procedural Milky Way), DVStarSystem, DVGalaxy (map mode, camera, HUD)
-  Vehicles/     DVGroundVehicle (LTV, tank, APC), DVGunship, DVHoverbike, DVBoat, DVKestrel, DVVehicleKit (seats, kit-bash helpers)
-  UI/           DVHUD (canvas HUD: crosshair, hit markers, vitals, ammo, squad, objective, kill feed, AAR)
-  Core/DVAscent      the flight home (streams the hangar into the Kestrel), Core/DVKestrelMemory (the hangar remembers)
-  Characters/DVTownsfolk   townsfolk, crew, patients and evacuees
-Content/Maps/Galaxy.umap          start screen: Milky Way strategic map, generated by Scripts/build_galaxy_map.py
-Content/Maps/Kestrel.umap         home base hangar deck, generated by Scripts/build_kestrel_hub.py
-Content/Maps/Outpost|Europa|Io|Proxima|Ceres|Gaia|Breakwater|RooksRest.umap
-                                  planets and the town, generated by Scripts/build_planet_map.py
-Content/Maps/BootCamp.umap        training range, generated by Scripts/build_bootcamp_map.py
-Art/Planets/T_Mars.png            orbital surface map, generated by Scripts/make_planet_textures.py (numpy + pillow)
-Art/Audio/*.wav                   the whole sound set (guns, explosions, radio, ambience, engines), generated by
-                                  Scripts/make_sounds.py and imported to /Game/Audio by Scripts/build_audio.py
-Content/Environment/Outpost/      generated Nanite terrain, rocks and PBR materials
-Content/Characters, Weapons, ...  UE5 sample mannequins, rifle and materials (ship with the engine)
-Content/Dev/                      grey-box materials (M_GreyBox + tinted instances)
-Scripts/                          dv.sh, build_bootcamp_map.py, capture_media.ps1, package_game.ps1
-Installer/                        one-line Windows installer, PLAY_ME.txt
-Docs/media/                       README screenshots and GIFs (rendered off-screen by the engine)
-```
-
 ## Wiring up real art (in the editor)
 
 - **Soldier:** make `BP_Soldier` from `DVSoldierCharacter`; set `Mesh` (with a physics asset for
@@ -473,13 +586,13 @@ Docs/media/                       README screenshots and GIFs (rendered off-scre
   Niagara muzzle/tracer/impact, sound, montages. Grey-box rifle and tracers are used until then.
 - **Enemies:** place soldiers with `TeamId = 2` (Hearthbound). Squad and player are `TeamId = 1`.
 
-## Security and anti-cheat design
+## Security and anti-cheat
 
-- Server-authoritative movement (`ClientAuthorativePosition=false`), predicted sprint/ADS via saved moves.
+- The server decides where everyone is (`ClientAuthorativePosition=false`). Sprinting and aiming down sights are predicted on the client, so they still feel instant.
 - Every hit is re-validated on the server (see the sequence diagram); clients never apply damage.
-- Server RPCs (fire, reload, lean, orders) are token-bucket rate limited.
-- Saves are SHA-1 checksummed and rejected if edited; in co-op only the host's save counts.
-- EOS + Easy Anti-Cheat config template in `Config/DefaultEngine.ini` (fill in portal credentials).
+- Calls from players to the server (remote procedure calls, or RPCs: fire, reload, lean, orders) are rate limited.
+- Saves carry a checksum and are rejected if they've been edited. In co-op, only the host's save counts.
+- EOS and Easy Anti-Cheat are set up as a config template in `Config/DefaultEngine.ini`. Fill in your own portal credentials to switch them on.
 
 ---
 

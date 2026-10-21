@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delta-V: Dominion: bring your people home</title>
+  <meta name="description" content="A squad-based science-fiction shooter in Unreal Engine 5. Every soldier has a name, every vehicle is real, and the carrier remembers who didn't come back.">
+  <meta name="theme-color" content="#111315" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#E8E5DE" media="(prefers-color-scheme: light)">
+  <meta property="og:title" content="Delta-V: Dominion">
+  <meta property="og:description" content="Bring your people home. A squad shooter where the ship remembers.">
+  <meta property="og:image" content="site/img/fly_home_bay-1280.webp">
+  <link rel="icon" href="site/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap">
+  <link rel="stylesheet" href="site/style.css?v=11">
+  <script>
+    // Theme before first paint: the visitor's choice if they made one, else the system's.
+    try {
+      const q = new URLSearchParams(location.search).get("theme");
+      const t = q || localStorage.getItem("dv-theme");
+      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="bar">
+    <a class="wordmark" href="#top" aria-label="Delta-V: Dominion, top of page">Delta-V<span>:&nbsp;</span>Dominion</a>
+    <nav aria-label="Sections">
+      <a href="#game">The game</a>
+      <a href="#ops">Plan an op</a>
+      <a href="#roll">Roll call</a>
+      <a href="#gallery">Gallery</a>
+    </nav>
+    <button class="theme" type="button" aria-label="Switch to light mode" data-theme-toggle>
+      <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><circle cx="12" cy="12" r="5" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <a class="btn btn-deck" href="https://github.com/Normansrule/delta-v-dominion/releases/latest">Download</a>
+  </header>
+
+  <main id="main">
+    <!-- Hero: the hangar deck seen from above. A Raven comes in over pad two as you scroll. -->
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-sticky">
+        <div class="hero-copy">
+          <h1 id="hero-title">Bring your people home.</h1>
+          <p class="lede">A squad-based science-fiction shooter in Unreal Engine 5, where every soldier has a name and the carrier remembers who didn't come back.</p>
+          <div class="actions">
+            <a class="btn btn-deck" href="https://github.com/Normansrule/delta-v-dominion/releases/latest">Download for Windows</a>
+            <a class="btn btn-plain" href="https://github.com/Normansrule/delta-v-dominion">Read the code</a>
+          </div>
+          <p class="deck-status" aria-live="polite"><span data-deck-status>Raven Two-One on approach, pad two</span></p>
+        </div>
+        <div class="deck" aria-hidden="true">
+          <svg viewBox="0 0 800 900" class="deck-svg" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <pattern id="plates" width="100" height="100" patternUnits="userSpaceOnUse">
+                <rect width="100" height="100" class="d-plate"/>
+                <rect x="2" y="2" width="96" height="96" class="d-plate-in"/>
+              </pattern>
+              <g id="raven-shape">
+                <path d="M0 -118 L16 -96 L18 40 L56 52 L58 70 L18 66 L14 104 L34 118 L34 128 L0 122 L-34 128 L-34 118 L-14 104 L-18 66 L-58 70 L-56 52 L-18 40 L-16 -96 Z"/>
+                <rect x="-78" y="34" width="22" height="52" rx="6"/>
+                <rect x="56" y="34" width="22" height="52" rx="6"/>
+              </g>
+              <pattern id="chevrons" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width="20" height="40" class="d-amber"/>
+              </pattern>
+            </defs>
+            <rect width="800" height="900" fill="url(#plates)"/>
+            <!-- Painted deck: lanes, pads, safety edges -->
+            <rect x="0" y="0" width="34" height="900" fill="url(#chevrons)"/>
+            <rect x="766" y="0" width="34" height="900" fill="url(#chevrons)"/>
+            <rect x="388" y="0" width="24" height="900" class="d-lane"/>
+            <g class="pad" transform="translate(400 250)">
+              <circle r="170" class="d-pad"/>
+              <circle r="150" class="d-pad-ring"/>
+              <text x="128" y="150" class="d-stencil">1</text>
+            </g>
+            <g class="pad pad-2" transform="translate(400 650)">
+              <circle r="170" class="d-pad"/>
+              <circle r="150" class="d-pad-ring"/>
+              <text x="128" y="150" class="d-stencil">2</text>
+              <g class="pad-lights">
+                <circle cx="0" cy="-170" r="9" class="d-light"/><circle cx="170" cy="0" r="9" class="d-light"/>
+                <circle cx="0" cy="170" r="9" class="d-light"/><circle cx="-170" cy="0" r="9" class="d-light"/>
+              </g>
+            </g>
+            <!-- Parked Raven on pad one -->
+            <g transform="translate(400 250) scale(0.95)">
+              <use href="#raven-shape" class="d-raven-parked"/>
+            </g>
+            <!-- Incoming Raven: shadow on the deck, aircraft above it. Script moves both. -->
+            <g class="raven-shadow" data-raven-shadow transform="translate(700 200)">
+              <use href="#raven-shape" class="d-shadow"/>
+            </g>
+            <g class="raven" data-raven transform="translate(640 110) scale(1.6)">
+              <use href="#raven-shape" class="d-raven"/>
+              <rect x="-78" y="34" width="22" height="52" rx="6" class="d-engine" data-engine/>
+              <rect x="56" y="34" width="22" height="52" rx="6" class="d-engine" data-engine/>
+              <rect x="-6" y="-104" width="12" height="22" rx="3" class="d-canopy"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- What it is: three lanes, each a statement and a frame from the build -->
+    <section class="lanes" id="game" aria-labelledby="game-title">
+      <h2 id="game-title">A squad game where the losses stay.</h2>
+      <article class="lane">
+        <div class="lane-text">
+          <h3>Fight as a squad</h3>
+          <p>Three squadmates with names, ranks and careers take your orders: move, hold, suppress, flank, regroup. They find cover and drag you back up. When one of them dies, they stay dead, and the replacement is greener.</p>
+        </div>
+        <figure class="frame" data-frame>
+          <img src="site/img/first_person-1280.webp" srcset="site/img/first_person-640.webp 640w, site/img/first_person-1280.webp 1280w" sizes="(max-width: 760px) 100vw, 60vw" alt="First-person view on Tharsis Ridge, Mars, with the squad list and objective on screen" loading="lazy" width="1280" height="720">
+          <figcaption>Red Tide, Tharsis Ridge. Captured in-engine.</figcaption>
+        </figure>
+      </article>
+      <article class="lane lane-flip">
+        <div class="lane-text">
+          <h3>Fly it all home</h3>
+          <p>Tanks, a hoverbike, a missile boat, a 30 m walker you climb aboard, and the Raven gunship. When the op is done, the Raven lifts you off the ground and flies straight into the carrier's bay. There's no loading screen.</p>
+        </div>
+        <figure class="frame" data-frame>
+          <img src="site/img/fly_home_bay-1280.webp" srcset="site/img/fly_home_bay-640.webp 640w, site/img/fly_home_bay-1280.webp 1280w" sizes="(max-width: 760px) 100vw, 60vw" alt="A Raven gunship flying into the lit hangar bay of the carrier Kestrel" loading="lazy" width="1280" height="720">
+          <figcaption>Into the Kestrel's starboard bay.</figcaption>
+        </figure>
+      </article>
+      <article class="lane">
+        <div class="lane-text">
+          <h3>The ship remembers</h3>
+          <p>Back aboard, the hangar shows what the op cost: a name plate and a candle for each soldier lost, sealed lockers, the wounded in medbay beds, and deck crews welding the Raven back together.</p>
+        </div>
+        <figure class="frame" data-frame>
+          <img src="site/img/kestrel_remembers_medbay-1280.webp" srcset="site/img/kestrel_remembers_medbay-640.webp 640w, site/img/kestrel_remembers_medbay-1280.webp 1280w" sizes="(max-width: 760px) 100vw, 60vw" alt="The Kestrel's medbay with a wounded soldier in bed and the doctor standing by" loading="lazy" width="1280" height="720">
+          <figcaption>The medbay after Operation Breakwater.</figcaption>
+        </figure>
+      </article>
+    </section>
+
+    <!-- Centerpiece: plan a small operation with the game's squad orders, then run it -->
+    <section class="ops" id="ops" aria-labelledby="ops-title">
+      <div class="ops-head">
+        <h2 id="ops-title">Plan an operation.</h2>
+        <p>This is the squad system in miniature. Pick an order, then click the map (or move the marker with the arrow keys and press Enter). When you're ready, run the op. Cover, suppression and flanking decide who comes home, the same way they do in the game.</p>
+      </div>
+      <div class="ops-board">
+        <div class="ops-orders" role="toolbar" aria-label="Squad orders">
+          <button type="button" class="order" data-order="move" aria-pressed="true"><kbd>F</kbd> Move</button>
+          <button type="button" class="order" data-order="suppress" aria-pressed="false"><kbd>T</kbd> Suppress</button>
+          <button type="button" class="order" data-order="flank" aria-pressed="false"><kbd>X</kbd> Flank</button>
+          <button type="button" class="order" data-order="hold" aria-pressed="false"><kbd>G</kbd> Hold</button>
+          <button type="button" class="order" data-order="regroup" aria-pressed="false"><kbd>V</kbd> Regroup</button>
+        </div>
+        <div class="ops-map-wrap">
+          <svg class="ops-map" viewBox="0 0 1000 620" role="application" tabindex="0" aria-label="Operation map of Tharsis Ridge. Your squad is at the landing zone, bottom left. Five war-frames guard the relay, right." aria-describedby="ops-hint" data-map>
+            <rect width="1000" height="620" class="m-ground"/>
+            <g data-rocks></g>
+            <g class="m-relay" transform="translate(800 280)"><rect x="-26" y="-26" width="52" height="52" rx="4"/><text y="56">Relay</text></g>
+            <g class="m-lz" transform="translate(110 520)"><circle r="46"/><text y="76">LZ</text></g>
+            <g data-arcs></g>
+            <g data-enemies></g>
+            <g data-squad></g>
+            <g class="m-reticle" data-reticle transform="translate(500 310)"><circle r="18"/><path d="M-30 0h12M18 0h12M0 -30v12M0 18v12"/></g>
+          </svg>
+          <p class="ops-hint" id="ops-hint" data-hint>Pick an order, then choose a spot on the map.</p>
+        </div>
+        <div class="ops-side">
+          <ul class="ops-squad" aria-label="Your squad" data-roster></ul>
+          <ol class="ops-log" aria-live="polite" aria-label="Radio" data-log>
+            <li class="log-empty">No orders yet. Your squad is waiting at the landing zone.</li>
+          </ol>
+          <div class="ops-run">
+            <button type="button" class="btn btn-deck" data-run>Run the op</button>
+            <button type="button" class="btn btn-plain" data-reset>Reset</button>
+          </div>
+          <div class="ops-progress" hidden data-progress><span></span></div>
+        </div>
+      </div>
+      <div class="aar" hidden data-aar aria-live="polite">
+        <h3 data-aar-title>After-action report</h3>
+        <p class="aar-why" data-aar-why></p>
+        <ul class="plates" data-aar-plates></ul>
+      </div>
+      <noscript><p class="ops-noscript">The operation planner needs JavaScript. Everything else on this page works without it.</p></noscript>
+    </section>
+
+    <!-- Roll call: soldiers lost in simulated operations, kept on this device -->
+    <section class="roll" id="roll" aria-labelledby="roll-title">
+      <h2 id="roll-title">Roll call.</h2>
+      <p class="roll-lede">In the game, every soldier killed in action gets a plate on the Kestrel's memorial wall. Here, so do the ones you lose planning ops above. The wall is kept in this browser only.</p>
+      <ul class="plates plates-wall" data-wall>
+      </ul>
+      <p class="roll-empty" data-wall-empty>No names yet. Keep it that way.</p>
+      <button type="button" class="btn btn-plain" data-wall-clear hidden>Clear the wall</button>
+    </section>
+
+    <!-- Gallery: frames straight from the build -->
+    <section class="gallery" id="gallery" aria-labelledby="gallery-title">
+      <h2 id="gallery-title">From the build.</h2>
+      <p class="gallery-lede">Every frame here was rendered by the game itself. No mock-ups.</p>
+      <div class="gallery-grid">
+        <figure class="g-big" data-frame><img src="site/img/walker_stride-1280.webp" alt="The Ironstride walker striding across Arcadia Planitia, Mars" loading="lazy" width="1280" height="720"><figcaption>Ironstride: a 30 m walker you board when it kneels.</figcaption></figure>
+        <figure data-frame><img src="site/img/town_street-640.webp" alt="Rook's Rest market street at golden hour with string lights and townsfolk" loading="lazy" width="640" height="360"><figcaption>Rook's Rest, a Free Ports town.</figcaption></figure>
+        <figure data-frame><img src="site/img/breakwater_strait-640.webp" alt="Port Halden's strait at dawn with a transport moored in the channel" loading="lazy" width="640" height="360"><figcaption>Operation Breakwater, Gaia.</figcaption></figure>
+        <figure data-frame><img src="site/img/kestrel_remembers_memorial-640.webp" alt="The memorial wall aboard the Kestrel, framed in amber, with a name plate" loading="lazy" width="640" height="360"><figcaption>The memorial wall.</figcaption></figure>
+        <figure data-frame><img src="site/img/raven_cockpit-640.webp" alt="The Raven gunship's cockpit view with flight symbology" loading="lazy" width="640" height="360"><figcaption>Raven cockpit.</figcaption></figure>
+        <figure class="g-wide" data-frame><img src="site/img/galaxy-1280.webp" alt="The Milky Way strategic map with the galactic bar and spiral arms" loading="lazy" width="1280" height="720"><figcaption>The galaxy map: the real Milky Way, about 90,000 stars.</figcaption></figure>
+        <figure data-frame><img src="site/img/planet_europa-640.webp" alt="Europa's ice cliffs under Jupiter" loading="lazy" width="640" height="360"><figcaption>Glass Ocean, Europa.</figcaption></figure>
+        <figure data-frame><img src="site/img/town_board-640.webp" alt="Mags Okafor's job board in Rook's Rest listing five contracts" loading="lazy" width="640" height="360"><figcaption>The job board.</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- Progress: honest numbers, same as the README -->
+    <section class="progress" id="progress" aria-labelledby="progress-title">
+      <h2 id="progress-title">Where it stands.</h2>
+      <p class="progress-lede">Version 0.22. Judged against the campaign plan, not against a finished game.</p>
+      <dl class="meters" data-meters></dl>
+    </section>
+
+    <!-- Get it -->
+    <section class="get" id="get" aria-labelledby="get-title">
+      <h2 id="get-title">Get it.</h2>
+      <div class="get-cols">
+        <div>
+          <h3>Play</h3>
+          <p>Download <code>DeltaVDominion-Win64.zip</code> (about 560 MB) from the latest release, unzip it, and run <code>DeltaVDominion.exe</code>. You'll need 64-bit Windows 10 or 11, a DirectX 12 graphics card and 8 GB of memory.</p>
+          <a class="btn btn-deck" href="https://github.com/Normansrule/delta-v-dominion/releases/latest">Download the latest release</a>
+        </div>
+        <div>
+          <h3>Build</h3>
+          <p>Clone the repository with Git Large File Storage installed, then open <code>DeltaVDominion.uproject</code> in Unreal Engine 5.8 and let it compile. The <a href="https://github.com/Normansrule/delta-v-dominion#setup-and-usage">README</a> has the full steps, the controls and the developer console commands.</p>
+          <a class="btn btn-plain" href="https://github.com/Normansrule/delta-v-dominion">Open the repository</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p class="foot-name" aria-hidden="true">Delta-V: Dominion</p>
+    <p>An original game built in the open. Story, worlds, sounds and code are all made for this project. <a href="https://github.com/Normansrule/delta-v-dominion/blob/main/docs/CAMPAIGN.md">Read the campaign plan</a>.</p>
+  </footer>
+
+  <script src="site/app.js?v=11" defer></script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 #   watch      Spectator view of the Outpost fight with an orbital strike
 #   build      Compile the editor target (run after pulling C++ changes)
 #   map        Re-import sounds and regenerate every map (galaxy, six planets, the Kestrel hangar, Boot Camp)
-#   capture    Re-render README screenshots and GIFs into Docs/media
+#   capture    Re-render README screenshots and GIFs into docs/media
 #   package    Build the downloadable Windows game into Build/Release/DeltaVDominion-Win64.zip
 #   log        Follow the newest game/editor log
 #   status     Show git status, last commits and what has been built

@@ -5,7 +5,7 @@
 #   powershell -ExecutionPolicy Bypass -File Scripts\capture_media.ps1 -Only planet_ceres,kestrel_mars
 #
 # Frames are rendered off-screen by the engine itself ("DVCapture" console command), so nothing
-# else on your desktop can end up in the images. Output goes to Docs\media.
+# else on your desktop can end up in the images. Output goes to docs\media.
 
 param(
     [string]$Engine = "C:\Program Files\Epic Games\UE_5.8",
@@ -20,7 +20,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $Project = Join-Path $Root "DeltaVDominion.uproject"
-$Out = Join-Path $Root "Docs\media"
+$Out = Join-Path $Root "docs\media"
 $Frames = Join-Path $Root "Saved\Screenshots\DVCapture"
 $Editor = Join-Path $Engine "Engine\Binaries\Win64\UnrealEditor.exe"
 New-Item -ItemType Directory -Force $Out, $Frames | Out-Null

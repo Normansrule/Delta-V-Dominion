@@ -40,7 +40,7 @@ Platform: Windows 11, Unreal Engine 5.8, Development editor build, off-screen re
      - the Bulwark head on the trophy shelf;
      - four Port Halden evacuees;
      - Halloran's greeting: "We got it done on Breakwater. 1 of ours didn't come home…"
-   - Screenshots are in `Docs/media/kestrel_remembers_*.png`.
+   - Screenshots are in `docs/media/kestrel_remembers_*.png`.
 3. **Packaged build.**
    - The game was packaged after this change (550 MB zip).
    - In the packaged game, Breakwater with `DVCasualty 0` and `DVCasualty 1`, a win, then K to fly home. The streamed hangar logged `1 ops, 1 fallen, 1 wounded, 0 trophies`, and the Raven landed with 2 squadmates.
