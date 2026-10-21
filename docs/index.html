@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap">
-  <link rel="stylesheet" href="site/style.css?v=11">
+  <link rel="stylesheet" href="site/style.css?v=12">
   <script>
     // Theme before first paint: the visitor's choice if they made one, else the system's.
     try {
@@ -31,6 +31,8 @@
     <a class="wordmark" href="#top" aria-label="Delta-V: Dominion, top of page">Delta-V<span>:&nbsp;</span>Dominion</a>
     <nav aria-label="Sections">
       <a href="#game">The game</a>
+      <a href="#flight">Fly home</a>
+      <a href="#worlds">Worlds</a>
       <a href="#ops">Plan an op</a>
       <a href="#roll">Roll call</a>
       <a href="#gallery">Gallery</a>
@@ -108,6 +110,35 @@
       </div>
     </section>
 
+    <!-- A statement that inks itself in as you read down the page -->
+    <section class="say" aria-label="What this game is about">
+      <p class="say-text" data-say>Every soldier has a name. Every vehicle is real. Every world has its own rules. And when the operation is over, the carrier remembers who didn't come back.</p>
+    </section>
+
+    <!-- Fly home: the real in-engine flight from the battlefield into the Kestrel, scrubbed by scroll -->
+    <section class="flight" id="flight" aria-labelledby="flight-title" data-flight>
+      <div class="flight-stage">
+        <canvas class="flight-canvas" data-flight-canvas aria-hidden="true"></canvas>
+        <div class="flight-copy">
+          <h2 id="flight-title">No loading screen.</h2>
+          <ol class="flight-beats" data-flight-beats>
+            <li data-at="0.02">Wheels up on Tharsis Ridge.</li>
+            <li data-at="0.3">The Kestrel, holding station overhead.</li>
+            <li data-at="0.55">Starboard bay open. Deck lights on.</li>
+            <li data-at="0.8">Down and locked. You're home.</li>
+          </ol>
+        </div>
+        <div class="flight-meter" aria-hidden="true"><span data-flight-meter></span></div>
+      </div>
+      <!-- Without the scrub (no script, or reduced motion), the same flight as four stills -->
+      <div class="flight-stills" data-flight-stills>
+        <figure><img src="site/flight/f000.webp" alt="Lifting off from Tharsis Ridge in the Raven" loading="lazy" width="960" height="390"><figcaption>Wheels up on Tharsis Ridge.</figcaption></figure>
+        <figure><img src="site/flight/f045.webp" alt="The carrier Kestrel holding station over the Martian plain" loading="lazy" width="960" height="390"><figcaption>The Kestrel, holding station overhead.</figcaption></figure>
+        <figure><img src="site/flight/f090.webp" alt="Flying into the Kestrel's lit starboard bay" loading="lazy" width="960" height="390"><figcaption>Starboard bay open.</figcaption></figure>
+        <figure><img src="site/flight/f138.webp" alt="Settled on the hangar deck among the parked Ravens" loading="lazy" width="960" height="390"><figcaption>Down and locked.</figcaption></figure>
+      </div>
+    </section>
+
     <!-- What it is: three lanes, each a statement and a frame from the build -->
     <section class="lanes" id="game" aria-labelledby="game-title">
       <h2 id="game-title">A squad game where the losses stay.</h2>
@@ -141,6 +172,30 @@
           <figcaption>The medbay after Operation Breakwater.</figcaption>
         </figure>
       </article>
+    </section>
+
+    <!-- The worlds: a 3D war table you can spin; the list beside it is the accessible control -->
+    <section class="worlds" id="worlds" aria-labelledby="worlds-title">
+      <div class="worlds-head">
+        <h2 id="worlds-title">Nine worlds. Three rule books.</h2>
+        <p>Drag the war table, or pick a world from the list. Some worlds are war zones. Some have people in the streets. One of them will send you home if you hurt anyone.</p>
+      </div>
+      <div class="worlds-body">
+        <div class="worlds-view" data-worlds-view>
+          <canvas class="worlds-canvas" data-worlds-canvas aria-hidden="true"></canvas>
+        </div>
+        <div class="worlds-side">
+          <div class="worlds-list" role="tablist" aria-label="Worlds" data-worlds-list></div>
+          <article class="world-card" role="tabpanel" aria-live="polite" data-world-card>
+            <p class="world-where" data-world-where></p>
+            <h3 data-world-name>Mars</h3>
+            <p class="world-rules" data-world-rules></p>
+            <p data-world-text></p>
+            <p class="world-ops" data-world-ops></p>
+            <figure class="frame" data-frame><img data-world-img src="site/img/outpost-640.webp" alt="" loading="lazy" width="640" height="360"></figure>
+          </article>
+        </div>
+      </div>
     </section>
 
     <!-- Centerpiece: plan a small operation with the game's squad orders, then run it -->
@@ -219,7 +274,7 @@
     <!-- Progress: honest numbers, same as the README -->
     <section class="progress" id="progress" aria-labelledby="progress-title">
       <h2 id="progress-title">Where it stands.</h2>
-      <p class="progress-lede">Version 0.22. Judged against the campaign plan, not against a finished game.</p>
+      <p class="progress-lede">Version 0.24. Judged against the campaign plan, not against a finished game.</p>
       <dl class="meters" data-meters></dl>
     </section>
 
@@ -246,6 +301,8 @@
     <p>An original game built in the open. Story, worlds, sounds and code are all made for this project. <a href="https://github.com/Normansrule/delta-v-dominion/blob/main/docs/CAMPAIGN.md">Read the campaign plan</a>.</p>
   </footer>
 
-  <script src="site/app.js?v=11" defer></script>
+  <script src="site/app.js?v=12" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <script src="site/motion.js?v=1" defer></script>
 </body>
 </html>

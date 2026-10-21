@@ -83,7 +83,7 @@ p { margin: 0 0 var(--s4); max-width: 62ch; }
 .wordmark { display: inline-flex; align-items: center; min-height: 44px; font: 700 1.6rem/1 var(--f-display); text-transform: uppercase; text-decoration: none; letter-spacing: 0.01em; white-space: nowrap; }
 .wordmark span { color: var(--deck-text); }
 .bar nav { display: flex; gap: var(--s5); margin-left: auto; }
-.bar nav a { text-decoration: none; font-weight: 600; color: var(--ink-2); display: inline-flex; align-items: center; min-height: 44px; }
+.bar nav a { text-decoration: none; font-weight: 600; color: var(--ink-2); display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; }
 .bar nav a:hover { color: var(--ink); }
 .theme { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--ground-2); color: var(--ink); cursor: pointer; }
 
@@ -249,6 +249,78 @@ figcaption { margin-top: var(--s2); font-size: var(--t-small); color: var(--ink-
 .foot-name { font: 700 clamp(3rem, 12.5vw, 13rem)/0.85 var(--f-display); text-transform: uppercase; letter-spacing: -0.02em; color: var(--deck-text); margin: 0 0 var(--s6); max-width: none; }
 .foot p { color: var(--ink-2); }
 
+/* Statement: big words that ink themselves in as you scroll past (the reading is the animation) */
+.say { padding: var(--gap-section) var(--margin); }
+.say-text { font: 700 clamp(2.2rem, 5.6vw, 5.2rem)/1.02 var(--f-display); text-transform: uppercase; letter-spacing: -0.01em; max-width: 22ch; margin: 0; }
+.say-text .w { color: var(--ink); opacity: var(--o, 1); transition: opacity 120ms linear; }
+.say-text .w.is-key { color: var(--deck-text); }
+
+/* Fly home: a pinned stage; scroll scrubs the real in-engine flight frame by frame */
+.flight { position: relative; background: #07080a; color: #ecedee; }
+.flight-stage { display: none; }
+.flight.is-scrub { height: 420vh; }
+.flight.is-scrub .flight-stage { display: block; position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.flight.is-scrub .flight-stills { display: none; }
+.flight-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.flight-copy { position: absolute; left: var(--margin); right: var(--margin); bottom: clamp(48px, 9vh, 96px); z-index: 1; }
+.flight-copy h2 { color: #ecedee; margin-bottom: var(--s4); text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55); }
+.flight-beats { list-style: none; margin: 0; padding: 0; position: relative; min-height: 2.4em; }
+.flight-beats li { position: absolute; left: 0; top: 0; font: 600 clamp(1.3rem, 2.4vw, 2rem)/1.2 var(--f-display); text-transform: uppercase;
+  color: #ecedee; opacity: 0; transform: translateY(12px); transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out); text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7); }
+.flight-beats li.is-on { opacity: 1; transform: none; }
+.flight-meter { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255, 255, 255, 0.12); }
+.flight-meter span { display: block; height: 100%; background: var(--deck); transform-origin: left; transform: scaleX(0); }
+.flight-stills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); padding: var(--gap-section) var(--margin); }
+.flight-stills figure { margin: 0; }
+.flight-stills img { width: 100%; aspect-ratio: 960 / 390; object-fit: cover; background: #15181b; }
+.flight-stills figcaption { color: #aab0b7; }
+.flight:not(.is-scrub)::before { content: "No loading screen."; display: block; padding: var(--gap-section) var(--margin) 0; font: 700 var(--t-h2)/0.95 var(--f-display); text-transform: uppercase; }
+
+/* Worlds: the war table in 3D on the left, the list and the card on the right */
+.worlds { padding: var(--gap-section) var(--margin); background: #0b0d0f; color: #ecedee; }
+.worlds-head { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: var(--s7); align-items: end; margin-bottom: var(--s7); }
+.worlds-head h2 { margin: 0; color: #ecedee; }
+.worlds-head p { color: #c3c8ce; }
+.worlds-body { display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 5fr); gap: var(--s6); align-items: start; }
+.worlds-view { position: relative; aspect-ratio: 4 / 3; background: #07080a; cursor: grab; touch-action: pan-y; overflow: hidden; }
+.worlds-view.is-dragging { cursor: grabbing; }
+.worlds-view.no-3d { display: none; }
+.worlds-canvas { width: 100%; height: 100%; display: block; }
+.worlds-list { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s5); }
+.world-tab { min-height: 44px; padding: 0 var(--s4); border: 0; background: #1d2126; color: #ecedee; font: 700 1.05rem/1 var(--f-display); text-transform: uppercase; cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--s2); transition: transform 160ms var(--ease-out), background-color 160ms ease; }
+.world-tab:active { transform: scale(0.97); }
+.world-tab i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.world-tab[aria-selected="true"] { background: var(--deck); color: var(--deck-ink); }
+.world-card { background: #15181c; padding: var(--s6); min-height: 100%; }
+.world-card h3 { font-size: clamp(2rem, 3.6vw, 3rem); color: #ecedee; }
+.world-where { color: #aab0b7; font-weight: 600; margin-bottom: var(--s2); }
+.world-card p { color: #dfe2e5; }
+.world-rules { display: inline-block; font: 700 1rem/1 var(--f-display); text-transform: uppercase; letter-spacing: 0.02em; padding: var(--s2) var(--s3); background: #2a2f35; color: #ecedee; }
+.world-rules.lethal { background: #4a1f19; color: #ffb3a6; }
+.world-rules.restrained { background: #4a3a14; color: #ffd987; }
+.world-rules.gentle { background: #1d3b2a; color: #a9f0c3; }
+.world-ops { color: #f2b01e !important; font-family: var(--f-display); font-weight: 700; font-size: 1.2rem; text-transform: uppercase; }
+.world-card .frame { margin-top: var(--s4); }
+.world-card.is-swapping > * { animation: rise 220ms var(--ease-out) both; }
+
+@media (max-width: 1180px) {
+  .bar nav { gap: var(--s4); }
+  .bar nav a:nth-child(n+5) { display: none; }   /* roll call and gallery stay reachable by scrolling */
+}
+@media (max-width: 960px) {
+  .worlds-head, .worlds-body { grid-template-columns: 1fr; }
+  .worlds-view { aspect-ratio: 16 / 11; }
+}
+@media (max-width: 600px) {
+  .flight-stills { grid-template-columns: 1fr; }
+  .flight.is-scrub { height: 300vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .say-text .w { opacity: 1 !important; transition: none; }
+  .flight-beats li, .world-card.is-swapping > * { transition: none; animation: none; }
+}
+
 /* Phones and narrow tablets */
 @media (max-width: 1040px) {
   .ops-board { grid-template-columns: 1fr; }
@@ -295,3 +367,4 @@ figcaption { margin-top: var(--s2); font-size: var(--t-small); color: var(--ink-
   .meter span { transition: none; }
   .frame.is-loading img, .gallery figure.is-loading img { animation: none; }
 }
+.flight:not(.is-scrub) .flight-stills { padding-top: var(--s7); }

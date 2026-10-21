@@ -453,6 +453,20 @@ plate on a wall.
   <img src="docs/media/design/site_mobile_light.png" width="260" alt="The website on a phone, light mode">
 </p>
 
+### The cinematic layer
+
+The website's second pass borrows three ideas from the best scroll and motion work on the web (Apple's product pages, Igloo, Dogstudio, Bruno Simon, Rive, 1minus1). It takes one principle from each and copies none of their designs:
+- **A pinned flight home.** Scroll scrubs 139 real in-engine frames of the Raven flying from Tharsis Ridge into the Kestrel's bay, with four beats of copy. This is Apple's image-sequence idea, using our own capture.
+- **A 3D war table.** The nine worlds sit on an amber ring in three.js. Drag it and it springs to the nearest world, or click a planet. The tab list beside it is the real, keyboard-accessible control, and the card shows each world's rules of engagement.
+- **A statement that inks itself in.** Each word lights up as you read down the page; the keywords light in amber.
+
+Reduced motion swaps the flight for four stills and the statement for plain text. If WebGL isn't available, the war table is hidden and the list still works.
+
+| | |
+|---|---|
+| ![The flight home, scrubbed by scroll](docs/media/design/site_flight_c.png) | ![The 3D war table](docs/media/design/site_worlds_holly.png) |
+| The flight home, scrubbed by scroll | The war table: Hollyhock Vale, non-lethal rules |
+
 ### The system
 
 - **Colour.** One ground, one ink, one accent.
