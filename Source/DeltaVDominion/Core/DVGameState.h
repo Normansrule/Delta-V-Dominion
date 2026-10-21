@@ -87,6 +87,16 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bRestrained = false;
 	/** Brasshaven: the objective is the Steamheart's pressure manifold (see ADVPressureManifold). */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bManifoldOp = false;
+	/** Non-lethal rules (Hollyhock Vale): rifles fire foam, nothing falls from the sky, and hurting a villager twice ends it. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bNonLethal = false;
+	/** Hollyhock Vale: windpumps to fix, then puffbots to herd (see DVHollyhock.h). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bValeOp = false;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 ValeDone = 0;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 ValeTotal = 0;
+
+	/** Lanterns and fireworks over Location (Hollyhock's festival). */
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastFirework(FVector_NetQuantize Location, FLinearColor Color);
 	/** Civilians Delta fired on or caught in a blast this operation. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 CiviliansHurt = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") EDVMissionStage Stage = EDVMissionStage::Clear;

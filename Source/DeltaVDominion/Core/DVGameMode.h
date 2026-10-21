@@ -104,6 +104,12 @@ private:
 	bool bScriptedObjectives = false;
 	bool bWalkerOp = false;
 	bool bManifoldOp = false;
+	bool bValeOp = false;
+	void StartHerd();
+	/** Hollyhock: count fixed pumps / penned puffbots and point the marker at the nearest one still to do. */
+	void TickVale();
+	FTimerHandle FestivalTimer;
+	int32 FestivalBursts = 0;
 	/** The faction whose people live on this map (who minds if they get hurt). */
 	int32 LocalFaction = -1;
 	bool bWarnedRoE = false;

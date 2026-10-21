@@ -1,4 +1,4 @@
-﻿using UnrealBuildTool;
+using UnrealBuildTool;
 
 public class DeltaVDominion : ModuleRules
 {
@@ -6,7 +6,7 @@ public class DeltaVDominion : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// Lets code include headers as "Core/...", "Combat/..." etc.
+		// Lets code include headers as "Core/...", "Combat/...", "UI/..." and so on.
 		PublicIncludePaths.Add(ModuleDirectory);
 
 		PublicDependencyModuleNames.AddRange(new string[]

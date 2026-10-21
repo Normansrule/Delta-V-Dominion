@@ -191,7 +191,9 @@ def build():
            "Young system wrapped in a debris ring. Hollow Men insurgents hide in the belt and raid Accord convoys.",
            (1.0, 0.7, 0.45), 1.1, [op("Dust Choir", "Eridani outer belt")])
     system("Tau Ceti", galactic(11.9, 173.1, -73.4), "Local Bubble", 11.9, CONTESTED,
-           "Agricultural worlds that feed half the Accord. CINDER's harvesters have turned on the fields.", (1.0, 0.85, 0.55), 1.2)
+           "Agricultural worlds that feed half the Accord. CINDER's harvesters have turned on the fields. On the fourth world, "
+           "Hollyhock Vale, a caretaker AI called Nana Bramble never stopped tending hers.", (1.0, 0.85, 0.55), 1.2,
+           [op("Lantern Night", "Hollyhock Vale, Tau Ceti f", "/Game/Maps/Hollyhock")])
     system("TRAPPIST-1", galactic(40.7, 69.7, -56.6), "Local Bubble", 40.7, UNCHARTED,
            "Seven worlds and one silent research station. Dr. Liang Morrow's old lab sent its last message from here.",
            (1.0, 0.35, 0.2), 1.0, [op("The Architect", "Morrow Station, TRAPPIST-1e")])

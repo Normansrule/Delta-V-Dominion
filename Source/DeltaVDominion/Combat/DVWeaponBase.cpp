@@ -10,6 +10,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
 #include "Core/DVFx.h"
+#include "Core/DVGameState.h"
 #include "Components/PointLightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
@@ -335,7 +336,15 @@ void ADVWeaponBase::SpawnShotEffects(const TArray<FVector>& ImpactPoints) const
 		}
 		else
 		{
-			DVFx::Flash(GetWorld(), Impact, FLinearColor(1.f, 0.7f, 0.4f), 300.f, 250.f, 0.04f);
+			const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
+			if (GS && GS->bNonLethal)
+			{
+				DVFx::Flash(GetWorld(), Impact, FLinearColor(1.f, 0.65f, 0.85f), 500.f, 260.f, 0.35f);	// a soft pink puff of foam
+			}
+			else
+			{
+				DVFx::Flash(GetWorld(), Impact, FLinearColor(1.f, 0.7f, 0.4f), 300.f, 250.f, 0.04f);
+			}
 		}
 		DVSound::At(GetWorld(), TEXT("SW_Impact"), Impact, 0.35f, 0, 0.2f);
 	}
@@ -428,8 +437,10 @@ void ADVWeaponBase::SpawnPlaceholderTracer(const FVector& From, const FVector& T
 	Beam->SetWorldScale3D(FVector(0.012f, 0.012f, Length / 100.f));
 	if (UMaterialInstanceDynamic* Mat = Beam->CreateAndSetMaterialInstanceDynamic(0))
 	{
-		Mat->SetVectorParameterValue(TEXT("Color"), FLinearColor(1.f, 0.7f, 0.15f));
-		Mat->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(80.f, 32.f, 6.f));
+		const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
+		const bool bFoam = GS && GS->bNonLethal;	// non-lethal rules: a pale pink foam streak, not a hot tracer
+		Mat->SetVectorParameterValue(TEXT("Color"), bFoam ? FLinearColor(1.f, 0.7f, 0.86f) : FLinearColor(1.f, 0.7f, 0.15f));
+		Mat->SetVectorParameterValue(TEXT("Emissive"), bFoam ? FLinearColor(30.f, 16.f, 24.f) : FLinearColor(80.f, 32.f, 6.f));
 	}
 
 	FTimerHandle Handle;

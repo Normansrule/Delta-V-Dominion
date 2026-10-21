@@ -148,6 +148,10 @@ public:
 	UPROPERTY(EditAnywhere, Replicated, Category = "Soldier|Team") uint8 TeamId = 1;
 	/** Brasshaven's clockwork constables: brass-painted, and they wind down instead of dying (Guild property, not scrap). */
 	UPROPERTY(EditAnywhere, Replicated, Category = "Soldier|Team") bool bClockwork = false;
+	/** Hollyhock Vale's Static-touched helper bots: pastel, panicking, and calmed (foamed still) instead of destroyed. */
+	UPROPERTY(EditAnywhere, Replicated, Category = "Soldier|Team") bool bHelperBot = false;
+	/** Machines that stop rather than die: they slump in place and are collected later. */
+	bool StopsInsteadOfDying() const { return bClockwork || bHelperBot; }
 	/** Body used for non-player teams (the Hearthbound). Falls back to Mesh when unset. */
 	UPROPERTY(EditDefaultsOnly, Category = "Soldier|Appearance") TObjectPtr<USkeletalMesh> HostileBodyMesh;
 	/** Armour paint and visor glow per team (mannequin "Paint Tint" / emissive). */

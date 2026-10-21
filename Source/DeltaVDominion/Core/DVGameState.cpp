@@ -47,6 +47,10 @@ void ADVGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ADVGameState, bWalkerOp);
 	DOREPLIFETIME(ADVGameState, bRestrained);
 	DOREPLIFETIME(ADVGameState, bManifoldOp);
+	DOREPLIFETIME(ADVGameState, bNonLethal);
+	DOREPLIFETIME(ADVGameState, bValeOp);
+	DOREPLIFETIME(ADVGameState, ValeDone);
+	DOREPLIFETIME(ADVGameState, ValeTotal);
 	DOREPLIFETIME(ADVGameState, CiviliansHurt);
 	DOREPLIFETIME(ADVGameState, ObjectiveText);
 	DOREPLIFETIME(ADVGameState, EnemiesTotal);
@@ -307,4 +311,15 @@ void ADVGameState::PlayOrbitalImpact(FVector Location)
 		Kestrel->FireMainBattery(Location);	// the round visibly comes from the ship overhead
 	}
 	DVFx::Explosion(GetWorld(), Location, 1.f);
+}
+
+void ADVGameState::MulticastFirework_Implementation(FVector_NetQuantize Location, FLinearColor Color)
+{
+	// A burst: a bright bloom and a few sparks around it, then the pop.
+	DVFx::Flash(GetWorld(), Location, Color, 6000.f, 3000.f, 0.5f);
+	for (int32 i = 0; i < 5; ++i)
+	{
+		DVFx::Flash(GetWorld(), FVector(Location) + FMath::VRand() * 400.f, Color, 1500.f, 900.f, 0.8f);
+	}
+	DVSound::At(GetWorld(), TEXT("SW_ExplosionSmall"), Location, 0.35f, 2, 0.3f);
 }

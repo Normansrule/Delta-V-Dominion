@@ -22,6 +22,7 @@
 #include "Vehicles/DVKestrel.h"
 #include "Vehicles/DVWalker.h"
 #include "Core/DVPressureManifold.h"
+#include "Core/DVHollyhock.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -464,6 +465,19 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 				}
 				Text(Hint, CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
 			}
+			else if (GS->bValeOp)
+			{
+				Right = FString::Printf(TEXT("PUMPS %d / %d"), GS->ValeDone, GS->ValeTotal);
+				for (TActorIterator<ADVRepairPoint> It(GetWorld()); It; ++It)
+				{
+					const FVector P = Project(It->GetActorLocation() + FVector(0.f, 0.f, 1000.f));
+					if (P.Z > 0.f && !It->IsFixed())
+					{
+						Text(It->GetProgress() > 0.01f ? FString::Printf(TEXT("MENDING %d%%"), FMath::RoundToInt(It->GetProgress() * 100.f)) : FString(TEXT("BROKEN PUMP")),
+							P.X, P.Y, Amber, GEngine->GetSmallFont(), DVType::Caption, true);
+					}
+				}
+			}
 			else if (const ADVPressureManifold* Manifold = GS->bManifoldOp ? ADVPressureManifold::Find(GetWorld()) : nullptr)
 			{
 				Right = FString::Printf(TEXT("GREEN %d / %d"), FMath::RoundToInt(Manifold->GetBalance() * ADVPressureManifold::NumValves), ADVPressureManifold::NumValves);
@@ -478,7 +492,22 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 				Right = FString::Printf(TEXT("PLANTING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f));
 			}
 			break;
-		case EDVMissionStage::Capture: Right = FString::Printf(TEXT("CAPTURING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
+		case EDVMissionStage::Capture:
+			if (GS->bValeOp)
+			{
+				Right = FString::Printf(TEXT("PUFFBOTS %d / %d"), GS->ValeDone, GS->ValeTotal);
+				for (TActorIterator<ADVPuffbot> It(GetWorld()); It; ++It)
+				{
+					const FVector P = Project(It->GetActorLocation() + FVector(0.f, 0.f, 150.f));
+					if (P.Z > 0.f && !It->IsPenned())
+					{
+						Text(TEXT("PUFFBOT"), P.X, P.Y, DVHudColors::Health, GEngine->GetSmallFont(), DVType::Caption, true);
+					}
+				}
+				Text(TEXT("Puffbots run from you. Come at one from the far side and walk it into the pen"), CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
+				break;
+			}
+			Right = FString::Printf(TEXT("CAPTURING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;
 		case EDVMissionStage::Defend: { const int32 Secs = FMath::Max(0, FMath::CeilToInt(GS->StageEndTime - GetWorld()->GetTimeSeconds())); Right = GS->bManifoldOp ? FString::Printf(TEXT("RELIGHT %ds"), Secs) : FString::Printf(TEXT("DETONATION %ds"), Secs); } Color = DVHudColors::Hostile; break;
 		case EDVMissionStage::Extract: Right = GS->StageProgress < 1.f ? FString(TEXT("RAVEN INBOUND")) : FString(TEXT("RAVEN ON THE PAD")); Color = Cyan; break;
 		default: break;
@@ -519,7 +548,7 @@ void ADVHUD::DrawKillFeed(const ADVGameState* GS)
 		const float Alpha = Age > 6.0 ? 1.f - static_cast<float>((Age - 6.0) / 2.0) : 1.f;
 		FLinearColor Color = Entry.bFriendlyLoss ? DVHudColors::Hostile : DVHudColors::Text;
 		Color.A = Alpha;
-		const FString Line = Entry.Killer.IsEmpty() ? (Entry.Victim.EndsWith(TEXT("(wound down)")) ? Entry.Victim : FString::Printf(TEXT("%s killed"), *Entry.Victim))
+		const FString Line = Entry.Killer.IsEmpty() ? (Entry.Victim.EndsWith(TEXT("(wound down)")) || Entry.Victim.EndsWith(TEXT("(calmed)")) ? Entry.Victim : FString::Printf(TEXT("%s killed"), *Entry.Victim))
 			: FString::Printf(TEXT("%s  >  %s"), *Entry.Killer, *Entry.Victim);
 		Text(Line, Right, Y, Color, GEngine->GetSmallFont(), DVType::Body, false, true);
 		Y += S(26.f);
@@ -591,7 +620,7 @@ void ADVHUD::DrawAfterAction(const ADVGameState* GS)
 	if (GS->bRestrained || GS->CiviliansHurt > 0)
 	{
 		Y += S(12.f);
-		Text(GS->CiviliansHurt == 0 ? FString(TEXT("Civilians hurt: none. The Guild noticed."))
+		Text(GS->CiviliansHurt == 0 ? FString(GS->bNonLethal ? TEXT("Nobody hurt. Nana Bramble noticed.") : TEXT("Civilians hurt: none. The Guild noticed."))
 			: FString::Printf(TEXT("Civilians fired on: %d. Their town will remember."), GS->CiviliansHurt), CX, Y,
 			GS->CiviliansHurt == 0 ? DVHudColors::Health : DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
 		Y += S(40.f);
@@ -672,7 +701,7 @@ void ADVHUD::DrawOrbital(const ADVGameState* GS)
 	const float Y = Canvas->ClipY - S(70.f);
 	if (GS->bRestrained)
 	{
-		Text(TEXT("RESTRAINED RULES  -  CIVILIANS PRESENT"), CX, Y, DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);
+		Text(GS->bNonLethal ? TEXT("NON-LETHAL RULES  -  FOAM ONLY  -  HURT NO ONE") : TEXT("RESTRAINED RULES  -  CIVILIANS PRESENT"), CX, Y, DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);
 	}
 	else if (Remaining <= 0.f)
 	{
@@ -1047,7 +1076,8 @@ void ADVHUD::DrawLocker()
 	FY += S(56.f);
 	const TCHAR* Perks[DVFactions::Num] = { TEXT("Trusted: Longreach DMR  |  Allied: orbital priority"),
 		TEXT("Trusted: fuller supply pods"), TEXT("Trusted: Pulse Carbine  |  Allied: faster supply drops"),
-		TEXT("Earned in Brasshaven: wind down, don't scrap, and mind the townsfolk") };
+		TEXT("Earned in Brasshaven: wind down, don't scrap, and mind the townsfolk"),
+		TEXT("Earned in Hollyhock Vale: be gentle, mend things, bring them home") };
 	for (int32 F = 0; F < DVFactions::Num; ++F)
 	{
 		const int32 V = Profile->GetRep(F);

@@ -37,6 +37,7 @@
 #include "EngineUtils.h"
 #include "TimerManager.h"
 #include "Core/DVPressureManifold.h"
+#include "Core/DVHollyhock.h"
 #include "Characters/DVTownsfolk.h"
 
 ADVPlayerController::ADVPlayerController()
@@ -128,6 +129,10 @@ void ADVPlayerController::PlayerTick(float DeltaTime)
 	if (bBoardTest)
 	{
 		TickBoardTest();
+	}
+	if (bHerdTest || bRepairTest)
+	{
+		TickHerdTest();
 	}
 	if (IsLocalController())
 	{
@@ -1269,4 +1274,120 @@ void ADVPlayerController::DVClearHostiles(float Delay, float Spacing)
 		}
 	}), FMath::Max(Delay, 0.001f), false);
 #endif
+}
+
+void ADVPlayerController::DVHerdTest(float Delay)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { bHerdTest = true; HerdTestStart = GetWorld()->GetTimeSeconds(); }), FMath::Max(Delay, 0.001f), false);
+#endif
+}
+
+void ADVPlayerController::DVRepairTest(float Delay)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { bRepairTest = true; HerdTestStart = GetWorld()->GetTimeSeconds(); }), FMath::Max(Delay, 0.001f), false);
+#endif
+}
+
+void ADVPlayerController::TickHerdTest()
+{
+	APawn* Me = GetPawn();
+	if (!Me || GetWorld()->GetTimeSeconds() - HerdTestStart > 400.0)
+	{
+		bHerdTest = bRepairTest = false;
+		return;
+	}
+	auto Walk = [this, Me](const FVector& Goal, float Arrive)
+	{
+		const FVector To = Goal - Me->GetActorLocation();
+		if (To.Size2D() < Arrive)
+		{
+			return true;
+		}
+		FVector Dir = To.GetSafeNormal2D();
+		// Like a player would: if something (a villager, a cottage) is in the way, step round it to the right.
+		const double Now = GetWorld()->GetTimeSeconds();
+		if (FVector::Dist2D(Me->GetActorLocation(), HerdLastPos) > 60.f)
+		{
+			HerdLastPos = Me->GetActorLocation();
+			HerdStuckSince = Now;
+		}
+		else if (Now - HerdStuckSince > 1.0 && Now - HerdStuckSince < 2.2)
+		{
+			Dir = FVector::CrossProduct(FVector::UpVector, Dir);
+		}
+		else if (Now - HerdStuckSince >= 2.2)
+		{
+			HerdStuckSince = Now;
+		}
+		SetControlRotation(FRotator(-8.f, Dir.Rotation().Yaw, 0.f));
+		Me->AddMovementInput(Dir, 1.f);
+		return false;
+	};
+	if (bRepairTest)
+	{
+		// Nearest pump that still needs mending; stand beside it until it turns.
+		const ADVRepairPoint* Target = nullptr;
+		float Best = TNumericLimits<float>::Max();
+		for (TActorIterator<ADVRepairPoint> It(GetWorld()); It; ++It)
+		{
+			const float D = FVector::Dist2D(It->GetActorLocation(), Me->GetActorLocation());
+			if (!It->IsFixed() && D < Best)
+			{
+				Best = D;
+				Target = *It;
+			}
+		}
+		if (!Target)
+		{
+			UE_LOG(LogTemp, Display, TEXT("DVRepairTest: every pump fixed after %.1f s"), GetWorld()->GetTimeSeconds() - HerdTestStart);
+			bRepairTest = false;
+			return;
+		}
+		Walk(Target->GetActorLocation() + FVector(-200.f, 0.f, 0.f), 80.f);
+		return;
+	}
+	const ADVPen* Pen = ADVPen::Find(GetWorld());
+	const ADVPuffbot* Target = nullptr;
+	float Best = TNumericLimits<float>::Max();
+	for (TActorIterator<ADVPuffbot> It(GetWorld()); Pen && It; ++It)
+	{
+		const float D = FVector::Dist2D(It->GetActorLocation(), Pen->GetActorLocation());
+		if (!It->IsPenned() && D < Best)
+		{
+			Best = D;
+			Target = *It;
+		}
+	}
+	if (!Target)
+	{
+		UE_LOG(LogTemp, Display, TEXT("DVHerdTest: every puffbot penned after %.1f s"), GetWorld()->GetTimeSeconds() - HerdTestStart);
+		bHerdTest = false;
+		return;
+	}
+	// Get behind it (on the side away from the pen), going wide so we don't spook it the wrong way, then push.
+	const FVector Bot = Target->GetActorLocation();
+	const FVector ToPen = (Pen->GetActorLocation() - Bot).GetSafeNormal2D();
+	const FVector Behind = Bot - ToPen * 420.f;
+	const float FromBehind = FVector::Dist2D(Me->GetActorLocation(), Behind);
+	const float FromBot = FVector::Dist2D(Me->GetActorLocation(), Bot);
+	const bool bOnFarSide = FVector::DotProduct((Me->GetActorLocation() - Bot).GetSafeNormal2D(), -ToPen) > 0.55f;
+	if (!bOnFarSide && FromBehind > 200.f)
+	{
+		// Circle round at a polite distance.
+		const FVector Side = FVector::CrossProduct(ToPen, FVector::UpVector);
+		const FVector Wide = FromBot < 800.f ? Bot + (Me->GetActorLocation() - Bot).GetSafeNormal2D() * 900.f + Side * 300.f - ToPen * 300.f : Behind;
+		Walk(Wide, 60.f);
+	}
+	else
+	{
+		Walk(Bot + ToPen * 150.f, 40.f);	// walk on through it toward the pen; it runs ahead
+	}
+	if (FMath::Fmod(GetWorld()->GetTimeSeconds(), 4.0) < 0.021)
+	{
+		UE_LOG(LogTemp, Display, TEXT("DVHerdTest: chasing %s, %.0f m from the pen, far side %d"), *Target->GetName(), Best / 100.f, bOnFarSide ? 1 : 0);
+	}
 }

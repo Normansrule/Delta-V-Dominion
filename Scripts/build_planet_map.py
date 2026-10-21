@@ -1,4 +1,4 @@
-"""Builds the playable planets: one map per biome, each a Hearthbound strongpoint to assault.
+﻿"""Builds the playable planets: one map per biome, each a Hearthbound strongpoint to assault.
 
   mars     /Game/Maps/Outpost   Red Tide       Tharsis Ridge at dusk (rust dunes, mesas)
   europa   /Game/Maps/Europa    Glass Ocean    Jupiter's ice moon: blue ice cliffs, black sky, Jupiter overhead
@@ -91,6 +91,13 @@ BIOMES = {
                        sun=(-14, 235), sun_color=(255, 178, 110), sun_lux=6.5, atmosphere=True, mie=0.045, sky_light=1.0,
                        fog=0.028, fog_color=(0.5, 0.31, 0.16), clouds=True, saturation=1.02, contrast=1.15, exposure=-0.15,
                        extras=["brass"]),
+    # Hollyhock Vale (Tau Ceti f): rolling green terraces, round cottages and a festival square, raised by Nana Bramble.
+    "hollyhock": dict(map="/Game/Maps/Hollyhock", env="/Game/Environment/Planets/Hollyhock", seed=111, dunes=150.0, rim=900.0, mesa=1700.0,
+                      sand_a=(0.09, 0.2, 0.045), sand_b=(0.05, 0.11, 0.03), slope_rock=(0.2, 0.18, 0.13),
+                      rock_dark=(0.08, 0.075, 0.07), rock_light=(0.3, 0.28, 0.24),
+                      sun=(-46, 140), sun_color=(255, 244, 222), sun_lux=10.0, atmosphere=True, mie=0.006, sky_light=1.3,
+                      fog=0.006, fog_color=(0.55, 0.62, 0.75), clouds=True, saturation=1.16, contrast=1.05, exposure=0.1,
+                      extras=["vale", "trees"]),
 }
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
@@ -187,6 +194,9 @@ def terrain_height(x, y):
     if "harbour" in B["extras"]:
         # A deep strait runs north to south through the arena: the harbour, open to the sea at both ends.
         h -= 780.0 * (1.0 - smoothstep(850.0, 1250.0, abs(x)))
+    if "vale" in B["extras"]:
+        # The village sits in a soft bowl: gentle near the square, rolling hills further out.
+        h *= 0.3 + 0.7 * smoothstep(1800.0, 5200.0, math.sqrt(x * x + y * y))
     if "brass" in B["extras"]:
         # The city floor is level; the canyon walls rise sheer past the last streets.
         h *= smoothstep(5200.0, 6800.0, math.sqrt(x * x + y * y * 1.5))
@@ -1153,6 +1163,149 @@ def build_brasshaven(mats):
 
 
 # --------------------------------------------------------------------------------------------
+# Hollyhock Vale
+# --------------------------------------------------------------------------------------------
+
+def cottage(label, x, y, r, h, mats, roof):
+    """A round cottage: cream walls, a conical roof, a round green door and warm round windows facing the square."""
+    cyl = lib.load_asset("/Engine/BasicShapes/Cylinder")
+    cone = lib.load_asset("/Engine/BasicShapes/Cone")
+    gz = ground(x, y)
+    place(cyl, label, (x, y, gz + h / 2), None, (r / 50.0, r / 50.0, h / 100.0), mats["cream"], "Cottages")
+    place(cone, label + "_Roof", (x, y, gz + h + 170), None, (r / 42.0, r / 42.0, 3.6), roof, "Cottages")
+    face = math.atan2(-y, -x)   # toward the square
+    fx, fy = math.cos(face), math.sin(face)
+    place(cyl, label + "_Door", (x + fx * r, y + fy * r, gz + 110), rot(pitch=90, yaw=math.degrees(face)), (1.1, 1.1, 0.08), mats["olive"], "Cottages")
+    for k in (-1, 1):
+        a = face + k * 0.75
+        place(cyl, label + "_Win%d" % k, (x + math.cos(a) * r, y + math.sin(a) * r, gz + 190), rot(pitch=90, yaw=math.degrees(a)), (0.55, 0.55, 0.06), mats["windows"], "Cottages")
+        place(cyl, label + "_Box%d" % k, (x + math.cos(a) * (r + 15), y + math.sin(a) * (r + 15), gz + 140), rot(yaw=math.degrees(a)), (0.6, 0.2, 0.15), mats["fence"], "Cottages")
+        for f in range(3):
+            block(label + "_Bloom%d_%d" % (k, f), (x + math.cos(a) * (r + 18) - math.sin(a) * (f - 1) * 18, y + math.sin(a) * (r + 18) + math.cos(a) * (f - 1) * 18, gz + 160),
+                  (14, 14, 14), random.choice([mats["petal_pink"], mats["petal_yellow"], mats["petal_purple"]]), folder="Cottages")
+    town_light(label + "_Glow", (x + fx * (r + 120), y + fy * (r + 120), gz + 260), (255, 210, 160), 140.0, 700.0)
+
+
+def build_hollyhock(mats):
+    """Hollyhock Vale: the festival square and maypole, round cottages, flower terraces, Nana's glasshouse,
+    the barn and puffbot pen, three storm-broken windpumps, and the puffbots themselves."""
+    cyl = lib.load_asset("/Engine/BasicShapes/Cylinder")
+    sphere = lib.load_asset("/Engine/BasicShapes/Sphere")
+    cube = lib.load_asset("/Engine/BasicShapes/Cube")
+    lanterns = [mats["lantern_pink"], mats["lantern_gold"], mats["lantern_sky"]]
+
+    # The square: a round green with a pale path ring, the maypole, picnic tables and strings of lanterns.
+    for k in range(28):   # a ring of packed-earth path around the green; the grass inside is the terrain's own
+        a = k * 2 * math.pi / 28
+        block("Path_%d" % k, (math.cos(a) * 1150, math.sin(a) * 1150, ground(math.cos(a) * 1150, math.sin(a) * 1150) - 2), (270, 220, 14), mats["street"], math.degrees(a), folder="Square")
+    gz = ground(0, 0)
+    place(cyl, "Maypole", (0, 0, gz + 700), None, (0.35, 0.35, 14.0), mats["white_trim"], "Square")
+    place(sphere, "Maypole_Top", (0, 0, gz + 1420), None, (0.7, 0.7, 0.7), mats["lantern_gold"], "Square")
+    for k in range(10):
+        a = k * 2 * math.pi / 10
+        tube_end = (math.cos(a) * 900, math.sin(a) * 900, gz + 20)
+        tube("Ribbon_%d" % k, (0, 0, gz + 1380), tube_end, 6, [mats["petal_pink"], mats["petal_yellow"], mats["petal_purple"], mats["petal_white"]][k % 4], "Square")
+        for j in range(1, 6):
+            t = j / 6.0
+            place(sphere, "Lantern_%d_%d" % (k, j), (tube_end[0] * t, tube_end[1] * t, gz + 1380 - (1360) * t - 40), None, (0.36, 0.36, 0.42), lanterns[(k + j) % 3], "Lanterns")
+    for i, (x, y, yaw) in enumerate([(-700, 450, 20), (650, -500, -15), (-300, -800, 80), (500, 700, 60)]):
+        g = ground(x, y)
+        block("Picnic_%d" % i, (x, y, g + 75), (240, 90, 10), mats["wood"], yaw, folder="Square")
+        for side in (-1, 1):
+            block("PicnicBench_%d_%d" % (i, side), (x - math.sin(math.radians(yaw)) * side * 85, y + math.cos(math.radians(yaw)) * side * 85, g + 45), (240, 30, 8), mats["wood"], yaw, folder="Square")
+        block("PicnicCloth_%d" % i, (x, y, g + 82), (200, 70, 3), mats["canvas_red"], yaw, folder="Square")
+    town_light("SquareGlow", (0, 0, gz + 900), (255, 200, 170), 900.0, 2400.0)
+
+    # Round cottages in a loose ring around the square.
+    roofs = [mats["thatch"], mats["thatch"], mats["barn_red"], mats["petal_purple"]]
+    for i in range(9):
+        a = i * 2 * math.pi / 9 + 0.2
+        rr = 1650 + (i % 3) * 180
+        x, y = math.cos(a) * rr, math.sin(a) * rr
+        if -2700 < x < -1200 and -2700 < y < -900:
+            continue   # leave room for the barn and pen
+        cottage("Cottage_%d" % i, x, y, random.choice([240, 280, 320]), random.choice([300, 340]), mats, roofs[i % 4])
+
+    # Flower terraces on the south slope: stepped beds in rows of colour.
+    for row in range(5):
+        y = -2100 - row * 260
+        for k in range(14):
+            x = -600 + k * 210
+            g = ground(x, y)
+            block("Bed_%d_%d" % (row, k), (x, y, g + 20 + row * 20), (190, 200, 40), mats["street"], folder="Terraces")
+            for f in range(4):
+                block("Flower_%d_%d_%d" % (row, k, f), (x - 70 + f * 46, y + random.uniform(-50, 50), g + 52 + row * 20), (22, 22, 22),
+                      [mats["petal_pink"], mats["petal_yellow"], mats["petal_purple"], mats["petal_white"]][(row + k + f) % 4], folder="Terraces")
+
+    # Nana Bramble's glasshouse: a domed conservatory with white ribs.
+    hx, hy = 2700, 1300
+    hg = ground(hx, hy)
+    place(sphere, "Glasshouse", (hx, hy, hg - 50), None, (12.0, 12.0, 9.0), mats["glasshouse"], "Glasshouse")
+    for k in range(6):
+        place(cyl, "Glasshouse_Rib%d" % k, (hx, hy, hg - 50), rot(pitch=90, yaw=k * 30), (12.1, 9.1, 0.1), mats["white_trim"], "Glasshouse")
+    place(cyl, "Glasshouse_Base", (hx, hy, hg + 20), None, (12.4, 12.4, 0.5), mats["white_trim"], "Glasshouse")
+    town_light("Glasshouse_Glow", (hx, hy, hg + 250), (200, 255, 220), 600.0, 1800.0)
+
+    # The barn and the pen, with its gate facing the village. The fence is solid; the gap is the way in.
+    bx, by = -2000, -2350
+    bg = ground(bx, by)
+    block("Barn", (bx, by, bg + 300), (900, 600, 600), mats["barn_red"], folder="Barn")
+    for side in (-1, 1):
+        place(cube, "Barn_Roof%d" % side, (bx, by + side * 165, bg + 715), rot(roll=side * 38), (9.6, 4.0, 0.2), mats["thatch"], "Barn")
+    block("Barn_Door", (bx, by + 302, bg + 200), (300, 6, 400), mats["white_trim"], folder="Barn")
+    px, py = -2000, -1450
+    pg = ground(px, py)
+    radius = 520.0
+    posts = []
+    for k in range(24):
+        a = k * 2 * math.pi / 24
+        if abs(math.atan2(math.sin(a), math.cos(a))) < 0.42:
+            continue   # the gate, facing +X toward the village
+        posts.append(a)
+        x, y = px + math.cos(a) * radius, py + math.sin(a) * radius
+        block("PenPost_%d" % k, (x, y, pg + 60), (16, 16, 120), mats["fence"], folder="Pen")
+        a2 = a + 2 * math.pi / 24
+        if abs(math.atan2(math.sin(a2), math.cos(a2))) >= 0.42:
+            x2, y2 = px + math.cos(a2) * radius, py + math.sin(a2) * radius
+            for h in (40, 90):
+                block("PenRail_%d_%d" % (k, h), ((x + x2) / 2, (y + y2) / 2, pg + h), (math.hypot(x2 - x, y2 - y) + 10, 10, 12), mats["fence"],
+                      math.degrees(math.atan2(y2 - y, x2 - x)), folder="Pen")
+    pen = spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVPen"), "PuffbotPen", (px, py, pg), folder="Gameplay")
+    pen.set_editor_property("radius", radius - 60)
+    for k in range(4):
+        place(cyl, "HayBale_%d" % k, (px - 200 + (k % 2) * 160, py - 250 + (k // 2) * 120, pg + 45), rot(roll=90), (0.9, 0.9, 1.1), mats["thatch"], "Pen")
+
+    # Three storm-broken windpumps on the terraces and hills.
+    pump = unreal.load_class(None, "/Script/DeltaVDominion.DVRepairPoint")
+    for i, (x, y) in enumerate([(-900, 2300), (1900, 2300), (3000, -900)]):
+        p = spawn(pump, "Windpump_%d" % i, (x, y, ground(x, y)), rot(yaw=random.uniform(-30, 30)), "Gameplay")
+        p.set_editor_property("display_name", "Windpump %d" % (i + 1))
+
+    # The puffbots, scattered by the storm.
+    puff = unreal.load_class(None, "/Script/DeltaVDominion.DVPuffbot")
+    for i, (x, y) in enumerate([(600, -900), (1300, 600), (-300, 1200), (900, 1700), (-1000, 400)]):
+        spawn(puff, "Puffbot_%d" % i, (x, y, ground(x, y) + 60), rot(yaw=random.uniform(0, 360)), "Gameplay")
+
+    # Hay bales and flower carts as cover, and the people of the Vale.
+    for i, (x, y) in enumerate([(-1500, 300), (-1200, -400), (1000, -1100), (1800, 200), (300, 1900), (-400, 2000), (2300, -300)]):
+        place(cyl, "Bale_%d" % i, (x, y, ground(x, y) + 70), rot(roll=90, yaw=random.uniform(0, 180)), (1.4, 1.4, 1.6), mats["thatch"], "Cover")
+    folk = [("Gardener", 3, "The storm took the pumps and the puffbots in one night. Nana didn't sleep a wink."),
+            ("Beekeeper", 0, "Mind the hives, dear. The bees are the only ones here who don't like visitors."),
+            ("Baker", 0, "There's lantern cake if you finish before dark. There's always lantern cake."),
+            ("Village kid", 4, "Are you here to shoot the helpers? Nana says you won't. Will you?"),
+            ("Village kid", 4, "Pip carried my kite home once. Pip's nice when it isn't scared."),
+            ("Weaver", 2, "We never needed soldiers. We're glad of you. Both are true."),
+            ("Fiddler", 2, "I'll play you a reel when the lanterns go up. Bring the sergeant."),
+            ("Shepherd", 1, "The puffbots spook easy. Walk slow, come from behind, and they'll go where you want.")]
+    for i, (name, trade, line) in enumerate(folk):
+        p = townsperson("Villager_%d" % i, (random.uniform(-1300, 1300), random.uniform(-1300, 1300), ground(0, 0) + 100), random.uniform(0, 360), name, trade, radius=1300.0)
+        p.set_editor_property("custom_line", line)
+    n = townsperson("Nana_Bramble", (hx - 900, hy - 300, ground(hx - 900, hy - 300) + 100), 200, "Nana Bramble", 0, wanders=False)
+    n.set_editor_property("custom_line", "Gentle hands, dears. Everything here can be mended, if you're patient with it.")
+    log("hollyhock built")
+
+
+# --------------------------------------------------------------------------------------------
 # Build
 # --------------------------------------------------------------------------------------------
 
@@ -1204,6 +1357,19 @@ def build():
         "gaslamp": glow("MI_GasLamp", (1.0, 0.62, 0.25), 30.0),
         "clockface": glow("MI_ClockFace", (0.95, 0.88, 0.7), 2.5),
         "ember": glow("MI_Ember", (1.0, 0.35, 0.08), 25.0),
+        "cream": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Cream", (0.78, 0.7, 0.56), roughness=0.9),
+        "thatch": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Thatch", (0.45, 0.3, 0.11), roughness=1.0),
+        "barn_red": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_BarnRed", (0.42, 0.07, 0.05), roughness=0.85),
+        "white_trim": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_WhiteTrim", (0.85, 0.85, 0.8), roughness=0.7),
+        "fence": tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_FenceWood", (0.36, 0.23, 0.12), metallic=0.0, roughness=0.85),
+        "petal_pink": glow("MI_Bloom_Pink", (1.0, 0.45, 0.65), 0.45),
+        "petal_yellow": glow("MI_Bloom_Yellow", (1.0, 0.85, 0.3), 0.45),
+        "petal_purple": glow("MI_Bloom_Purple", (0.7, 0.45, 1.0), 0.45),
+        "petal_white": glow("MI_Bloom_White", (1.0, 1.0, 0.95), 0.4),
+        "lantern_pink": glow("MI_Lantern_Pink", (1.0, 0.5, 0.7), 14.0),
+        "lantern_gold": glow("MI_Lantern_Gold", (1.0, 0.8, 0.4), 14.0),
+        "lantern_sky": glow("MI_Lantern_Sky", (0.5, 0.8, 1.0), 14.0),
+        "glasshouse": glow("MI_Glasshouse", (0.62, 0.9, 0.8), 0.7),
     }
     terrain = make_terrain()
     rocks = [make_rock(i) for i in range(6)]
@@ -1218,6 +1384,7 @@ def build():
 
     town = "town" in B["extras"]
     brass = "brass" in B["extras"]
+    vale = "vale" in B["extras"]
 
     # --- Terrain and rocks --------------------------------------------------------------
     place(terrain, "MoonTerrain", (0, 0, 0), material=terrain_mat, folder="Terrain")
@@ -1232,7 +1399,7 @@ def build():
     # Boulders as cover across the approach, plus big outcrops on the slopes.
     cover_rocks = [(-2600, -1300), (-2300, 900), (-1600, -300), (-900, 1500), (-700, -1600), (-200, 400),
                    (300, -900), (700, 1700), (1100, -2100), (-3300, 300), (-1200, -2600), (200, 2600)]
-    for i, (x, y) in enumerate([] if town or brass else cover_rocks):
+    for i, (x, y) in enumerate([] if town or brass or vale else cover_rocks):
         s = random.uniform(1.1, 1.8)
         place(random.choice(rocks), "CoverRock_%02d" % i, (x, y, ground(x, y) - 10), rot(yaw=random.uniform(0, 360)),
               (s * random.uniform(0.9, 1.4), s, s * random.uniform(0.8, 1.1)), rock_mat, "Rocks")
@@ -1247,7 +1414,7 @@ def build():
 
     # --- Hearthbound compound (east) ----------------------------------------------------
     bx, by = 3000.0, 0.0
-    if not town and not brass and "walker" not in B["extras"]:   # the Ironstride's loop needs the plain clear
+    if not town and not brass and not vale and "walker" not in B["extras"]:   # the Ironstride's loop needs the plain clear
         bz = ground(bx, by)
         # Bunker: thick walls with a doorway facing west, roof slab with overhang, glowing strips.
         block("Bunker_Floor", (bx, by, bz + 10), (1400, 1000, 30), mats["concrete_dark"])
@@ -1305,12 +1472,17 @@ def build():
         soldier = unreal.load_class(None, "/Script/DeltaVDominion.DVSoldierCharacter")
         enemy_spots = [(bx - 900, by - 250), (bx - 900, by + 450), (bx - 1300, by + 1000), (bx - 1200, by - 1100),
                        (bx - 300, by + 1250), (bx - 450, by), (1300, -500), (1400, 800)]
+        if vale:
+            # Nana Bramble's helper bots, frightened by the storm and the Static, around the square and the cottages.
+            enemy_spots = [(1200, -300), (1500, 900), (300, 1300), (-600, -1000), (2200, 500), (800, -1500)]
         if brass:
             # The Guild's clockwork constables, rewound to shoot uniforms: around the square and the Steamheart's yard.
             enemy_spots = [(2300, -650), (2400, 750), (1700, 1050), (1800, -1050), (900, -400), (1000, 600), (-200, 850), (0, -800)]
         for i, (x, y) in enumerate(enemy_spots):
-            e = spawn(soldier, ("Constable_%02d" if brass else "Hearthbound_%02d") % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
+            e = spawn(soldier, ("Constable_%02d" if brass else "HelperBot_%02d" if vale else "Hearthbound_%02d") % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
             e.set_editor_property("team_id", 2)
+            if vale:
+                e.set_editor_property("helper_bot", True)
             if brass:
                 e.set_editor_property("clockwork", True)
 
@@ -1334,9 +1506,9 @@ def build():
     tank = unreal.load_class(None, "/Script/DeltaVDominion.DVTank")
     gunship = unreal.load_class(None, "/Script/DeltaVDominion.DVGunship")
     kestrel = unreal.load_class(None, "/Script/DeltaVDominion.DVKestrel")
-    if not town:
+    if not town and not vale:   # no gun trucks in the Vale
         spawn(ltv, "LTV_Jackal", (-3700, 950, ground(-3700, 950) + 120), rot(yaw=10), "Vehicles")
-        if not brass:   # the Guild allows no armour in its streets
+        if not brass and not vale:   # the Guild allows no armour in its streets, and Nana none in her fields
             spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
     bike = unreal.load_class(None, "/Script/DeltaVDominion.DVHoverbike")
     for i, (bx, by) in enumerate([(2900, -650), (2600, -650)] if town else [(-3300, 300), (-3300, -300)]):
@@ -1365,7 +1537,12 @@ def build():
              ((1550, -520, 190), (2250, 0, 260)),             # 1: the pressure manifold in the foundry yard
              ((-4800, -4600, 1900), (0, -600, 900)),          # 2: over the rooftops, the moored airship in the haze
              ((-1850, -300, 200), (-600, 2300, 1300)),        # 3: gas lamps and the clock tower
-             ((1100, 1000, 200), (3600, 0, 1700))] if brass else [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
+             ((1100, 1000, 200), (3600, 0, 1700))] if brass else [
+             ((-2200, 900, 380), (600, -200, 400)),           # 0: across the festival square to the maypole and the glasshouse
+             ((-700, -700, 260), (-2000, -1500, 120)),        # 1: the barn and the puffbot pen
+             ((-4700, -4200, 2100), (300, 300, 300)),         # 2: the whole vale from the hills
+             ((-600, 1700, 220), (-900, 2300, 700)),          # 3: a storm-broken windpump
+             ((-1200, -2700, 240), (900, -1900, 60))] if vale else [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
              ((-2200, -1500, 220), (2600, 300, 220)),        # 1: low, behind the boulders, looking at the bunker
              ((5600, 2600, 900), (-800, -400, 0)),           # 2: reverse from behind the compound, sun in the lens
              ((bx - 1700, by - 700, 170), (bx - 600, by + 100, 250)),  # 3: close on the bunker doorway
@@ -1443,6 +1620,8 @@ def build():
     build_extras(mats, rocks, rock_mat)
     if brass:
         build_brasshaven(mats)
+    if vale:
+        build_hollyhock(mats)
     if town:
         build_town(mats)
     if "walker" in B["extras"]:

@@ -14,6 +14,7 @@
 #include "Core/DVAscent.h"
 #include "Vehicles/DVWalker.h"
 #include "Core/DVPressureManifold.h"
+#include "Core/DVHollyhock.h"
 #include "Characters/DVTownsfolk.h"
 #include "Vehicles/DVKestrel.h"
 #include "Characters/DVBulwark.h"
@@ -123,6 +124,12 @@ void ADVGameMode::SetupMissionForMap()
 		    { TEXT("Guildmaster Cogsworth-Vane"), TEXT("Someone fed forged punch-cards to my constables. They are Guild property. Wind them down. Do not scrap them.") },
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Civilians on every street and the Guild owns the sky. No orbital fire, no strafing runs. Check your targets.") },
 		    { TEXT("Guildmaster Cogsworth-Vane"), TEXT("And keep your chips away from my machines.") } } },
+		{ TEXT("Hollyhock"), TEXT("Lantern Night"), TEXT("Calm the Static-touched helper bots with foam. Hurt no one"), TEXT("Hollyhock Vale, Tau Ceti f"),
+		  TEXT("Tau Ceti  |  Act IV, the Static  |  Non-lethal rules: foam only"),
+		  { { TEXT("Nana Bramble"), TEXT("Oh, you came. The storm frightened my helpers and the Static did the rest. They're not wicked, dears, only scared.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Rifles are loaded with foam. Nobody gets hurt here. Not them, not the villagers. That's the job.") },
+		    { TEXT("Capt. Vance (Kestrel)"), TEXT("No fire support over the Vale, Delta. Nana's been curing infected machines for months. We need to know how.") },
+		    { TEXT("Nana Bramble"), TEXT("When they're calm, the pumps want mending and the puffbots want bringing home. Then we'll light the lanterns.") } } },
 		{ TEXT("Europa"), TEXT("Glass Ocean"), TEXT("Destroy the CINDER listening post on the ice"), TEXT("Conamara Chaos, Europa"),
 		  TEXT("Jupiter system  |  Day 9 of the uprising"),
 		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is listening to the ocean under that ice. Whatever it's hearing, it doesn't get to keep it.") },
@@ -185,11 +192,15 @@ void ADVGameMode::SetupMissionForMap()
 			break;
 		}
 	}
-	LocalFaction = Map.EndsWith(TEXT("Brasshaven")) ? DVFactions::Guild : Map.EndsWith(TEXT("RooksRest")) ? DVFactions::FreePorts
+	LocalFaction = Map.EndsWith(TEXT("Hollyhock")) ? DVFactions::Vale : Map.EndsWith(TEXT("Brasshaven")) ? DVFactions::Guild : Map.EndsWith(TEXT("RooksRest")) ? DVFactions::FreePorts
 		: Map.EndsWith(TEXT("Kestrel")) ? DVFactions::Accord : DVFactions::Colonies;
-	if (Map.EndsWith(TEXT("Brasshaven")))
+	if (Map.EndsWith(TEXT("Brasshaven")) || Map.EndsWith(TEXT("Hollyhock")))
 	{
 		GS->bRestrained = true;
+	}
+	if (Map.EndsWith(TEXT("Hollyhock")))
+	{
+		GS->bNonLethal = true;
 	}
 	if (bIsHub)
 	{
@@ -275,7 +286,8 @@ void ADVGameMode::RequestOrbitalStrike(APlayerController* Caller, const FVector&
 	}
 	if (GS->bRestrained)
 	{
-		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Negative, Delta. Civilians below and the Guild owns that sky. No fire from orbit."));
+		Radio(TEXT("Capt. Vance (Kestrel)"), GS->bNonLethal ? TEXT("Negative, Delta. Not over the Vale. Not ever.")
+			: TEXT("Negative, Delta. Civilians below and the Guild owns that sky. No fire from orbit."));
 		return;
 	}
 	APawn* CallerPawn = Caller->GetPawn();
@@ -400,6 +412,12 @@ void ADVGameMode::SetupOperation()
 		GS->ObjectiveLocation = Manifold->GetActorLocation();
 	}
 
+	if (ADVPen::Find(GetWorld()))
+	{
+		bValeOp = true;
+		GS->bValeOp = true;
+	}
+
 	const FString Map = GetWorld()->GetMapName();
 	struct FNoun { const TCHAR* Key; const TCHAR* Noun; };
 	static const FNoun Nouns[] = {
@@ -420,6 +438,10 @@ void ADVGameMode::SetupOperation()
 	if (bManifoldOp)
 	{
 		TargetNoun = TEXT("the Steamheart's manifold");
+	}
+	else if (bValeOp)
+	{
+		TargetNoun = TEXT("the windpumps");
 	}
 	else if (!bWalkerOp)
 	{
@@ -455,6 +477,10 @@ void ADVGameMode::DevAdvanceStage()
 				Walker->DevBlowAll();
 			}
 		}
+		else if (bValeOp)
+		{
+			StartHerd();
+		}
 		else if (bManifoldOp)
 		{
 			if (ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()))
@@ -472,7 +498,7 @@ void ADVGameMode::DevAdvanceStage()
 		}
 		else if (bScriptedObjectives) { StartCapture(); } else { StartDefend(); }
 		break;
-	case EDVMissionStage::Capture: StartDefend(); break;
+	case EDVMissionStage::Capture: if (bValeOp) { StartExtract(); } else { StartDefend(); } break;
 	case EDVMissionStage::Defend: StartExtract(); break;
 	default: break;
 	}
@@ -501,6 +527,14 @@ void ADVGameMode::StartSabotage()
 	GS->StageProgress = 0.f;
 	GS->ObjectiveText = FString::Printf(TEXT("Plant demolition charges on %s"), *TargetNoun);
 	StageStartTime = GetWorld()->GetTimeSeconds();
+	if (bValeOp)
+	{
+		GS->ObjectiveText = TEXT("Mend the storm-broken windpumps: stand beside each one");
+		Radio(TEXT("Nana Bramble"), TEXT("There now. They're only sleeping. Thank you for being gentle with them."), 1.5f);
+		Radio(TEXT("Nana Bramble"), TEXT("The windpumps keep the terraces watered. Stand by one a little while and it'll remember how to turn."), 8.f);
+		TickVale();
+		return;
+	}
 	if (bManifoldOp)
 	{
 		GS->ObjectiveText = TEXT("Bring all three Steamheart gauges into the green. Z turns a valve");
@@ -556,7 +590,7 @@ void ADVGameMode::StartCapture()
 void ADVGameMode::StartExtract()
 {
 	ADVGameState* GS = GetDVGameState();
-	if (!bScriptedObjectives && !bWalkerOp)
+	if (!bScriptedObjectives && !bWalkerOp && !bManifoldOp && !bValeOp)	// only demolition jobs end in a bang
 	{
 		DVFx::Explosion(GetWorld(), GS->ObjectiveLocation, 1.2f);
 		DVCombat::RadialDamage(SquadLeader.Get(), GS->ObjectiveLocation, 1400.f, 500.f, false);	// the squad's charges: credit the leader
@@ -565,15 +599,36 @@ void ADVGameMode::StartExtract()
 	GS->StageProgress = 0.f;
 	GS->ObjectiveText = TEXT("Get to the landing zone for extraction");
 	StageStartTime = GetWorld()->GetTimeSeconds();
+	if (bValeOp)
+	{
+		Radio(TEXT("Nana Bramble"), TEXT("Every puffbot home and every pump turning. Light the lanterns! Stay for one, dears, before you fly."), 1.f);
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Nana's sending us her notes on the helpers. Halloran says it reads like a lullaby. Raven Two-One is inbound."), 9.f);
+		FestivalBursts = 0;
+		GetWorldTimerManager().SetTimer(FestivalTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			ADVGameState* FGS = GetDVGameState();
+			if (!FGS || ++FestivalBursts > 24)
+			{
+				GetWorldTimerManager().ClearTimer(FestivalTimer);
+				return;
+			}
+			static const FLinearColor Colors[] = { FLinearColor(1.f, 0.5f, 0.7f), FLinearColor(1.f, 0.85f, 0.4f), FLinearColor(0.5f, 0.8f, 1.f), FLinearColor(0.6f, 1.f, 0.6f) };
+			const FVector Square(FMath::FRandRange(-800.f, 800.f), FMath::FRandRange(-800.f, 800.f), FMath::FRandRange(2200.f, 3200.f));
+			FGS->MulticastFirework(Square, Colors[FestivalBursts % UE_ARRAY_COUNT(Colors)]);
+		}), 0.7f, true, 2.f);
+	}
 	if (bManifoldOp)
 	{
 		Radio(TEXT("Guildmaster Cogsworth-Vane"), GS->CiviliansHurt == 0 ? TEXT("She's lit, and not one of my people hurt. The Guild remembers its debts, Commander.")
 			: TEXT("She's lit. My people will remember who fired in our streets, but they'll remember this too."), 1.f);
 	}
-	Radio(TEXT("Capt. Vance (Kestrel)"), bManifoldOp ? FString(TEXT("Steamheart is relit and the cure has a forge. Raven Two-One is inbound to your LZ, Delta."))
-		: bWalkerOp ? FString(TEXT("It's down. Nine hundred tonnes of it. Raven Two-One is inbound to your LZ, Delta."))
-		: bScriptedObjectives ? FString(TEXT("Transports are in open water. Twelve thousand people, Delta. Raven Two-One is coming for you."))
-		: FString::Printf(TEXT("Good kill on %s, Delta. Raven Two-One is inbound to your LZ. Get out of there."), *TargetNoun), 1.f);
+	if (!bValeOp)
+	{
+		Radio(TEXT("Capt. Vance (Kestrel)"), bManifoldOp ? FString(TEXT("Steamheart is relit and the cure has a forge. Raven Two-One is inbound to your LZ, Delta."))
+			: bWalkerOp ? FString(TEXT("It's down. Nine hundred tonnes of it. Raven Two-One is inbound to your LZ, Delta."))
+			: bScriptedObjectives ? FString(TEXT("Transports are in open water. Twelve thousand people, Delta. Raven Two-One is coming for you."))
+			: FString::Printf(TEXT("Good kill on %s, Delta. Raven Two-One is inbound to your LZ. Get out of there."), *TargetNoun), 1.f);
+	}
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	const FVector From = FVector(GS->ExtractLocation) + FVector(-6000.f, 0.f, 4000.f);
@@ -651,6 +706,11 @@ void ADVGameMode::TickStage()
 			}
 			break;
 		}
+		if (bValeOp)
+		{
+			TickVale();
+			break;
+		}
 		if (bManifoldOp)
 		{
 			if (const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()))
@@ -677,6 +737,11 @@ void ADVGameMode::TickStage()
 		}
 		break;
 	case EDVMissionStage::Capture:
+		if (bValeOp)
+		{
+			TickVale();
+			break;
+		}
 		if (AnyPlayerNear(GS->ObjectiveLocation, 500.f))
 		{
 			GS->StageProgress = FMath::Min(1.f, GS->StageProgress + 0.25f / 5.f);
@@ -852,7 +917,7 @@ void ADVGameMode::OnWalkerDown()
 void ADVGameMode::SpawnBulwarks()
 {
 	const FString Map = GetWorld()->GetMapName();
-	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("RooksRest")) || Map.Contains(TEXT("BootCamp")) || ADVWalker::Find(GetWorld()) || ADVPressureManifold::Find(GetWorld()))
+	if (Map.Contains(TEXT("Kestrel")) || Map.Contains(TEXT("RooksRest")) || Map.Contains(TEXT("BootCamp")) || ADVWalker::Find(GetWorld()) || ADVPressureManifold::Find(GetWorld()) || ADVPen::Find(GetWorld()))
 	{
 		return;	// no Bulwark on Ironstride: the walker is the heavy
 	}
@@ -1132,6 +1197,10 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 		{
 			VictimName += TEXT(" (wound down)");
 		}
+		if (Victim->bHelperBot)
+		{
+			VictimName += TEXT(" (calmed)");
+		}
 		const FString KillerName = !Killer ? TEXT("") : Killer->IsPlayerControlled() ? TEXT("You")
 			: Killer->GetSoldierName().IsEmpty() ? TEXT("War-frame") : Killer->GetSoldierName();
 		GS->MulticastKillFeed(KillerName, VictimName, bFriendlyLoss);
@@ -1145,7 +1214,8 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 			++HostileKills;
 			if (HostileKills == 1)
 			{
-				Radio(TEXT("Gny. Sgt. Halloran"), Victim->bClockwork ? TEXT("That one's wound down. Spring's still in it; the Guild can rewind it later. Next!")
+				Radio(TEXT("Gny. Sgt. Halloran"), Victim->bHelperBot ? TEXT("That one's foamed still. Easy now. Next one.")
+					: Victim->bClockwork ? TEXT("That one's wound down. Spring's still in it; the Guild can rewind it later. Next!")
 					: TEXT("Scratch one tin can! They bleed oil, people. Keep it up."));
 			}
 			else if (GS->EnemiesTotal > 3 && GS->EnemiesRemaining - 1 == GS->EnemiesTotal / 2 && !bIsTrainingMap)
@@ -1275,6 +1345,14 @@ void ADVGameMode::EndMission(bool bSuccess)
 		if (bSuccess)
 		{
 			RepGS->MulticastReputation(DVFactions::Accord, bIsTrainingMap ? 3 : 8, bIsTrainingMap ? TEXT("Training complete") : TEXT("Operation complete"));
+			if (bValeOp)
+			{
+				RepGS->MulticastReputation(DVFactions::Vale, 15, TEXT("The lanterns lit over Hollyhock"));
+				if (RepGS->CiviliansHurt == 0)
+				{
+					RepGS->MulticastReputation(DVFactions::Vale, 10, TEXT("Nobody hurt, not even the helpers"));
+				}
+			}
 			if (bManifoldOp)
 			{
 				RepGS->MulticastReputation(DVFactions::Guild, 15, TEXT("The Steamheart relit"));
@@ -1298,6 +1376,10 @@ void ADVGameMode::EndMission(bool bSuccess)
 		}
 		else if (!bIsTrainingMap)
 		{
+			if (bValeOp)
+			{
+				RepGS->MulticastReputation(DVFactions::Vale, -15, TEXT("Sent home from Hollyhock"));
+			}
 			if (bManifoldOp)
 			{
 				RepGS->MulticastReputation(DVFactions::Guild, -10, TEXT("The Steamheart went cold"));
@@ -1432,10 +1514,107 @@ void ADVGameMode::NotifyCivilianHurt(ADVTownsfolk* Civilian, AActor* Shooter)
 	++GS->CiviliansHurt;
 	const int32 Faction = LocalFaction >= 0 ? LocalFaction : DVFactions::Colonies;
 	GS->MulticastReputation(static_cast<uint8>(Faction), -4, FString::Printf(TEXT("Fired on %s"), *Civilian->DisplayName));
+	if (GS->bNonLethal && GS->CiviliansHurt >= 2)
+	{
+		Radio(TEXT("Nana Bramble"), TEXT("No. Not here. I'm sorry, dears, but you'll have to go home now."));
+		FTimerHandle Home;
+		GetWorldTimerManager().SetTimer(Home, FTimerDelegate::CreateWeakLambda(this, [this]() { EndMission(false); }), 3.f, false);
+		return;
+	}
+	if (GS->bNonLethal && !bWarnedRoE)
+	{
+		bWarnedRoE = true;
+		Radio(TEXT("Nana Bramble"), TEXT("Oh! Oh, that was one of mine. Please. Once more and I'll have to send you away."));
+		return;
+	}
 	if (!bWarnedRoE)
 	{
 		bWarnedRoE = true;
 		Radio(Faction == DVFactions::Guild ? TEXT("Guildmaster Cogsworth-Vane") : TEXT("Gny. Sgt. Halloran"),
 			Faction == DVFactions::Guild ? TEXT("Those are my people, Commander! Hold your fire!") : TEXT("Check fire! Civilians! Check your targets!"));
 	}
+}
+
+void ADVGameMode::TickVale()
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || bMissionEnded)
+	{
+		return;
+	}
+	const FVector From = SquadLeader.IsValid() ? SquadLeader->GetActorLocation() : FVector(GS->ObjectiveLocation);
+	int32 Done = 0;
+	int32 Total = 0;
+	float Best = TNumericLimits<float>::Max();
+	if (GS->Stage == EDVMissionStage::Sabotage)
+	{
+		for (TActorIterator<ADVRepairPoint> It(GetWorld()); It; ++It)
+		{
+			++Total;
+			if (It->IsFixed())
+			{
+				++Done;
+			}
+			else if (FVector::DistSquared(It->GetActorLocation(), From) < Best)
+			{
+				Best = FVector::DistSquared(It->GetActorLocation(), From);
+				GS->ObjectiveLocation = It->GetActorLocation();
+			}
+		}
+		// Show the pump being worked on as part of the bar.
+		float Partial = 0.f;
+		for (TActorIterator<ADVRepairPoint> It(GetWorld()); It; ++It)
+		{
+			Partial = FMath::Max(Partial, It->IsFixed() ? 0.f : It->GetProgress());
+		}
+		GS->StageProgress = Total > 0 ? (Done + Partial) / Total : 1.f;
+		if (Done > GS->ValeDone && Done < Total)
+		{
+			Radio(TEXT("Nana Bramble"), Done == 1 ? TEXT("Listen to it go! One turning.") : TEXT("Two! The lower terraces will have water by morning."));
+		}
+		GS->ValeDone = Done;
+		GS->ValeTotal = Total;
+		if (Done >= Total)
+		{
+			StartHerd();
+		}
+		return;
+	}
+	if (GS->Stage == EDVMissionStage::Capture)
+	{
+		for (TActorIterator<ADVPuffbot> It(GetWorld()); It; ++It)
+		{
+			++Total;
+			Done += It->IsPenned() ? 1 : 0;
+		}
+		if (const ADVPen* Pen = ADVPen::Find(GetWorld()))
+		{
+			GS->ObjectiveLocation = Pen->GetActorLocation();
+		}
+		if (Done > GS->ValeDone && Done < Total)
+		{
+			static const TCHAR* Cheers[] = { TEXT("That's Turnip home. Good."), TEXT("Two in the barn!"), TEXT("Oh, well herded."), TEXT("Just one left out there, dears.") };
+			Radio(TEXT("Nana Bramble"), Cheers[FMath::Clamp(Done - 1, 0, 3)]);
+		}
+		GS->ValeDone = Done;
+		GS->ValeTotal = Total;
+		GS->StageProgress = Total > 0 ? float(Done) / Total : 1.f;
+		if (Done >= Total)
+		{
+			StartExtract();
+		}
+	}
+}
+
+void ADVGameMode::StartHerd()
+{
+	ADVGameState* GS = GetDVGameState();
+	GS->Stage = EDVMissionStage::Capture;
+	GS->StageProgress = 0.f;
+	GS->ValeDone = 0;
+	GS->ObjectiveText = TEXT("Herd the scattered puffbots home to the barn pen");
+	StageStartTime = GetWorld()->GetTimeSeconds();
+	Radio(TEXT("Nana Bramble"), TEXT("All three pumps! Now, the puffbots ran off in the storm. They're shy. Walk them home from behind, slowly."), 1.f);
+	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Herding robots. Twenty years in the service, Delta. Come at them from the far side and walk them in."), 9.f);
+	TickVale();
 }

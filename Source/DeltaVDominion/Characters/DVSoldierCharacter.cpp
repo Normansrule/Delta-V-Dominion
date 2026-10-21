@@ -126,6 +126,7 @@ void ADVSoldierCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(ADVSoldierCharacter, SoldierName);
 	DOREPLIFETIME(ADVSoldierCharacter, TeamId);
 	DOREPLIFETIME(ADVSoldierCharacter, bClockwork);
+	DOREPLIFETIME(ADVSoldierCharacter, bHelperBot);
 	DOREPLIFETIME(ADVSoldierCharacter, bIsDead);
 	DOREPLIFETIME(ADVSoldierCharacter, bDowned);
 	DOREPLIFETIME(ADVSoldierCharacter, Look);
@@ -186,6 +187,16 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 				Mat->SetScalarParameterValue(TEXT("EmissivePower"), 14.f);
 				continue;
 			}
+			if (!bFriendly && bHelperBot)
+			{
+				// Nana Bramble's helpers: sage-green enamel, rosy optics. Foamed still, the optics go dark and soft.
+				Mat->SetVectorParameterValue(TEXT("Paint Tint"), FLinearColor(0.3f, 0.55f, 0.42f));
+				Mat->SetVectorParameterValue(TEXT("LogoTint"), FLinearColor(1.f, 0.42f, 0.7f));
+				Mat->SetScalarParameterValue(TEXT("MetalPaintMetallic"), 0.15f);
+				Mat->SetScalarParameterValue(TEXT("MetalPaintRoughness"), 0.55f);
+				Mat->SetScalarParameterValue(TEXT("EmissivePower"), bIsDead ? 0.f : 12.f);
+				continue;
+			}
 			if (!bFriendly && bClockwork)
 			{
 				// Guild constables: polished brass plate, warm amber optics behind glass.
@@ -207,7 +218,9 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 	}
 	if (!bFriendly && HasAuthority() && SoldierName.IsEmpty())
 	{
-		SoldierName = bClockwork ? FString::Printf(TEXT("Constable No. %d"), FMath::RandRange(100, 999))
+		static const TCHAR* HelperNames[] = { TEXT("Pip"), TEXT("Dumpling"), TEXT("Clover"), TEXT("Biscuit"), TEXT("Moss"), TEXT("Thimble"), TEXT("Nutmeg"), TEXT("Pebble") };
+		SoldierName = bHelperBot ? FString::Printf(TEXT("Helper-bot %s"), HelperNames[FMath::RandRange(0, UE_ARRAY_COUNT(HelperNames) - 1)])
+			: bClockwork ? FString::Printf(TEXT("Constable No. %d"), FMath::RandRange(100, 999))
 			: FString::Printf(TEXT("Warden-%03d"), FMath::RandRange(100, 999));
 	}
 }
@@ -940,7 +953,7 @@ void ADVSoldierCharacter::Die(AActor* DamageInstigator)
 	}
 
 	OnRep_IsDead();
-	if (!bClockwork)
+	if (!StopsInsteadOfDying())
 	{
 		SetLifeSpan(90.f);	// wound-down constables stay where they stopped, for the Guild to collect
 	}
@@ -956,7 +969,7 @@ void ADVSoldierCharacter::OnRep_IsDead()
 	{
 		AbilitySystemComponent->AddLooseGameplayTag(DVTags::State_Dead);
 	}
-	if (bClockwork)
+	if (StopsInsteadOfDying())
 	{
 		WindDown();
 		return;
@@ -977,7 +990,7 @@ void ADVSoldierCharacter::WindDown()
 	// Slump forward onto its knees, more or less: sink and pitch over, then the optics go dark.
 	SetActorLocationAndRotation(GetActorLocation() - FVector(0.f, 0.f, 45.f), FRotator(-24.f, GetActorRotation().Yaw, 0.f));
 	ApplyTeamAppearance();
-	DVFx::Flash(GetWorld(), GetActorLocation() + FVector(0.f, 0.f, 60.f), FLinearColor(1.f, 0.85f, 0.6f), 900.f, 500.f, 0.4f);
+	DVFx::Flash(GetWorld(), GetActorLocation() + FVector(0.f, 0.f, 60.f), bHelperBot ? FLinearColor(1.f, 0.7f, 0.85f) : FLinearColor(1.f, 0.85f, 0.6f), 900.f, 500.f, 0.4f);
 	DVSound::At(GetWorld(), TEXT("SW_Thruster"), GetActorLocation(), 0.45f, 0, 0.2f);
 	if (PlaceholderBody)
 	{

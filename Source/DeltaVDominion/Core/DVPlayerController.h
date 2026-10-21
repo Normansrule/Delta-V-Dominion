@@ -112,6 +112,19 @@ public:
 	void DVBoardTest(float Delay = 0.f, int32 JumpOffOnce = 0);
 	bool bBoardTestJumpOff = false;
 	void TickBoardTest();
+	/** Tests: "DVHerdTest [Delay]" herds every puffbot into the pen with real movement input (no teleports): it walks
+	 *  round to the far side of the nearest loose one, then walks toward the pen behind it. */
+	UFUNCTION(Exec)
+	void DVHerdTest(float Delay = 0.f);
+	void TickHerdTest();
+	bool bHerdTest = false;
+	FVector HerdLastPos = FVector::ZeroVector;
+	double HerdStuckSince = -1.0;
+	double HerdTestStart = 0.0;
+	/** Tests: "DVRepairTest [Delay]" walks to each broken windpump and waits beside it. */
+	UFUNCTION(Exec)
+	void DVRepairTest(float Delay = 0.f);
+	bool bRepairTest = false;
 	bool bBoardTest = false;
 	int32 BoardTestStep = 0;
 	double BoardTestStart = 0.0;
