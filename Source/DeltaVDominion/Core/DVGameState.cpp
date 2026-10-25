@@ -1,4 +1,5 @@
 #include "Core/DVGameState.h"
+#include "Core/DVHollyhock.h"
 #include "Core/DVProfileSubsystem.h"
 #include "Core/DVPlayerController.h"
 #include "Engine/GameInstance.h"
@@ -322,4 +323,8 @@ void ADVGameState::MulticastFirework_Implementation(FVector_NetQuantize Location
 		DVFx::Flash(GetWorld(), FVector(Location) + FMath::VRand() * 400.f, Color, 1500.f, 900.f, 0.8f);
 	}
 	DVSound::At(GetWorld(), TEXT("SW_ExplosionSmall"), Location, 0.35f, 2, 0.3f);
+	if (ADVFirework* Shell = GetWorld()->SpawnActor<ADVFirework>(ADVFirework::StaticClass(), FVector(Location), FRotator::ZeroRotator))
+	{
+		Shell->Burst(Color);
+	}
 }

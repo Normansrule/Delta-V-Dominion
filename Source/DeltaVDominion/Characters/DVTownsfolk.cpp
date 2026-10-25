@@ -121,7 +121,8 @@ void ADVTownsfolk::Tick(float DeltaSeconds)
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		const APawn* P = It->Get() ? It->Get()->GetPawn() : nullptr;
-		if (P && FVector::Dist2D(P->GetActorLocation(), GetActorLocation()) < TalkRange * 1.3f)
+		// Only someone who stops to talk: a soldier running past shouldn't find a villager planted in the way.
+		if (P && FVector::Dist2D(P->GetActorLocation(), GetActorLocation()) < TalkRange * 1.3f && P->GetVelocity().Size2D() < 200.f)
 		{
 			Visitor = P;
 			break;

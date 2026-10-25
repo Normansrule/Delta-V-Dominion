@@ -1,4 +1,4 @@
-﻿"""Builds the playable planets: one map per biome, each a Hearthbound strongpoint to assault.
+"""Builds the playable planets: one map per biome, each a Hearthbound strongpoint to assault.
 
   mars     /Game/Maps/Outpost   Red Tide       Tharsis Ridge at dusk (rust dunes, mesas)
   europa   /Game/Maps/Europa    Glass Ocean    Jupiter's ice moon: blue ice cliffs, black sky, Jupiter overhead
@@ -1283,7 +1283,8 @@ def build_hollyhock(mats):
 
     # The puffbots, scattered by the storm.
     puff = unreal.load_class(None, "/Script/DeltaVDominion.DVPuffbot")
-    for i, (x, y) in enumerate([(600, -900), (1300, 600), (-300, 1200), (900, 1700), (-1000, 400)]):
+    # Inside the path ring and clear of the cottages, so each starts on open, walkable grass.
+    for i, (x, y) in enumerate([(450, -650), (760, 160), (-250, 760), (300, 880), (-760, 230)]):
         spawn(puff, "Puffbot_%d" % i, (x, y, ground(x, y) + 60), rot(yaw=random.uniform(0, 360)), "Gameplay")
 
     # Hay bales and flower carts as cover, and the people of the Vale.
@@ -1296,7 +1297,7 @@ def build_hollyhock(mats):
             ("Village kid", 4, "Pip carried my kite home once. Pip's nice when it isn't scared."),
             ("Weaver", 2, "We never needed soldiers. We're glad of you. Both are true."),
             ("Fiddler", 2, "I'll play you a reel when the lanterns go up. Bring the sergeant."),
-            ("Shepherd", 1, "The puffbots spook easy. Walk slow, come from behind, and they'll go where you want.")]
+            ("Shepherd", 1, "Puffbots spook easy. Walk up slow and they'll follow you anywhere. Run at them and they scatter.")]
     for i, (name, trade, line) in enumerate(folk):
         p = townsperson("Villager_%d" % i, (random.uniform(-1300, 1300), random.uniform(-1300, 1300), ground(0, 0) + 100), random.uniform(0, 360), name, trade, radius=1300.0)
         p.set_editor_property("custom_line", line)

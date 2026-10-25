@@ -1295,7 +1295,7 @@ void ADVPlayerController::DVRepairTest(float Delay)
 void ADVPlayerController::TickHerdTest()
 {
 	APawn* Me = GetPawn();
-	if (!Me || GetWorld()->GetTimeSeconds() - HerdTestStart > 400.0)
+	if (!Me || GetWorld()->GetTimeSeconds() - HerdTestStart > 600.0)
 	{
 		bHerdTest = bRepairTest = false;
 		return;
@@ -1317,11 +1317,12 @@ void ADVPlayerController::TickHerdTest()
 		}
 		else if (Now - HerdStuckSince > 1.0 && Now - HerdStuckSince < 2.2)
 		{
-			Dir = FVector::CrossProduct(FVector::UpVector, Dir);
+			Dir = FVector::CrossProduct(FVector::UpVector, Dir) * (HerdSidestep % 2 ? -1.f : 1.f);
 		}
 		else if (Now - HerdStuckSince >= 2.2)
 		{
 			HerdStuckSince = Now;
+			++HerdSidestep;	// still stuck: try the other side next time
 		}
 		SetControlRotation(FRotator(-8.f, Dir.Rotation().Yaw, 0.f));
 		Me->AddMovementInput(Dir, 1.f);
@@ -1350,44 +1351,52 @@ void ADVPlayerController::TickHerdTest()
 		Walk(Target->GetActorLocation() + FVector(-200.f, 0.f, 0.f), 80.f);
 		return;
 	}
+	// Like a player would: walk (never sprint) up to the nearest loose puffbot until it follows, collect them, then
+	// walk to the barn gate; near the barn they trot in by themselves.
 	const ADVPen* Pen = ADVPen::Find(GetWorld());
 	const ADVPuffbot* Target = nullptr;
 	float Best = TNumericLimits<float>::Max();
+	int32 Loose = 0, Following = 0;
 	for (TActorIterator<ADVPuffbot> It(GetWorld()); Pen && It; ++It)
 	{
-		const float D = FVector::Dist2D(It->GetActorLocation(), Pen->GetActorLocation());
-		if (!It->IsPenned() && D < Best)
+		if (It->IsPenned())
+		{
+			continue;
+		}
+		++Loose;
+		if (It->IsFollowing(Me))
+		{
+			++Following;
+			continue;
+		}
+		if (FVector::Dist2D(It->GetActorLocation(), Pen->GetActorLocation()) < Pen->Radius + 1150.f)
+		{
+			continue;	// it can see the barn and walks in by itself
+		}
+		const float D = FVector::Dist2D(It->GetActorLocation(), Me->GetActorLocation());
+		if (D < Best)
 		{
 			Best = D;
 			Target = *It;
 		}
 	}
-	if (!Target)
+	if (Loose == 0)
 	{
 		UE_LOG(LogTemp, Display, TEXT("DVHerdTest: every puffbot penned after %.1f s"), GetWorld()->GetTimeSeconds() - HerdTestStart);
 		bHerdTest = false;
 		return;
 	}
-	// Get behind it (on the side away from the pen), going wide so we don't spook it the wrong way, then push.
-	const FVector Bot = Target->GetActorLocation();
-	const FVector ToPen = (Pen->GetActorLocation() - Bot).GetSafeNormal2D();
-	const FVector Behind = Bot - ToPen * 420.f;
-	const float FromBehind = FVector::Dist2D(Me->GetActorLocation(), Behind);
-	const float FromBot = FVector::Dist2D(Me->GetActorLocation(), Bot);
-	const bool bOnFarSide = FVector::DotProduct((Me->GetActorLocation() - Bot).GetSafeNormal2D(), -ToPen) > 0.55f;
-	if (!bOnFarSide && FromBehind > 200.f)
+	const FVector Gate = Pen->GetActorLocation() + FVector(Pen->Radius + 900.f, 0.f, 0.f);
+	const bool bGoHome = Following > 0 && (!Target || Following >= 2);
+	if (!Target && Following == 0)
 	{
-		// Circle round at a polite distance.
-		const FVector Side = FVector::CrossProduct(ToPen, FVector::UpVector);
-		const FVector Wide = FromBot < 800.f ? Bot + (Me->GetActorLocation() - Bot).GetSafeNormal2D() * 900.f + Side * 300.f - ToPen * 300.f : Behind;
-		Walk(Wide, 60.f);
+		Walk(Gate + FVector(700.f, 900.f, 0.f), 150.f);	// the rest are walking in: stand back out of the gateway
+		return;
 	}
-	else
-	{
-		Walk(Bot + ToPen * 150.f, 40.f);	// walk on through it toward the pen; it runs ahead
-	}
+	Walk(bGoHome ? Gate : Target->GetActorLocation(), bGoHome ? 120.f : 200.f);
 	if (FMath::Fmod(GetWorld()->GetTimeSeconds(), 4.0) < 0.021)
 	{
-		UE_LOG(LogTemp, Display, TEXT("DVHerdTest: chasing %s, %.0f m from the pen, far side %d"), *Target->GetName(), Best / 100.f, bOnFarSide ? 1 : 0);
+		UE_LOG(LogTemp, Display, TEXT("DVHerdTest: %d loose, %d following me, %s"), Loose, Following,
+			bGoHome ? TEXT("leading them to the barn") : *FString::Printf(TEXT("fetching %s %.0f m away"), *Target->GetName(), Best / 100.f));
 	}
 }

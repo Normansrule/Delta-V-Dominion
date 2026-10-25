@@ -504,7 +504,7 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 						Text(TEXT("PUFFBOT"), P.X, P.Y, DVHudColors::Health, GEngine->GetSmallFont(), DVType::Caption, true);
 					}
 				}
-				Text(TEXT("Puffbots run from you. Come at one from the far side and walk it into the pen"), CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
+				Text(TEXT("Walk up to a puffbot gently and it follows you. Sprinting scares them. Lead them to the barn"), CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
 				break;
 			}
 			Right = FString::Printf(TEXT("CAPTURING %d%%"), FMath::RoundToInt(GS->StageProgress * 100.f)); break;

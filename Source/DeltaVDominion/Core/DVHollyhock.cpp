@@ -215,7 +215,8 @@ ADVPuffbot::ADVPuffbot()
 	Move->bOrientRotationToMovement = true;
 	Move->RotationRate = FRotator(0.f, 540.f, 0.f);
 	Move->MaxWalkSpeed = 140.f;
-	Move->bUseRVOAvoidance = true;
+	Move->bRunPhysicsWithNoController = true;
+	Move->bUseRVOAvoidance = false;	// avoidance would make it politely stop for the very soldier herding it
 	Visual = CreateDefaultSubobject<USceneComponent>(TEXT("Visual"));
 	Visual->SetupAttachment(GetCapsuleComponent());
 	Visual->SetRelativeLocation(FVector(0.f, 0.f, -50.f));
@@ -250,6 +251,17 @@ void ADVPuffbot::BeginPlay()
 		Painted(this, Visual, DVKit::Sphere(), Foot, FVector(24.f, 24.f, 16.f), FLinearColor(0.35f, 0.3f, 0.3f), 0.1f);
 	}
 	NextThink = GetWorld()->GetTimeSeconds() + Rng.FRandRange(0.2f, 1.5f);
+	if (HasAuthority() && !GetController())
+	{
+		SpawnDefaultController();	// a placed puffbot can miss its automatic AI controller; without one it never moves
+	}
+	// Stand it on the walkable ground, in case it was placed on a ledge or a slab the navmesh doesn't cover.
+	FNavLocation OnNav;
+	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
+	if (HasAuthority() && Nav && Nav->ProjectPointToNavigation(GetActorLocation(), OnNav, FVector(300.f, 300.f, 300.f)))
+	{
+		SetActorLocation(OnNav.Location + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 2.f));
+	}
 }
 
 void ADVPuffbot::Tick(float DeltaSeconds)
@@ -268,30 +280,61 @@ void ADVPuffbot::Tick(float DeltaSeconds)
 	if (const ADVPen* Pen = ADVPen::Find(GetWorld()); Pen && Pen->Contains(GetActorLocation()))
 	{
 		bPenned = true;
+		WantDir = FVector::ZeroVector;
 		if (AAIController* AI = Cast<AAIController>(GetController()))
 		{
-			AI->StopMovement();
+			// Make room at the gate: settle somewhere toward the back of the pen.
+			const float A = FMath::FRandRange(100.f, 260.f);
+			AI->MoveToLocation(Pen->GetActorLocation() + FRotator(0.f, A, 0.f).RotateVector(FVector(FMath::FRandRange(80.f, 300.f), 0.f, 0.f)), 40.f, false);
 		}
 		DVFx::Flash(GetWorld(), GetActorLocation() + FVector(0.f, 0.f, 80.f), FLinearColor(1.f, 0.8f, 0.9f), 600.f, 400.f, 0.3f);
 		DVSound::At(GetWorld(), TEXT("SW_UIClick"), GetActorLocation(), 0.9f, 0, 0.3f);
 		return;
+	}
+	// Pathfinding can't always help (a puffbot standing on a ledge or a slab the navmesh missed): if it wants to go
+	// somewhere and hasn't moved, it waddles there directly, turning a little more each time it bumps into something.
+	if (!WantDir.IsNearlyZero())
+	{
+		if (Speed > 60.f)
+		{
+			StuckSince = -1.0;
+			StuckTurns = 0;
+		}
+		else if (StuckSince < 0.0)
+		{
+			StuckSince = Now;
+		}
+		else if (Now - StuckSince > 0.5)
+		{
+			const float Turn = (StuckTurns % 2 ? -1.f : 1.f) * 30.f * ((StuckTurns + 1) / 2);
+			AddMovementInput(FRotator(0.f, Turn, 0.f).RotateVector(WantDir), 1.f);
+			if (Now - StuckSince > 1.6)
+			{
+				StuckSince = Now - 0.5;
+				StuckTurns = (StuckTurns + 1) % 7;
+			}
+		}
 	}
 	if (Now < NextThink)
 	{
 		return;
 	}
 	NextThink = Now + 0.3;
-	// Who's closest? Anyone inside Skittish sends it running directly away from them.
+	// Who's closest? A soldier who walks up gently is a friend to follow; one who comes sprinting is a fright.
 	const APawn* Threat = nullptr;
+	const APawn* Friend = nullptr;
 	float ThreatDist = Skittish;
 	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
 	{
 		const float D = FVector::Dist2D(It->GetActorLocation(), GetActorLocation());
-		if (It->IsPlayerControlled() && !It->IsOutOfAction() && D < ThreatDist)	// your squadmates know better than to chase them
+		if (!It->IsPlayerControlled() || It->IsOutOfAction() || D >= ThreatDist)	// your squadmates know better than to chase them
 		{
-			ThreatDist = D;
-			Threat = *It;
+			continue;
 		}
+		ThreatDist = D;
+		const bool bRushing = It->GetVelocity().Size2D() > Scary;
+		Threat = bRushing ? *It : nullptr;
+		Friend = !bRushing && D < Befriend ? *It : nullptr;
 	}
 	AAIController* AI = Cast<AAIController>(GetController());
 	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(GetWorld());
@@ -300,6 +343,44 @@ void ADVPuffbot::Tick(float DeltaSeconds)
 		return;
 	}
 	FNavLocation Spot;
+	// Close enough to see the barn: it remembers where home is and trots in by itself.
+	if (const ADVPen* Barn = ADVPen::Find(GetWorld()); Barn && FVector::Dist2D(Barn->GetActorLocation(), GetActorLocation()) < Barn->Radius + 1200.f)
+	{
+		Leader = nullptr;
+		GetCharacterMovement()->MaxWalkSpeed = 260.f;
+		AI->MoveToLocation(Barn->GetActorLocation(), 60.f, false);
+		// The gate faces +X: aim for it while outside, then for the middle.
+		const FVector Gate = Barn->GetActorLocation() + FVector(Barn->Radius + 120.f, 0.f, 0.f);
+		const FVector FromMiddle = GetActorLocation() - Barn->GetActorLocation();
+		const bool bAtGate = FromMiddle.X > 0.f && FMath::Abs(FromMiddle.Y) < 200.f;	// lined up with the gate: straight in
+		// Behind the pen: round the fence on whichever side it's already on, then along to the gate.
+		const FVector Round = Barn->GetActorLocation() + FVector(0.f, (FromMiddle.Y >= 0.f ? 1.f : -1.f) * (Barn->Radius + 260.f), 0.f);
+		Want((bAtGate ? Barn->GetActorLocation() : FromMiddle.X < 0.f ? Round : Gate) - GetActorLocation());
+		return;
+	}
+	if (Friend && !Leader.IsValid())
+	{
+		Leader = Friend;	// a gentle soldier: it waddles after them like a duckling
+		DVSound::At(GetWorld(), TEXT("SW_UIClick"), GetActorLocation(), 0.7f, 0, 0.4f);
+	}
+	if (Threat)
+	{
+		Leader = nullptr;	// sprinting at it breaks the trust; it scatters
+	}
+	if (const APawn* Following = Leader.Get(); Following && !Threat)
+	{
+		if (FVector::Dist2D(Following->GetActorLocation(), GetActorLocation()) > 2600.f)
+		{
+			Leader = nullptr;	// lost them
+		}
+		else
+		{
+			GetCharacterMovement()->MaxWalkSpeed = 460.f;	// keeps up with a walking soldier
+			AI->MoveToActor(const_cast<APawn*>(Following), 170.f, true, true, false);
+			Want(FVector::Dist2D(Following->GetActorLocation(), GetActorLocation()) > 260.f ? Following->GetActorLocation() - GetActorLocation() : FVector::ZeroVector);
+			return;
+		}
+	}
 	if (Threat)
 	{
 		FVector Away = (GetActorLocation() - Threat->GetActorLocation()).GetSafeNormal2D();
@@ -307,12 +388,19 @@ void ADVPuffbot::Tick(float DeltaSeconds)
 		if (const ADVPen* Barn = ADVPen::Find(GetWorld()))
 		{
 			const FVector ToPen = (Barn->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-			if (FVector::DotProduct(Away, ToPen) > -0.2f)
+			const float FromPen = FVector::Dist2D(Barn->GetActorLocation(), GetActorLocation());
+			if (FromPen > 3200.f)
 			{
-				Away = (Away * 0.65f + ToPen * 0.35f).GetSafeNormal2D();
+				// The hedges at the edge of the vale frighten it more than you do: it won't run off into the hills.
+				Away = (Away * 0.2f + ToPen * 0.8f).GetSafeNormal2D();
+			}
+			else if (FVector::DotProduct(Away, ToPen) > -0.35f)
+			{
+				Away = (Away * 0.5f + ToPen * 0.5f).GetSafeNormal2D();
 			}
 		}
 		GetCharacterMovement()->MaxWalkSpeed = 330.f;	// a little slower than a walking soldier, so you can keep up
+		Want(Away);
 		// Straight away if it can; otherwise veer left or right, like a sheep at a fence.
 		for (const float Veer : { 0.f, 35.f, -35.f, 70.f, -70.f })
 		{
@@ -325,12 +413,54 @@ void ADVPuffbot::Tick(float DeltaSeconds)
 			}
 		}
 	}
-	else if (AI->GetMoveStatus() == EPathFollowingStatus::Idle && FMath::FRand() < 0.12f)
+	else
 	{
-		GetCharacterMovement()->MaxWalkSpeed = 110.f;
-		if (Nav->GetRandomReachablePointInRadius(GetActorLocation(), 400.f, Spot))
+		WantDir = FVector::ZeroVector;	// nobody near: calm again, and potter about now and then
+		if (AI->GetMoveStatus() == EPathFollowingStatus::Idle && FMath::FRand() < 0.12f)
 		{
-			AI->MoveToLocation(Spot.Location, 30.f, false);
+			GetCharacterMovement()->MaxWalkSpeed = 110.f;
+			if (Nav->GetRandomReachablePointInRadius(GetActorLocation(), 400.f, Spot))
+			{
+				AI->MoveToLocation(Spot.Location, 30.f, false);
+			}
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
+// Festival fireworks
+// ---------------------------------------------------------------------------------------------
+
+ADVFirework::ADVFirework()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+}
+
+void ADVFirework::Burst(const FLinearColor& Color)
+{
+	// Two dozen glowing petals thrown out in a sphere; they fall a little and shrink away, like a chrysanthemum shell.
+	for (int32 i = 0; i < 24; ++i)
+	{
+		UStaticMeshComponent* S = Painted(this, RootComponent, DVKit::Sphere(), FVector::ZeroVector, FVector(40.f, 40.f, 40.f), i % 5 ? Color : FLinearColor(1.f, 0.95f, 0.85f), 60.f);
+		S->SetCastShadow(false);
+		Sparks.Add(S);
+		BaseScale = S->GetRelativeScale3D();
+		Velocities.Add(FMath::VRand() * FMath::FRandRange(700.f, 1000.f));
+	}
+	SetLifeSpan(Life + 0.2f);
+}
+
+void ADVFirework::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	Age += DeltaSeconds;
+	const float Fade = FMath::Clamp(1.f - Age / Life, 0.f, 1.f);
+	for (int32 i = 0; i < Sparks.Num(); ++i)
+	{
+		Velocities[i] *= FMath::Exp(-DeltaSeconds * 1.6f);	// air drag
+		Velocities[i].Z -= 300.f * DeltaSeconds;
+		Sparks[i]->AddRelativeLocation(Velocities[i] * DeltaSeconds);
+		Sparks[i]->SetRelativeScale3D(BaseScale * (0.25f + 0.75f * Fade));
 	}
 }

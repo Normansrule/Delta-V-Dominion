@@ -613,7 +613,7 @@ void ADVGameMode::StartExtract()
 				return;
 			}
 			static const FLinearColor Colors[] = { FLinearColor(1.f, 0.5f, 0.7f), FLinearColor(1.f, 0.85f, 0.4f), FLinearColor(0.5f, 0.8f, 1.f), FLinearColor(0.6f, 1.f, 0.6f) };
-			const FVector Square(FMath::FRandRange(-800.f, 800.f), FMath::FRandRange(-800.f, 800.f), FMath::FRandRange(2200.f, 3200.f));
+			const FVector Square(FMath::FRandRange(-800.f, 800.f), FMath::FRandRange(-800.f, 800.f), FMath::FRandRange(1300.f, 2000.f));
 			FGS->MulticastFirework(Square, Colors[FestivalBursts % UE_ARRAY_COUNT(Colors)]);
 		}), 0.7f, true, 2.f);
 	}
@@ -1614,7 +1614,7 @@ void ADVGameMode::StartHerd()
 	GS->ValeDone = 0;
 	GS->ObjectiveText = TEXT("Herd the scattered puffbots home to the barn pen");
 	StageStartTime = GetWorld()->GetTimeSeconds();
-	Radio(TEXT("Nana Bramble"), TEXT("All three pumps! Now, the puffbots ran off in the storm. They're shy. Walk them home from behind, slowly."), 1.f);
-	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Herding robots. Twenty years in the service, Delta. Come at them from the far side and walk them in."), 9.f);
+	Radio(TEXT("Nana Bramble"), TEXT("All three pumps! Now, the puffbots ran off in the storm. Walk up to them gently and they'll follow you home. Don't run at them."), 1.f);
+	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Leading robot ducklings home. Twenty years in the service, Delta. No sprinting, they spook."), 9.f);
 	TickVale();
 }

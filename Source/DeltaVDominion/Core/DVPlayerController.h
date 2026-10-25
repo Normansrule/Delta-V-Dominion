@@ -120,6 +120,7 @@ public:
 	bool bHerdTest = false;
 	FVector HerdLastPos = FVector::ZeroVector;
 	double HerdStuckSince = -1.0;
+	int32 HerdSidestep = 0;
 	double HerdTestStart = 0.0;
 	/** Tests: "DVRepairTest [Delay]" walks to each broken windpump and waits beside it. */
 	UFUNCTION(Exec)
