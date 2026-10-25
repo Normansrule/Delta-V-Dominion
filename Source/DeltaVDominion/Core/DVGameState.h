@@ -91,6 +91,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bNonLethal = false;
 	/** Hollyhock Vale: windpumps to fix, then puffbots to herd (see DVHollyhock.h). */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bValeOp = false;
+	/** Neon Verge: relay masts to hack, then the courier to catch (see DVNeonVerge.h). ValeDone/ValeTotal count the relays. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") bool bHackOp = false;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 ValeDone = 0;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 ValeTotal = 0;
 

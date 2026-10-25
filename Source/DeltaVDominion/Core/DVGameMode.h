@@ -105,6 +105,11 @@ private:
 	bool bWalkerOp = false;
 	bool bManifoldOp = false;
 	bool bValeOp = false;
+	/** Neon Verge: the same stand-beside-it objective as the windpumps (ADVRepairPoint), then a chase. */
+	bool bHackOp = false;
+	void StartChase();
+	void TickChase();
+	TSet<TWeakObjectPtr<AActor>> AlertedRelays;
 	void StartHerd();
 	/** Hollyhock: count fixed pumps / penned puffbots and point the marker at the nearest one still to do. */
 	void TickVale();

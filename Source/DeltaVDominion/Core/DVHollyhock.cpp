@@ -77,6 +77,12 @@ void ADVRepairPoint::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 void ADVRepairPoint::BeginPlay()
 {
 	Super::BeginPlay();
+	if (bTerminal)
+	{
+		BuildTerminal();
+		OnRep_Fixed();
+		return;
+	}
 	const FLinearColor Cream(0.95f, 0.88f, 0.74f);
 	const FLinearColor Wood(0.42f, 0.27f, 0.16f);
 	// A stone footing, a tapering timber tower, a little roofed cap and a four-sail rotor facing -X.
@@ -117,10 +123,54 @@ void ADVRepairPoint::BeginPlay()
 	OnRep_Fixed();
 }
 
+void ADVRepairPoint::BuildTerminal()
+{
+	// A console on a plinth with a slanted holo-screen, a lattice mast behind it, a dish and a beacon on top.
+	const FLinearColor Steel(0.05f, 0.055f, 0.065f);
+	Painted(this, Root, DVKit::Box(), FVector(0.f, 0.f, 15.f), FVector(220.f, 220.f, 30.f), Steel, 0.05f);
+	Painted(this, Root, DVKit::Box(), FVector(-40.f, 0.f, 95.f), FVector(60.f, 110.f, 130.f), Steel, 0.05f);
+	Screen = Painted(this, Root, DVKit::Box(), FVector(-62.f, 0.f, 175.f), FVector(6.f, 120.f, 70.f), FLinearColor(0.1f, 0.7f, 1.f), 6.f, FRotator(-25.f, 0.f, 0.f));
+	for (int32 k = 0; k < 4; ++k)
+	{
+		const FVector Leg((k & 1) ? 40.f : -40.f, (k & 2) ? 40.f : -40.f, 0.f);
+		Painted(this, Root, DVKit::Box(), Leg + FVector(60.f, 0.f, 520.f), FVector(10.f, 10.f, 1000.f), Steel, 0.05f);
+	}
+	for (int32 h = 1; h < 5; ++h)
+	{
+		Painted(this, Root, DVKit::Box(), FVector(60.f, 0.f, h * 200.f), FVector(96.f, 96.f, 8.f), FLinearColor(1.f, 0.45f, 0.08f), 2.f);	// orange rungs
+	}
+	Painted(this, Root, DVKit::Cylinder(), FVector(60.f, 0.f, 1000.f), FVector(160.f, 160.f, 20.f), Steel, 0.05f, FRotator(-30.f, 0.f, 0.f));
+	Lamp = Painted(this, Root, DVKit::Sphere(), FVector(60.f, 0.f, 1060.f), FVector(34.f, 34.f, 34.f), FLinearColor(1.f, 0.1f, 0.05f), 14.f);
+	Spark = Painted(this, Root, DVKit::Box(), FVector(-66.f, 0.f, 150.f), FVector(4.f, 90.f, 6.f), FLinearColor(1.f, 1.f, 1.f), 20.f, FRotator(-25.f, 0.f, 0.f));
+	Light = NewObject<UPointLightComponent>(this);
+	Light->SetupAttachment(Root);
+	Light->SetRelativeLocation(FVector(-160.f, 0.f, 200.f));
+	Light->SetIntensityUnits(ELightUnits::Candelas);
+	Light->SetIntensity(160.f);
+	Light->SetAttenuationRadius(800.f);
+	Light->SetCastShadows(false);
+	Light->RegisterComponent();
+}
+
 void ADVRepairPoint::OnRep_Fixed()
 {
 	if (!Lamp)
 	{
+		return;
+	}
+	if (bTerminal)
+	{
+		// Locked: a red beacon and a cold blue screen. Hacked: the broker's orange, on both.
+		const FLinearColor C = bFixed ? FLinearColor(1.f, 0.5f, 0.08f) : FLinearColor(1.f, 0.1f, 0.05f);
+		DVKit::SetGlow(Lamp, C, 14.f);
+		DVKit::SetGlow(Screen, bFixed ? FLinearColor(1.f, 0.5f, 0.08f) : FLinearColor(0.1f, 0.7f, 1.f), 6.f);
+		Light->SetLightColor(bFixed ? FLinearColor(1.f, 0.55f, 0.15f) : FLinearColor(0.2f, 0.7f, 1.f));
+		Spark->SetVisibility(!bFixed);
+		if (bFixed)
+		{
+			DVFx::Flash(GetWorld(), GetActorLocation() + FVector(0.f, 0.f, 1000.f), FLinearColor(1.f, 0.55f, 0.15f), 1600.f, 1200.f, 0.4f);
+			DVSound::At(GetWorld(), TEXT("SW_PlantBeep"), GetActorLocation(), 0.9f, 1, 0.f);
+		}
 		return;
 	}
 	const FLinearColor C = bFixed ? FLinearColor(0.3f, 1.f, 0.45f) : FLinearColor(1.f, 0.4f, 0.1f);

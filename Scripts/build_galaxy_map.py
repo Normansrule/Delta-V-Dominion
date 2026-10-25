@@ -187,6 +187,10 @@ def build():
            (1.0, 0.42, 0.22), 0.9, [op("Steamheart", "The Valve Quarter, Brasshaven", "/Game/Maps/Brasshaven")])
     system("Sirius", galactic(8.6, 227.2, -8.9), "Local Bubble", 8.6, ACCORD,
            "Twin-star fleet anchorage. What remains of the Accord's Second Fleet is regrouping here.", (0.75, 0.85, 1.0), 1.6)
+    system("Luyten's Star", galactic(12.2, 212.3, 19.9), "Local Bubble", 12.2, CONTESTED,
+           "Neon Verge: an orbital megacity above a black lake, where data brokers sell CINDER's secrets to anyone. "
+           "Juno Kade holds the one clean sample of the Static, and she wants a favour for it.",
+           (1.0, 0.55, 0.3), 0.9, [op("Clean Signal", "The Ninth Ring, Neon Verge", "/Game/Maps/NeonVerge")])
     system("Epsilon Eridani", galactic(10.5, 195.8, -48.1), "Local Bubble", 10.5, CONTESTED,
            "Young system wrapped in a debris ring. Hollow Men insurgents hide in the belt and raid Accord convoys.",
            (1.0, 0.7, 0.45), 1.1, [op("Dust Choir", "Eridani outer belt")])

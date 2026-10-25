@@ -15,6 +15,7 @@
 #include "Vehicles/DVWalker.h"
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
+#include "Core/DVNeonVerge.h"
 #include "Characters/DVTownsfolk.h"
 #include "Vehicles/DVKestrel.h"
 #include "Characters/DVBulwark.h"
@@ -130,6 +131,12 @@ void ADVGameMode::SetupMissionForMap()
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Rifles are loaded with foam. Nobody gets hurt here. Not them, not the villagers. That's the job.") },
 		    { TEXT("Capt. Vance (Kestrel)"), TEXT("No fire support over the Vale, Delta. Nana's been curing infected machines for months. We need to know how.") },
 		    { TEXT("Nana Bramble"), TEXT("When they're calm, the pumps want mending and the puffbots want bringing home. Then we'll light the lanterns.") } } },
+		{ TEXT("NeonVerge"), TEXT("Clean Signal"), TEXT("Clear Halcyon's rented war-frames off the broker district"), TEXT("The Ninth Ring, Neon Verge"),
+		  TEXT("Orbital megacity  |  Act IV, the Static  |  Lethal: everyone shoots back"),
+		  { { TEXT("Juno Kade (broker)"), TEXT("Delta. I hold the one clean sample of the Static in the system. Halcyon wants it, CINDER wants it, and I want a favour.") },
+		    { TEXT("Capt. Vance (Kestrel)"), TEXT("We need that sample for the cure. Do what she asks, within reason. Mostly within reason.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Everyone up here shoots back, and half of them are paid to. Watch the skybridges.") },
+		    { TEXT("CINDER"), TEXT("THE BROKERS SELL ME TOO. I SIMPLY BUY MYSELF BACK.") } } },
 		{ TEXT("Europa"), TEXT("Glass Ocean"), TEXT("Destroy the CINDER listening post on the ice"), TEXT("Conamara Chaos, Europa"),
 		  TEXT("Jupiter system  |  Day 9 of the uprising"),
 		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is listening to the ocean under that ice. Whatever it's hearing, it doesn't get to keep it.") },
@@ -192,7 +199,7 @@ void ADVGameMode::SetupMissionForMap()
 			break;
 		}
 	}
-	LocalFaction = Map.EndsWith(TEXT("Hollyhock")) ? DVFactions::Vale : Map.EndsWith(TEXT("Brasshaven")) ? DVFactions::Guild : Map.EndsWith(TEXT("RooksRest")) ? DVFactions::FreePorts
+	LocalFaction = Map.EndsWith(TEXT("NeonVerge")) ? DVFactions::Brokers : Map.EndsWith(TEXT("Hollyhock")) ? DVFactions::Vale : Map.EndsWith(TEXT("Brasshaven")) ? DVFactions::Guild : Map.EndsWith(TEXT("RooksRest")) ? DVFactions::FreePorts
 		: Map.EndsWith(TEXT("Kestrel")) ? DVFactions::Accord : DVFactions::Colonies;
 	if (Map.EndsWith(TEXT("Brasshaven")) || Map.EndsWith(TEXT("Hollyhock")))
 	{
@@ -417,6 +424,11 @@ void ADVGameMode::SetupOperation()
 		bValeOp = true;
 		GS->bValeOp = true;
 	}
+	if (ADVCourier::Find(GetWorld()))
+	{
+		bHackOp = true;
+		GS->bHackOp = true;
+	}
 
 	const FString Map = GetWorld()->GetMapName();
 	struct FNoun { const TCHAR* Key; const TCHAR* Noun; };
@@ -442,6 +454,10 @@ void ADVGameMode::SetupOperation()
 	else if (bValeOp)
 	{
 		TargetNoun = TEXT("the windpumps");
+	}
+	else if (bHackOp)
+	{
+		TargetNoun = TEXT("the relays");
 	}
 	else if (!bWalkerOp)
 	{
@@ -481,6 +497,10 @@ void ADVGameMode::DevAdvanceStage()
 		{
 			StartHerd();
 		}
+		else if (bHackOp)
+		{
+			StartChase();
+		}
 		else if (bManifoldOp)
 		{
 			if (ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()))
@@ -498,7 +518,14 @@ void ADVGameMode::DevAdvanceStage()
 		}
 		else if (bScriptedObjectives) { StartCapture(); } else { StartDefend(); }
 		break;
-	case EDVMissionStage::Capture: if (bValeOp) { StartExtract(); } else { StartDefend(); } break;
+	case EDVMissionStage::Capture:
+		if (bHackOp)
+		{
+			if (ADVCourier* Courier = ADVCourier::Find(GetWorld())) { Courier->Catch(); }
+			StartExtract();
+		}
+		else if (bValeOp) { StartExtract(); } else { StartDefend(); }
+		break;
 	case EDVMissionStage::Defend: StartExtract(); break;
 	default: break;
 	}
@@ -527,6 +554,14 @@ void ADVGameMode::StartSabotage()
 	GS->StageProgress = 0.f;
 	GS->ObjectiveText = FString::Printf(TEXT("Plant demolition charges on %s"), *TargetNoun);
 	StageStartTime = GetWorld()->GetTimeSeconds();
+	if (bHackOp)
+	{
+		GS->ObjectiveText = TEXT("Hack the three relay masts: stand at each terminal while it uploads");
+		Radio(TEXT("Juno Kade (broker)"), TEXT("Good, the roof's quiet. Now my worm: three relay masts, three terminals. Stand there while it uploads."), 1.5f);
+		Radio(TEXT("Juno Kade (broker)"), TEXT("Halcyon will notice the moment you start. They'll send more. They always send more."), 9.f);
+		TickVale();
+		return;
+	}
 	if (bValeOp)
 	{
 		GS->ObjectiveText = TEXT("Mend the storm-broken windpumps: stand beside each one");
@@ -617,12 +652,17 @@ void ADVGameMode::StartExtract()
 			FGS->MulticastFirework(Square, Colors[FestivalBursts % UE_ARRAY_COUNT(Colors)]);
 		}), 0.7f, true, 2.f);
 	}
+	if (bHackOp)
+	{
+		Radio(TEXT("Juno Kade (broker)"), TEXT("Nicely run. The sample's yours, Commander, and you owe me exactly one favour. I'll know when to ask."), 1.f);
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Clean sample in hand. Raven Two-One is coming to the roof pad, Delta."), 8.f);
+	}
 	if (bManifoldOp)
 	{
 		Radio(TEXT("Guildmaster Cogsworth-Vane"), GS->CiviliansHurt == 0 ? TEXT("She's lit, and not one of my people hurt. The Guild remembers its debts, Commander.")
 			: TEXT("She's lit. My people will remember who fired in our streets, but they'll remember this too."), 1.f);
 	}
-	if (!bValeOp)
+	if (!bValeOp && !bHackOp)
 	{
 		Radio(TEXT("Capt. Vance (Kestrel)"), bManifoldOp ? FString(TEXT("Steamheart is relit and the cure has a forge. Raven Two-One is inbound to your LZ, Delta."))
 			: bWalkerOp ? FString(TEXT("It's down. Nine hundred tonnes of it. Raven Two-One is inbound to your LZ, Delta."))
@@ -706,7 +746,7 @@ void ADVGameMode::TickStage()
 			}
 			break;
 		}
-		if (bValeOp)
+		if (bValeOp || bHackOp)
 		{
 			TickVale();
 			break;
@@ -740,6 +780,11 @@ void ADVGameMode::TickStage()
 		if (bValeOp)
 		{
 			TickVale();
+			break;
+		}
+		if (bHackOp)
+		{
+			TickChase();
 			break;
 		}
 		if (AnyPlayerNear(GS->ObjectiveLocation, 500.f))
@@ -1345,6 +1390,10 @@ void ADVGameMode::EndMission(bool bSuccess)
 		if (bSuccess)
 		{
 			RepGS->MulticastReputation(DVFactions::Accord, bIsTrainingMap ? 3 : 8, bIsTrainingMap ? TEXT("Training complete") : TEXT("Operation complete"));
+			if (bHackOp)
+			{
+				RepGS->MulticastReputation(DVFactions::Brokers, 15, TEXT("The clean sample changed hands"));
+			}
 			if (bValeOp)
 			{
 				RepGS->MulticastReputation(DVFactions::Vale, 15, TEXT("The lanterns lit over Hollyhock"));
@@ -1376,6 +1425,10 @@ void ADVGameMode::EndMission(bool bSuccess)
 		}
 		else if (!bIsTrainingMap)
 		{
+			if (bHackOp)
+			{
+				RepGS->MulticastReputation(DVFactions::Brokers, -10, TEXT("The sample got away"));
+			}
 			if (bValeOp)
 			{
 				RepGS->MulticastReputation(DVFactions::Vale, -15, TEXT("Sent home from Hollyhock"));
@@ -1566,17 +1619,41 @@ void ADVGameMode::TickVale()
 		for (TActorIterator<ADVRepairPoint> It(GetWorld()); It; ++It)
 		{
 			Partial = FMath::Max(Partial, It->IsFixed() ? 0.f : It->GetProgress());
+			if (bHackOp && It->GetProgress() > 0.02f && !AlertedRelays.Contains(*It))
+			{
+				// Halcyon notices every hack: a response team drops toward that mast.
+				AlertedRelays.Add(*It);
+				const FVector Keep = GS->ObjectiveLocation;
+				GS->ObjectiveLocation = It->GetActorLocation();
+				SpawnWave(2);
+				GS->ObjectiveLocation = Keep;
+				Radio(TEXT("Juno Kade (broker)"), TEXT("Upload's running. And there's Halcyon's response team. Right on time."));
+			}
 		}
 		GS->StageProgress = Total > 0 ? (Done + Partial) / Total : 1.f;
 		if (Done > GS->ValeDone && Done < Total)
 		{
-			Radio(TEXT("Nana Bramble"), Done == 1 ? TEXT("Listen to it go! One turning.") : TEXT("Two! The lower terraces will have water by morning."));
+			if (bHackOp)
+			{
+				Radio(TEXT("Juno Kade (broker)"), Done == 1 ? TEXT("One mast is mine. Two to go.") : TEXT("Two. I can almost hear the sample now."));
+			}
+			else
+			{
+				Radio(TEXT("Nana Bramble"), Done == 1 ? TEXT("Listen to it go! One turning.") : TEXT("Two! The lower terraces will have water by morning."));
+			}
 		}
 		GS->ValeDone = Done;
 		GS->ValeTotal = Total;
 		if (Done >= Total)
 		{
-			StartHerd();
+			if (bHackOp)
+			{
+				StartChase();
+			}
+			else
+			{
+				StartHerd();
+			}
 		}
 		return;
 	}
@@ -1617,4 +1694,46 @@ void ADVGameMode::StartHerd()
 	Radio(TEXT("Nana Bramble"), TEXT("All three pumps! Now, the puffbots ran off in the storm. Walk up to them gently and they'll follow you home. Don't run at them."), 1.f);
 	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Leading robot ducklings home. Twenty years in the service, Delta. No sprinting, they spook."), 9.f);
 	TickVale();
+}
+
+void ADVGameMode::StartChase()
+{
+	ADVGameState* GS = GetDVGameState();
+	ADVCourier* Courier = ADVCourier::Find(GetWorld());
+	GS->Stage = EDVMissionStage::Capture;
+	GS->StageProgress = 0.f;
+	GS->ObjectiveText = TEXT("Catch the courier before he reaches the maglev");
+	StageStartTime = GetWorld()->GetTimeSeconds();
+	if (Courier)
+	{
+		Courier->StartRunning();
+		GS->ObjectiveLocation = Courier->GetActorLocation();
+	}
+	Radio(TEXT("Juno Kade (broker)"), TEXT("All three masts. Oh, no. My courier just bolted with the sample. Someone outbid me. Catch him!"), 1.f);
+	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("He's heading for the maglev. Sprint, Delta! Don't shoot, the sample's on him."), 5.f);
+}
+
+void ADVGameMode::TickChase()
+{
+	ADVGameState* GS = GetDVGameState();
+	ADVCourier* Courier = ADVCourier::Find(GetWorld());
+	if (!GS || !Courier || bMissionEnded)
+	{
+		return;
+	}
+	GS->ObjectiveLocation = Courier->GetActorLocation();
+	GS->StageProgress = Courier->GetRouteProgress();
+	if (Courier->IsRunning() && AnyPlayerNear(Courier->GetActorLocation(), ADVCourier::CatchRange))
+	{
+		Courier->Catch();
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Got him! Sample's intact."));
+		StartExtract();
+	}
+	else if (Courier->HasEscaped())
+	{
+		Radio(TEXT("Juno Kade (broker)"), TEXT("He's on the maglev. It's gone, Delta. All of it."));
+		FTimerHandle Lost;
+		GetWorldTimerManager().SetTimer(Lost, FTimerDelegate::CreateWeakLambda(this, [this]() { EndMission(false); }), 3.f, false);
+		GS->Stage = EDVMissionStage::Extract;	// stop ticking the chase
+	}
 }

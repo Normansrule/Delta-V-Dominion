@@ -171,6 +171,7 @@ FString UDVProfileSubsystem::FactionName(int32 Faction)
 	case DVFactions::FreePorts: return TEXT("The Free Ports");
 	case DVFactions::Guild: return TEXT("The Guild Council");
 	case DVFactions::Vale: return TEXT("Hollyhock Vale");
+	case DVFactions::Brokers: return TEXT("The Verge Brokers");
 	default: return TEXT("");
 	}
 }

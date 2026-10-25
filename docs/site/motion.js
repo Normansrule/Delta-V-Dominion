@@ -145,6 +145,8 @@
       ops: "Cold Wake", text: "Four thousand colonists behind the trees, and one landing field between them and home." },
     { name: "Brasshaven", where: "Wolf 359", rules: "restrained", color: "#b07a2f", band: "#5e3a17", img: "brass_street",
       ops: "Steamheart", text: "Eighty years off the Lattice, rebuilt on steam and brass. Civilians in every street, and the Guild owns the sky." },
+    { name: "Neon Verge", where: "Luyten's Star", rules: "lethal", color: "#2a6cff", band: "#ff7a1a", img: "neon_lake",
+      ops: "Clean Signal", text: "An orbital megacity over a black lake. Brokers sell CINDER's secrets, everyone shoots back, and Juno Kade holds the clean sample." },
     { name: "Hollyhock Vale", where: "Tau Ceti", rules: "gentle", color: "#7cc06a", band: "#f2a7c3", img: "holly_square",
       ops: "Lantern Night", text: "A village raised by a kindly caretaker AI. Rifles fire foam here, and hurting anyone sends you home." },
   ];

@@ -125,7 +125,12 @@ public:
 	/** Tests: "DVRepairTest [Delay]" walks to each broken windpump and waits beside it. */
 	UFUNCTION(Exec)
 	void DVRepairTest(float Delay = 0.f);
+	/** Tests: "DVChaseTest [Delay]" sprints after the Neon Verge courier with real movement input. */
+	UFUNCTION(Exec)
+	void DVChaseTest(float Delay = 0.f);
+	bool bChaseTest = false;
 	bool bRepairTest = false;
+	FVector RepairGoal = FVector::ZeroVector;
 	bool bBoardTest = false;
 	int32 BoardTestStep = 0;
 	double BoardTestStart = 0.0;

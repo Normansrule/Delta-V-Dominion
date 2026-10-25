@@ -50,7 +50,7 @@ mock-ups and no pre-rendered cinematics.
 - **Stealth.** Sentries have sight cones that shrink when you crouch. Alarms spread, your squad holds fire until
   you start it, and you can take a sentry down silently from behind.
 - **Operations, not arenas.** Clear a position, plant charges, hold against counter-attack waves, then run for the
-  extraction ship. Ten operations across eight worlds plus a training range, picked from a galaxy map built on
+  extraction ship. Eleven operations across nine worlds plus a training range, picked from a galaxy map built on
   the real Milky Way.
 - **Everything is a vehicle.** You can drive or fly every vehicle you see:
   - a tank, a light tactical vehicle (LTV), an armoured personnel carrier (APC) and a hoverbike;
@@ -64,11 +64,11 @@ mock-ups and no pre-rendered cinematics.
   Kestrel refuses fire from orbit, hurting a citizen costs you, and the Guild's clockwork constables wind down
   instead of dying. The objective is a pressure-valve puzzle you solve with your hands, not your rifle. In
   Hollyhock Vale your rifles fire foam: you mend windpumps, lead runaway puffbots home, and hurting a villager
-  twice sends you home.
+  twice sends you home. In Neon Verge everyone shoots back, and the sample you came for is running away from you.
 - **A town with jobs.** Rook's Rest is a frontier market whose townsfolk talk to you based on your reputation. Its
   job board has contracts you work on your next operations.
 - **Your commander.** Customise your commander's look and callsign. Earn experience points (XP), levels and perks,
-  and standing with five factions that unlock weapons and support.
+  and standing with six factions that unlock weapons and support.
 
 ---
 
@@ -82,13 +82,13 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 | Area | Progress | What's built | What's left |
 |---|---|---|---|
 | Combat and squad | <img src="docs/media/progress/combat.svg" width="260" alt="82%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
-| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="55%"> | 10 operations on planet maps plus Boot Camp, including Ironstride, Brasshaven and Hollyhock Vale; multi-stage objectives, a valve puzzle, repairs and herding | The rest of the campaign's maps |
+| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="60%"> | 11 operations on planet maps plus Boot Camp, including Ironstride, Brasshaven, Hollyhock Vale and Neon Verge; a valve puzzle, repairs, herding, hacks and a chase | The rest of the campaign's maps |
 | Vehicles | <img src="docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
 | Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="75%"> | Hangar, war table, armoury, lockers, memorial; fly home with no loading screen; the hangar remembers | Launching from the Kestrel to orbit; talking with the crew |
-| Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="48%"> | Rook's Rest, Brasshaven's Valve Quarter, Hollyhock Vale, 5 factions with standing, 5 contracts, townsfolk who flee gunfire | Town hubs with contracts on the new worlds; Neon Verge |
+| Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="52%"> | Rook's Rest, Brasshaven's Valve Quarter, Hollyhock Vale, 6 factions with standing, 5 contracts, townsfolk who flee gunfire | Town hubs with contracts on the new worlds |
 | Co-op | <img src="docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions through Epic Online Services (EOS), Easy Anti-Cheat |
 | Art and audio | <img src="docs/media/progress/art.svg" width="260" alt="15%"> | Kit-bashed geometry, UE5 mannequins, generated materials and sounds | Real character, vehicle and environment art; music |
-| Campaign and story | <img src="docs/media/progress/campaign.svg" width="260" alt="28%"> | Story bible, mission intros, radio chatter, Acts I and II settings, two of the three Act IV cure worlds | Cinematics, Acts III and IV, the Static virus arc |
+| Campaign and story | <img src="docs/media/progress/campaign.svg" width="260" alt="32%"> | Story bible, mission intros, radio chatter, Acts I and II settings, all three Act IV cure worlds | Cinematics, Acts III and IV, the Static virus arc |
 
 ## Roadmap
 
@@ -106,7 +106,7 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 - [ ] Co-op played and tested over two machines
 - [x] Brasshaven (steampunk): restrained rules, clockwork constables, the Steamheart valve puzzle
 - [x] Hollyhock Vale (non-lethal): foam, windpumps, puffbots to lead home, the lantern festival
-- [ ] Neon Verge (cyberpunk)
+- [x] Neon Verge (cyberpunk): relay hacks under fire, the courier chase to the maglev
 - [ ] Story missions with cinematic briefings
 - [ ] Real art pass: characters, war-frames, vehicles, environments, music
 
@@ -329,6 +329,27 @@ Test report: **[docs/TEST_REPORT_HOLLYHOCK.md](docs/TEST_REPORT_HOLLYHOCK.md)**.
 | ![A storm-broken windpump](docs/media/hollyhock/holly_windpump.png) | ![The vale](docs/media/hollyhock/holly_vale.png) |
 | A storm-broken windpump, one sail hanging | The whole vale: terraces, cottages, the glasshouse and the barn |
 
+### Neon Verge: Operation Clean Signal
+
+An orbital megacity over a black lake, where data brokers sell CINDER's secrets to anyone. Juno Kade holds the one
+clean sample of the Static:
+1. Clear Halcyon's rented war-frames off the broker district.
+2. Hack three relay masts. Each upload takes seven seconds at the terminal, and each one calls in a response team.
+3. Her courier bolts with the sample. He's faster than a walk and slower than a sprint, and you can't shoot him: run
+   him down before he reaches the maglev.
+4. Extract from the deck.
+
+Test report: **[docs/TEST_REPORT_NEONVERGE.md](docs/TEST_REPORT_NEONVERGE.md)**.
+
+<p align="center"><img src="docs/media/neonverge/neon_chase.gif" width="720" alt="Sprinting after the courier through the broker district"></p>
+
+| | |
+|---|---|
+| ![Megaspires on the lake](docs/media/neonverge/neon_lake.png) | ![The broker street](docs/media/neonverge/neon_street.png) |
+| The Ninth Ring from over the lake | The broker street, skybridges overhead |
+| ![Caught](docs/media/neonverge/neon_caught.png) | ![The maglev](docs/media/neonverge/neon_maglev.png) |
+| Caught, sample intact | The maglev platform he was running for |
+
 ---
 
 ## Setup and usage
@@ -429,7 +450,7 @@ Press `~` in a development build. These commands are how the screenshots and tes
 | `DVEndMission 1` / `DVFlyHome` | End the operation as a win / fly home |
 | `DVWalker 0`..`3`, `DVBoardTest` | Ironstride tests: kneel, collapse, deck, clear the field; scripted boarding |
 | `DVValve 0`..`2` [Times], `DVValve -1` | Brasshaven: turn a valve, or solve the manifold the way a player would |
-| `DVRepairTest`, `DVHerdTest` | Hollyhock: mend every pump; lead every puffbot home (both with real movement input) |
+| `DVRepairTest`, `DVHerdTest`, `DVChaseTest` | Mend every pump or hack every relay; lead every puffbot home; sprint after the Neon Verge courier (all with real movement) |
 | `DVClearHostiles`, `DVCivilianTest` | Take every hostile out one by one; fire on the nearest citizen (rules of engagement test) |
 | `DVCasualty 0`..`2` | Kill or wound a squadmate, or destroy a Bulwark (tests the Kestrel's memory) |
 

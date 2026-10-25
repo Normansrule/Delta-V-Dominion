@@ -9,8 +9,9 @@ class UStaticMeshComponent;
 class UPointLightComponent;
 
 /**
- * Hollyhock Vale: a storm-broken windpump. Stand beside it and it gets fixed (RepairSeconds of someone standing there;
- * it slowly loses progress when nobody is). Once fixed, the rotor turns and the lamp goes green. Server-authoritative.
+ * Something you stand beside to work on (RepairSeconds of someone standing there; it slowly loses progress when nobody
+ * is). Hollyhock Vale: a storm-broken windpump; once fixed, the rotor turns and the lamp goes green. Neon Verge
+ * (bTerminal): a broker relay mast you hack; once in, its screen and beacon change colour. Server-authoritative.
  */
 UCLASS()
 class DELTAVDOMINION_API ADVRepairPoint : public AActor
@@ -25,6 +26,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Repair") FString DisplayName = TEXT("Windpump");
 	UPROPERTY(EditAnywhere, Category = "Repair") float RepairSeconds = 5.f;
+	/** Neon Verge: a relay terminal and mast instead of a windpump. */
+	UPROPERTY(EditAnywhere, Category = "Repair") bool bTerminal = false;
 	static constexpr float Reach = 320.f;
 
 	bool IsFixed() const { return bFixed; }
@@ -41,6 +44,8 @@ protected:
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Spark;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> LooseBlade;
 	UPROPERTY() TObjectPtr<UPointLightComponent> Light;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> Screen;
+	void BuildTerminal();
 	float RotorAngle = 0.f;
 	float RotorSpeed = 0.f;
 };

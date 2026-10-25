@@ -38,6 +38,8 @@
 #include "TimerManager.h"
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
+#include "Core/DVNeonVerge.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Characters/DVTownsfolk.h"
 
 ADVPlayerController::ADVPlayerController()
@@ -133,6 +135,25 @@ void ADVPlayerController::PlayerTick(float DeltaTime)
 	if (bHerdTest || bRepairTest)
 	{
 		TickHerdTest();
+	}
+	if (bChaseTest)
+	{
+		const ADVCourier* Courier = ADVCourier::Find(GetWorld());
+		ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(GetPawn());
+		if (!Courier || !Me || Courier->IsCaught() || Courier->HasEscaped())
+		{
+			UE_LOG(LogTemp, Display, TEXT("DVChaseTest: %s after %.1f s"), Courier && Courier->IsCaught() ? TEXT("caught him") : TEXT("he got away"),
+				GetWorld()->GetTimeSeconds() - HerdTestStart);
+			bChaseTest = false;
+			if (Me) { Me->SetSprinting(false); }
+		}
+		else if (Courier->IsRunning())
+		{
+			const FVector Dir = (Courier->GetActorLocation() - Me->GetActorLocation()).GetSafeNormal2D();
+			SetControlRotation(FRotator(-5.f, Dir.Rotation().Yaw, 0.f));
+			Me->SetSprinting(true);
+			Me->AddMovementInput(Dir, 1.f);
+		}
 	}
 	if (IsLocalController())
 	{
@@ -1348,7 +1369,17 @@ void ADVPlayerController::TickHerdTest()
 			bRepairTest = false;
 			return;
 		}
-		Walk(Target->GetActorLocation() + FVector(-200.f, 0.f, 0.f), 80.f);
+		// Path there on the navmesh (relay masts sit on roofs, up ramps), the way a player would find the way.
+		const FVector Goal = Target->GetActorLocation() + FVector(-200.f, 0.f, 0.f);
+		if (FVector::Dist2D(Me->GetActorLocation(), Goal) > 120.f && !Goal.Equals(RepairGoal, 1.f))
+		{
+			RepairGoal = Goal;
+			UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Goal);
+		}
+		if (FMath::Fmod(GetWorld()->GetTimeSeconds(), 4.0) < 0.021)
+		{
+			UE_LOG(LogTemp, Display, TEXT("DVRepairTest: heading for %s at %s, me %s"), *Target->GetName(), *Goal.ToCompactString(), *Me->GetActorLocation().ToCompactString());
+		}
 		return;
 	}
 	// Like a player would: walk (never sprint) up to the nearest loose puffbot until it follows, collect them, then
@@ -1399,4 +1430,12 @@ void ADVPlayerController::TickHerdTest()
 		UE_LOG(LogTemp, Display, TEXT("DVHerdTest: %d loose, %d following me, %s"), Loose, Following,
 			bGoHome ? TEXT("leading them to the barn") : *FString::Printf(TEXT("fetching %s %.0f m away"), *Target->GetName(), Best / 100.f));
 	}
+}
+
+void ADVPlayerController::DVChaseTest(float Delay)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { bChaseTest = true; HerdTestStart = GetWorld()->GetTimeSeconds(); }), FMath::Max(Delay, 0.001f), false);
+#endif
 }

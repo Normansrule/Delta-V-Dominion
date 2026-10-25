@@ -98,6 +98,13 @@ BIOMES = {
                       sun=(-46, 140), sun_color=(255, 244, 222), sun_lux=10.0, atmosphere=True, mie=0.006, sky_light=1.3,
                       fog=0.006, fog_color=(0.55, 0.62, 0.75), clouds=True, saturation=1.16, contrast=1.05, exposure=0.1,
                       extras=["vale", "trees"]),
+    # Neon Verge: a broker district on a deck over a black lake, neon spires all round, a ringed planet overhead. Night.
+    "neonverge": dict(map="/Game/Maps/NeonVerge", env="/Game/Environment/Planets/NeonVerge", seed=121, dunes=10.0, rim=0.0, mesa=0.0,
+                      sand_a=(0.02, 0.024, 0.032), sand_b=(0.012, 0.014, 0.02), slope_rock=(0.02, 0.022, 0.03),
+                      rock_dark=(0.015, 0.016, 0.02), rock_light=(0.05, 0.055, 0.07),
+                      sun=(-28, 300), sun_color=(120, 150, 255), sun_lux=0.8, atmosphere=False, mie=0.0, sky_light=0.35,
+                      fog=0.01, fog_color=(0.04, 0.06, 0.16), clouds=False, saturation=1.15, contrast=1.12, exposure=-0.8,
+                      extras=["verge"]),
 }
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
@@ -194,6 +201,10 @@ def terrain_height(x, y):
     if "harbour" in B["extras"]:
         # A deep strait runs north to south through the arena: the harbour, open to the sea at both ends.
         h -= 780.0 * (1.0 - smoothstep(850.0, 1250.0, abs(x)))
+    if "verge" in B["extras"]:
+        # A flat city deck that ends at a sea wall; past it the ground drops away under the lake.
+        q = math.sqrt((x / 6000.0) ** 2 + (y / 4600.0) ** 2)
+        return -1100.0 * smoothstep(1.0, 1.12, q)
     if "vale" in B["extras"]:
         # The village sits in a soft bowl: gentle near the square, rolling hills further out.
         h *= 0.3 + 0.7 * smoothstep(1800.0, 5200.0, math.sqrt(x * x + y * y))
@@ -1307,6 +1318,122 @@ def build_hollyhock(mats):
 
 
 # --------------------------------------------------------------------------------------------
+# Neon Verge
+# --------------------------------------------------------------------------------------------
+
+def neon_tower(label, x, y, w, d, h, mats, band_every=600):
+    """A dark tower with neon bands, alternately blue and orange, and lit window strips between them."""
+    gz = ground(x, y)
+    block(label, (x, y, gz + h / 2), (w, d, h), mats["tower"], folder="City")
+    k = 0
+    for z in range(int(band_every / 2), int(h), int(band_every)):
+        block("%s_Band%d" % (label, k), (x, y, gz + z), (w + 14, d + 14, 16), mats["neon_blue"] if k % 2 else mats["neon_orange"], folder="City")
+        block("%s_Win%d" % (label, k), (x, y, gz + z + band_every / 2), (w + 8, d + 8, 60), mats["windows_dim"], folder="City")
+        k += 1
+
+
+def build_neonverge(mats):
+    """The Ninth Ring: six broker blocks with ramps and skybridges, relay masts on three roofs, the courier and his
+    route to the maglev, street lights and holo billboards, megaspires standing in a black lake, a ringed planet."""
+    cyl = lib.load_asset("/Engine/BasicShapes/Cylinder")
+    sphere = lib.load_asset("/Engine/BasicShapes/Sphere")
+    cube = lib.load_asset("/Engine/BasicShapes/Cube")
+    plane = lib.load_asset("/Engine/BasicShapes/Plane")
+    term = unreal.load_class(None, "/Script/DeltaVDominion.DVRepairPoint")
+
+    # The lake, and a wet deck over the city floor.
+    place(plane, "Lake", (0, 0, -420), rot(), (900.0, 900.0, 1.0), make_water_material(), "Lake")
+    place(cyl, "Deck", (0, 0, -6), None, (120.0, 92.0, 0.1), mats["deck_wet"], "Deck")
+    for k in range(48):   # the sea wall's light strip
+        a = k * 2 * math.pi / 48
+        x, y = math.cos(a) * 5950, math.sin(a) * 4560
+        block("SeaWallLight_%d" % k, (x, y, 30), (600, 24, 14), mats["neon_orange"] if k % 2 else mats["neon_blue"], math.degrees(a) + 90, folder="Deck")
+
+    # Six broker blocks: roofs you can climb to by ramp, with relay masts on three of them.
+    blocks = [(-1800, -1500, 700), (600, -1500, 900), (3000, -1500, 650), (-1800, 1500, 800), (600, 1500, 650), (3000, 1500, 850)]
+    for i, (x, y, h) in enumerate(blocks):
+        block("Block_%d" % i, (x, y, h / 2), (1400, 1400, h), mats["tower"], folder="Blocks")
+        side = -1 if y > 0 else 1   # the street side, where the ramp comes up
+        for k, (ox, oy, sx, sy) in enumerate([(0, -side * 705, 1420, 12), (705, 0, 12, 1420), (-705, 0, 12, 1420)]):   # a neon edge round the roof, open on the ramp side
+            block("Block_%d_Rim%d" % (i, k), (x + ox, y + oy, h + 8), (sx, sy, 16), mats["neon_blue"] if i % 2 else mats["neon_orange"], folder="Blocks")
+        block("Block_%d_Edge" % i, (x - 400, y + side * 705, h + 3), (600, 12, 4), mats["neon_blue"] if i % 2 else mats["neon_orange"], folder="Blocks")
+        block("Block_%d_Roof" % i, (x, y, h + 2), (1380, 1380, 6), mats["deck_wet"], folder="Blocks")
+        run = 1600.0
+        length = math.hypot(run, h)
+        pitch = math.degrees(math.atan2(h, run))
+        # The ramp climbs along the block's street face and overlaps the roof edge, so its top runs straight onto the roof.
+        place(cube, "Block_%d_Ramp" % i, (x - 300, y + side * 780, h / 2), rot(pitch=pitch), (length / 100.0, 2.6, 0.3), mats["concrete_dark"], "Blocks")
+        block("Block_%d_RampLight" % i, (x - 300, y + side * 962, h / 2 + 20), (run, 10, 10), mats["neon_orange"], folder="Blocks")
+        for k in range(3):
+            block("Block_%d_Win%d" % (i, k), (x, y + side * 702, 160 + k * (h - 200) / 3), (1300, 8, 70), mats["windows_dim"], folder="Blocks")
+        # Rooftop clutter: AC units and a sign.
+        for k in range(3):
+            block("Block_%d_AC%d" % (i, k), (x + random.uniform(-400, 400), y - side * random.uniform(100, 500), h + 70), (180, 180, 140), mats["gunmetal"], random.uniform(0, 90), folder="Blocks")
+        block("Block_%d_Sign" % i, (x, y - side * 700, h + 260), (900, 30, 300), mats["holo"] if i % 2 else mats["holo_orange"], folder="Blocks")
+    # Skybridges across the street between facing roofs.
+    for i, x in enumerate((-1800, 3000)):
+        hy = min(blocks[0 if i == 0 else 2][2], blocks[3 if i == 0 else 5][2])
+        block("Skybridge_%d" % i, (x, 0, hy - 10), (360, 1600, 30), mats["concrete_dark"], folder="Blocks")
+        for side in (-1, 1):
+            block("Skybridge_%d_Rail%d" % (i, side), (x + side * 175, 0, hy + 50), (10, 1600, 100), mats["neon_blue"], folder="Blocks")
+    # The relay masts stand in the street at the foot of three blocks, where Halcyon's response teams can reach you too.
+    for i, (x, y) in enumerate([(-1800, 420), (600, -420), (3000, 420)]):
+        t = spawn(term, "Relay_%d" % i, (x, y, 0), rot(yaw=180), "Gameplay")
+        t.set_editor_property("terminal", True)
+        t.set_editor_property("display_name", "Relay %d" % (i + 1))
+        t.set_editor_property("repair_seconds", 7.0)
+
+    # Street lights, kiosks and barriers on the deck.
+    for i, x in enumerate(range(-4200, 4400, 900)):
+        for side in (-1, 1):
+            y = side * 700
+            block("StreetPole_%d_%d" % (i, side), (x, y, 350), (20, 20, 700), mats["gunmetal"], folder="Street")
+            block("StreetLamp_%d_%d" % (i, side), (x, y - side * 60, 690), (30, 140, 14), mats["neon_blue"] if i % 2 else mats["neon_orange"], folder="Street")
+            town_light("StreetLight_%d_%d" % (i, side), (x, y - side * 80, 620), (110, 160, 255) if i % 2 else (255, 140, 60), 500.0, 1500.0)
+    for i, (x, y, yaw) in enumerate([(-2600, 300, 0), (-400, -300, 20), (1700, 200, -10), (2600, -450, 80), (-1200, 450, 45), (900, 350, 0)]):
+        block("Kiosk_%d" % i, (x, y, 110), (240, 160, 220), mats["gunmetal"], yaw, folder="Street")
+        block("Kiosk_%d_Screen" % i, (x, y, 250), (250, 20, 80), mats["holo"] if i % 2 else mats["holo_orange"], yaw, folder="Street")
+    for i, (x, y, yaw) in enumerate([(-3300, -500, 90), (-500, 500, 0), (1300, -300, 90), (2200, 450, 0), (-2100, 0, 90)]):
+        jersey("Barrier_%02d" % i, x, y, yaw, mats)
+
+    # The maglev: an elevated rail on the north edge, out over the lake, and its platform.
+    for i, x in enumerate(range(-9000, 9001, 1500)):
+        block("MaglevPier_%d" % i, (x, 4300, 100), (160, 160, 1100), mats["tower"], folder="Maglev")
+    block("MaglevRail", (0, 4300, 680), (18000, 220, 60), mats["gunmetal"], folder="Maglev")
+    block("MaglevRailLight", (0, 4190, 690), (18000, 10, 14), mats["neon_orange"], folder="Maglev")
+    block("Maglev_Platform", (-3000, 3800, 60), (1600, 700, 120), mats["concrete_dark"], folder="Maglev")
+    block("Maglev_Canopy", (-3000, 3800, 520), (1700, 800, 30), mats["tower"], folder="Maglev")
+    block("Maglev_Sign", (-3000, 3410, 470), (700, 14, 80), mats["neon_orange"], folder="Maglev")
+    block("Maglev_Car", (-3600, 4300, 900), (2600, 300, 360), mats["gunmetal"], folder="Maglev")
+    block("Maglev_CarWin", (-3600, 4140, 930), (2400, 10, 90), mats["windows"], folder="Maglev")
+
+    # The courier, and his route through the streets to the maglev (TargetPoints tagged DV_Route_NN).
+    spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVCourier"), "Courier", (2000, 400, 100), rot(yaw=180), "Gameplay")
+    for i, (x, y) in enumerate([(2000, 400), (2000, -2600), (-600, -2600), (-600, 2600), (-3000, 2600), (-3000, 3700)]):
+        p = spawn(unreal.TargetPoint, "Route_%02d" % i, (x, y, 60), folder="Gameplay")
+        p.tags = [unreal.Name("DV_Route_%02d" % i)]
+    folk = townsperson("Juno_Kade", (-3900, 600, 100), 200, "Juno Kade, data broker", 0, wanders=False)
+    folk.set_editor_property("custom_line", "Everything up here has a price, Commander. Yours is a favour. I'll tell you which one later.")
+
+    # Megaspires standing in the lake, holo billboards, and a ringed planet over all of it.
+    for i in range(30):
+        a = i * 2 * math.pi / 30 + random.uniform(-0.05, 0.05)
+        q = random.uniform(1.7, 3.2)
+        x, y = math.cos(a) * 6000 * q, math.sin(a) * 4600 * q
+        w = random.uniform(900, 1900)
+        h = random.uniform(6000, 22000)
+        neon_tower("Spire_%02d" % i, x, y, w, w * random.uniform(0.7, 1.2), h, mats, band_every=random.choice([700, 900, 1200]))
+        place(sphere, "Spire_%02d_Cap" % i, (x, y, ground(x, y) + h + 200), None, (w / 300.0, w / 300.0, 6.0), mats["neon_blue"] if i % 3 else mats["neon_orange"], "City")
+        if i % 4 == 0:
+            block("Billboard_%02d" % i, (x * 0.96, y * 0.96, h * 0.55), (40, w * 1.4, w * 0.8), mats["holo"] if i % 8 else mats["holo_orange"],
+                  math.degrees(a), folder="City")
+    cx, cy, cz, r = -2400000.0, 1600000.0, 900000.0, 420000.0
+    place(sphere, "RingedPlanet", (cx, cy, cz), rot(roll=24), (r / 50.0, r / 50.0, r / 50.0), mats["ring_planet"], "Sky")
+    place(cyl, "PlanetRing", (cx, cy, cz), rot(roll=24, pitch=8), (r * 2.4 / 50.0, r * 2.4 / 50.0, 0.4), mats["ring"], "Sky")
+    log("neonverge built")
+
+
+# --------------------------------------------------------------------------------------------
 # Build
 # --------------------------------------------------------------------------------------------
 
@@ -1371,6 +1498,14 @@ def build():
         "lantern_gold": glow("MI_Lantern_Gold", (1.0, 0.8, 0.4), 14.0),
         "lantern_sky": glow("MI_Lantern_Sky", (0.5, 0.8, 1.0), 14.0),
         "glasshouse": glow("MI_Glasshouse", (0.62, 0.9, 0.8), 0.7),
+        "deck_wet": tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_DeckWet", (0.02, 0.024, 0.032), metallic=0.7, roughness=0.18),
+        "tower": tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_TowerDark", (0.03, 0.033, 0.045), roughness=0.6),
+        "neon_blue": glow("MI_Neon_Blue_V", (0.12, 0.45, 1.0), 14.0),
+        "neon_orange": glow("MI_Neon_Orange_V", (1.0, 0.42, 0.05), 14.0),
+        "holo": glow("MI_Holo_V", (0.15, 0.8, 1.0), 2.0),
+        "holo_orange": glow("MI_HoloOrange_V", (1.0, 0.5, 0.12), 2.0),
+        "ring_planet": glow("MI_RingPlanet", (0.85, 0.45, 0.25), 2.2),
+        "ring": glow("MI_PlanetRing", (0.5, 0.6, 0.85), 1.4),
     }
     terrain = make_terrain()
     rocks = [make_rock(i) for i in range(6)]
@@ -1386,10 +1521,11 @@ def build():
     town = "town" in B["extras"]
     brass = "brass" in B["extras"]
     vale = "vale" in B["extras"]
+    verge = "verge" in B["extras"]
 
     # --- Terrain and rocks --------------------------------------------------------------
     place(terrain, "MoonTerrain", (0, 0, 0), material=terrain_mat, folder="Terrain")
-    if "harbour" not in B["extras"]:
+    if "harbour" not in B["extras"] and not verge:
         # Plains out to the horizon around the 600 m terrain tile, so the land doesn't end when a Raven climbs.
         edge, far, top = 29500.0, 1500000.0, 400.0
         for name, cx, cy, sx, sy in (("N", 0, (edge + far) / 2, 2 * far, far - edge), ("S", 0, -(edge + far) / 2, 2 * far, far - edge),
@@ -1400,11 +1536,11 @@ def build():
     # Boulders as cover across the approach, plus big outcrops on the slopes.
     cover_rocks = [(-2600, -1300), (-2300, 900), (-1600, -300), (-900, 1500), (-700, -1600), (-200, 400),
                    (300, -900), (700, 1700), (1100, -2100), (-3300, 300), (-1200, -2600), (200, 2600)]
-    for i, (x, y) in enumerate([] if town or brass or vale else cover_rocks):
+    for i, (x, y) in enumerate([] if town or brass or vale or verge else cover_rocks):
         s = random.uniform(1.1, 1.8)
         place(random.choice(rocks), "CoverRock_%02d" % i, (x, y, ground(x, y) - 10), rot(yaw=random.uniform(0, 360)),
               (s * random.uniform(0.9, 1.4), s, s * random.uniform(0.8, 1.1)), rock_mat, "Rocks")
-    for i in range(90):
+    for i in range(0 if verge else 90):
         ang = random.uniform(0, 2 * math.pi)
         q = random.uniform(1.0, 1.9)
         x, y = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
@@ -1415,7 +1551,7 @@ def build():
 
     # --- Hearthbound compound (east) ----------------------------------------------------
     bx, by = 3000.0, 0.0
-    if not town and not brass and not vale and "walker" not in B["extras"]:   # the Ironstride's loop needs the plain clear
+    if not town and not brass and not vale and not verge and "walker" not in B["extras"]:   # the Ironstride's loop needs the plain clear
         bz = ground(bx, by)
         # Bunker: thick walls with a doorway facing west, roof slab with overhang, glowing strips.
         block("Bunker_Floor", (bx, by, bz + 10), (1400, 1000, 30), mats["concrete_dark"])
@@ -1473,6 +1609,9 @@ def build():
         soldier = unreal.load_class(None, "/Script/DeltaVDominion.DVSoldierCharacter")
         enemy_spots = [(bx - 900, by - 250), (bx - 900, by + 450), (bx - 1300, by + 1000), (bx - 1200, by - 1100),
                        (bx - 300, by + 1250), (bx - 450, by), (1300, -500), (1400, 800)]
+        if verge:
+            # Halcyon's rented war-frames, spread through the streets between the blocks.
+            enemy_spots = [(-1800, 60), (600, -60), (1600, 500), (-1000, -500), (2600, -300), (-2600, -500), (300, 600), (1100, -600)]
         if vale:
             # Nana Bramble's helper bots, frightened by the storm and the Static, around the square and the cottages.
             enemy_spots = [(1200, -300), (1500, 900), (300, 1300), (-600, -1000), (2200, 500), (800, -1500)]
@@ -1507,9 +1646,9 @@ def build():
     tank = unreal.load_class(None, "/Script/DeltaVDominion.DVTank")
     gunship = unreal.load_class(None, "/Script/DeltaVDominion.DVGunship")
     kestrel = unreal.load_class(None, "/Script/DeltaVDominion.DVKestrel")
-    if not town and not vale:   # no gun trucks in the Vale
+    if not town and not vale and not verge:   # no gun trucks in the Vale; the Verge's streets are too tight
         spawn(ltv, "LTV_Jackal", (-3700, 950, ground(-3700, 950) + 120), rot(yaw=10), "Vehicles")
-        if not brass and not vale:   # the Guild allows no armour in its streets, and Nana none in her fields
+        if not brass and not vale and not verge:   # the Guild allows no armour in its streets, and Nana none in her fields
             spawn(tank, "Tank_Sabre", (-3800, -1050, ground(-3800, -1050) + 140), rot(yaw=-5), "Vehicles")
     bike = unreal.load_class(None, "/Script/DeltaVDominion.DVHoverbike")
     for i, (bx, by) in enumerate([(2900, -650), (2600, -650)] if town else [(-3300, 300), (-3300, -300)]):
@@ -1543,7 +1682,12 @@ def build():
              ((-700, -700, 260), (-2000, -1500, 120)),        # 1: the barn and the puffbot pen
              ((-4700, -4200, 2100), (300, 300, 300)),         # 2: the whole vale from the hills
              ((-600, 1700, 220), (-900, 2300, 700)),          # 3: a storm-broken windpump
-             ((-1200, -2700, 240), (900, -1900, 60))] if vale else [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
+             ((-1200, -2700, 240), (900, -1900, 60))] if vale else [
+             ((-3600, 0, 260), (2400, 0, 700)),                # 0: down the broker street, spires beyond
+             ((-2500, -250, 300), (-1800, 420, 420)),          # 1: a relay mast in the street
+             ((-6400, -5200, 2600), (0, 0, 2400)),             # 2: the district from over the lake, the ringed planet above
+             ((-2400, 3000, 260), (-3000, 3800, 500)),         # 3: the maglev platform
+             ((2600, -2800, 200), (2000, 600, 600))] if verge else [((-2400, -2900, 700), (2600, 200, 150)),        # 0: overwatch over the approach toward the compound at dusk
              ((-2200, -1500, 220), (2600, 300, 220)),        # 1: low, behind the boulders, looking at the bunker
              ((5600, 2600, 900), (-800, -400, 0)),           # 2: reverse from behind the compound, sun in the lens
              ((bx - 1700, by - 700, 170), (bx - 600, by + 100, 250)),  # 3: close on the bunker doorway
@@ -1623,6 +1767,8 @@ def build():
         build_brasshaven(mats)
     if vale:
         build_hollyhock(mats)
+    if verge:
+        build_neonverge(mats)
     if town:
         build_town(mats)
     if "walker" in B["extras"]:

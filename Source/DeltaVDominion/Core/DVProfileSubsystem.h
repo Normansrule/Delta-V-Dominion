@@ -39,7 +39,8 @@ namespace DVFactions
 	constexpr int32 FreePorts = 2;	// smugglers and salvagers who trade in what the war leaves behind
 	constexpr int32 Guild = 3;		// Brasshaven's Guild Council: trusts nothing with a chip in it
 	constexpr int32 Vale = 4;		// Hollyhock Vale and its caretaker, Nana Bramble
-	constexpr int32 Num = 5;
+	constexpr int32 Brokers = 5;	// Neon Verge's data brokers: everything has a price, especially favours
+	constexpr int32 Num = 6;
 	constexpr int32 Trusted = 20;
 	constexpr int32 Allied = 50;
 }

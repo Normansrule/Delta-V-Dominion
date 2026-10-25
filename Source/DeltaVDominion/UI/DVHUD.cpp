@@ -23,6 +23,7 @@
 #include "Vehicles/DVWalker.h"
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
+#include "Core/DVNeonVerge.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -465,15 +466,16 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 				}
 				Text(Hint, CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
 			}
-			else if (GS->bValeOp)
+			else if (GS->bValeOp || GS->bHackOp)
 			{
-				Right = FString::Printf(TEXT("PUMPS %d / %d"), GS->ValeDone, GS->ValeTotal);
+				Right = FString::Printf(TEXT("%s %d / %d"), GS->bHackOp ? TEXT("RELAYS") : TEXT("PUMPS"), GS->ValeDone, GS->ValeTotal);
 				for (TActorIterator<ADVRepairPoint> It(GetWorld()); It; ++It)
 				{
 					const FVector P = Project(It->GetActorLocation() + FVector(0.f, 0.f, 1000.f));
 					if (P.Z > 0.f && !It->IsFixed())
 					{
-						Text(It->GetProgress() > 0.01f ? FString::Printf(TEXT("MENDING %d%%"), FMath::RoundToInt(It->GetProgress() * 100.f)) : FString(TEXT("BROKEN PUMP")),
+						Text(It->GetProgress() > 0.01f ? FString::Printf(TEXT("%s %d%%"), GS->bHackOp ? TEXT("UPLOADING") : TEXT("MENDING"), FMath::RoundToInt(It->GetProgress() * 100.f))
+							: FString(GS->bHackOp ? TEXT("RELAY") : TEXT("BROKEN PUMP")),
 							P.X, P.Y, Amber, GEngine->GetSmallFont(), DVType::Caption, true);
 					}
 				}
@@ -493,6 +495,15 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 			}
 			break;
 		case EDVMissionStage::Capture:
+			if (const ADVCourier* Courier = GS->bHackOp ? ADVCourier::Find(GetWorld()) : nullptr)
+			{
+				const APawn* Me = GetOwningPawn();
+				const float M = Me ? FVector::Dist(Me->GetActorLocation(), Courier->GetActorLocation()) / 100.f : 0.f;
+				Right = FString::Printf(TEXT("COURIER %dm"), FMath::RoundToInt(M));
+				Color = DVHudColors::Hostile;
+				Text(TEXT("He's faster than a walk, slower than a sprint. Hold shift and run him down"), CX, Y + S(150.f), Amber, GEngine->GetSmallFont(), DVType::Caption, true);
+				break;
+			}
 			if (GS->bValeOp)
 			{
 				Right = FString::Printf(TEXT("PUFFBOTS %d / %d"), GS->ValeDone, GS->ValeTotal);
@@ -1077,7 +1088,8 @@ void ADVHUD::DrawLocker()
 	const TCHAR* Perks[DVFactions::Num] = { TEXT("Trusted: Longreach DMR  |  Allied: orbital priority"),
 		TEXT("Trusted: fuller supply pods"), TEXT("Trusted: Pulse Carbine  |  Allied: faster supply drops"),
 		TEXT("Earned in Brasshaven: wind down, don't scrap, and mind the townsfolk"),
-		TEXT("Earned in Hollyhock Vale: be gentle, mend things, bring them home") };
+		TEXT("Earned in Hollyhock Vale: be gentle, mend things, bring them home"),
+		TEXT("Earned in Neon Verge: favours, owed and repaid") };
 	for (int32 F = 0; F < DVFactions::Num; ++F)
 	{
 		const int32 V = Profile->GetRep(F);
