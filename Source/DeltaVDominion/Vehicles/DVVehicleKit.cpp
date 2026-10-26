@@ -280,3 +280,38 @@ void DVKit::SetGlow(UStaticMeshComponent* Part, const FLinearColor& Color, float
 		Mat->SetVectorParameterValue(TEXT("Emissive"), Color * Strength);
 	}
 }
+
+FString DVKit::TestDriveKeys;
+
+bool DVKit::KeyHeld(const APlayerController* PC, const FKey& Key, TCHAR TestChar)
+{
+	return PC && (PC->IsInputKeyDown(Key) || TestDriveKeys.Contains(FString::Chr(TestChar)));
+}
+
+DVKit::FDriveInput DVKit::ReadCameraDrive(const APlayerController* PC, float VehicleYaw, float ReverseThrottle)
+{
+	FDriveInput Out;
+	Out.Yaw = VehicleYaw;
+	if (!PC)
+	{
+		return Out;
+	}
+	auto Held = [PC](const FKey& Key, TCHAR Test) { return KeyHeld(PC, Key, Test); };
+	const float F = (Held(EKeys::W, 'W') ? 1.f : 0.f) - (Held(EKeys::S, 'S') ? 1.f : 0.f);
+	const float R = (Held(EKeys::D, 'D') ? 1.f : 0.f) - (Held(EKeys::A, 'A') ? 1.f : 0.f);
+	const float CamYaw = PC->GetControlRotation().Yaw;
+	if (F == 0.f && R == 0.f)
+	{
+		return Out;
+	}
+	Out.bAny = true;
+	if (F < 0.f && R == 0.f)
+	{
+		Out.Throttle = ReverseThrottle;
+		Out.Yaw = CamYaw;
+		return Out;
+	}
+	Out.Throttle = 1.f;
+	Out.Yaw = FRotator::NormalizeAxis(CamYaw + FMath::RadiansToDegrees(FMath::Atan2(R, F)));
+	return Out;
+}

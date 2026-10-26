@@ -73,6 +73,23 @@ namespace DVKit
 	DELTAVDOMINION_API UStaticMesh* Sphere();
 	DELTAVDOMINION_API UMaterialInterface* Material(const TCHAR* Name);	// "Gunmetal", "Olive", "Rust", "Navy", "Concrete", "Glow"
 
+	/**
+	 * Camera-relative driving, the way Halo and Battlefield do it: the mouse picks the direction and WASD is relative to
+	 * the camera. W drives where you look, A/D toward the left/right of the view, W+A diagonally, and S on its own backs
+	 * up with the nose toward the camera. With no keys held the vehicle keeps its heading.
+	 */
+	struct FDriveInput
+	{
+		float Throttle = 0.f;	// 1 ahead, ReverseThrottle (negative) backing up, 0 idle
+		float Yaw = 0.f;		// world yaw the vehicle should turn toward
+		bool bAny = false;
+	};
+	/** Tests: keys ("W", "WA", "S"...) ReadCameraDrive treats as held. Empty in normal play. */
+	DELTAVDOMINION_API extern FString TestDriveKeys;
+	/** Key down, or held by a test (TestChar in TestDriveKeys). */
+	DELTAVDOMINION_API bool KeyHeld(const APlayerController* PC, const FKey& Key, TCHAR TestChar);
+	DELTAVDOMINION_API FDriveInput ReadCameraDrive(const APlayerController* PC, float VehicleYaw, float ReverseThrottle = -0.6f);
+
 	/** Tints a part made with the "Glow" material (emissive), at runtime. */
 	DELTAVDOMINION_API void SetGlow(UStaticMeshComponent* Part, const FLinearColor& Color, float Strength);
 }

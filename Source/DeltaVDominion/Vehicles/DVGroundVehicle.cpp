@@ -80,6 +80,7 @@ ADVGroundVehicle::ADVGroundVehicle()
 	Move->EngineSetup.MaxTorque = 750.f;
 	Move->EngineSetup.MaxRPM = 6500.f;
 	Move->TransmissionSetup.bUseAutomaticGears = true;
+	Move->TransmissionSetup.ReverseGearRatios = { 3.6f };	// a low reverse, so S backs away with real pull
 	// Curves are empty when a vehicle is built in C++ (Blueprints get defaults from the editor): without them
 	// the engine makes no torque and the wheels never steer.
 	FRichCurve* Torque = Move->EngineSetup.TorqueCurve.GetRichCurve();
@@ -314,15 +315,28 @@ void ADVGroundVehicle::Tick(float DeltaSeconds)
 	if (PC && IsLocallyControlled())
 	{
 		UChaosWheeledVehicleMovementComponent* Move = CastChecked<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
-		float Forward = (PC->IsInputKeyDown(EKeys::W) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::S) ? 1.f : 0.f);
-		float Steer = (PC->IsInputKeyDown(EKeys::D) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::A) ? 1.f : 0.f);
-		if (Forward == 0.f && Steer == 0.f)
+		// Camera-relative: drive toward where the mouse looks, WASD relative to the view. Wheels can't turn on the spot,
+		// so the steering is proportional to how far off the heading is, and a hard turn eases off the throttle.
+		const DVKit::FDriveInput Drive = DVKit::ReadCameraDrive(PC, GetActorRotation().Yaw, -1.f);
+		const float Off = FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, Drive.Yaw);
+		float Forward = Drive.Throttle;
+		float Steer = 0.f;
+		if (Drive.Throttle > 0.f)
+		{
+			Steer = FMath::Clamp(Off / 30.f, -1.f, 1.f);
+			Forward = FMath::Abs(Off) > 100.f ? 0.55f : 1.f;
+		}
+		else if (Drive.Throttle < 0.f)
+		{
+			Steer = -0.6f * FMath::Clamp(Off / 30.f, -1.f, 1.f);	// backing up: the wheels steer the tail, gently
+		}
+		if (!Drive.bAny)
 		{
 			Forward = AutoThrottle;
 			Steer = AutoSteer;
 		}
 		Move->SetThrottleInput(FMath::Max(Forward, 0.f));
-		Move->SetBrakeInput(FMath::Max(-Forward, 0.f));
+		Move->SetBrakeInput(FMath::Max(-Forward, 0.f));	// held at a standstill, the brake backs up (Chaos auto-reverse)
 		Move->SetSteeringInput(Steer);
 		Move->SetHandbrakeInput(PC->IsInputKeyDown(EKeys::SpaceBar));
 

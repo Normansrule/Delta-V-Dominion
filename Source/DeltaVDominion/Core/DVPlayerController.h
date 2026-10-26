@@ -167,6 +167,9 @@ public:
 	void DVBoard(const FString& Which, float Delay = 0.f);
 
 	/** Console / capture: "DVAutopilot Delay Throttle Steer Up Fire" drives or flies the current vehicle hands-free. */
+	/** Tests: "DVDriveTest Keys CameraYaw [Delay]" holds Keys (e.g. W, WA, S) with the camera turned to CameraYaw, then logs where the vehicle went. */
+	UFUNCTION(Exec)
+	void DVDriveTest(const FString& Keys, float CameraYaw, float Delay = 0.f);
 	UFUNCTION(Exec)
 	void DVAutopilot(float Delay, float Throttle, float Steer, float Up = 0.f, int32 Fire = 0);
 

@@ -1,4 +1,4 @@
-﻿#include "Vehicles/DVGunship.h"
+#include "Vehicles/DVGunship.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Components/AudioComponent.h"
 #include "Characters/DVSoldierCharacter.h"
@@ -208,9 +208,9 @@ void ADVGunship::Tick(float DeltaSeconds)
 	if (PC && IsLocallyControlled())
 	{
 		const FVector Input(
-			(PC->IsInputKeyDown(EKeys::W) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::S) ? 1.f : 0.f),
-			(PC->IsInputKeyDown(EKeys::D) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::A) ? 1.f : 0.f),
-			(PC->IsInputKeyDown(EKeys::SpaceBar) ? 1.f : 0.f) - ((PC->IsInputKeyDown(EKeys::C) || PC->IsInputKeyDown(EKeys::LeftControl)) ? 1.f : 0.f));
+			(DVKit::KeyHeld(PC, EKeys::W, 'W') ? 1.f : 0.f) - (DVKit::KeyHeld(PC, EKeys::S, 'S') ? 1.f : 0.f),
+			(DVKit::KeyHeld(PC, EKeys::D, 'D') ? 1.f : 0.f) - (DVKit::KeyHeld(PC, EKeys::A, 'A') ? 1.f : 0.f),
+			(DVKit::KeyHeld(PC, EKeys::SpaceBar, 'U') ? 1.f : 0.f) - ((PC->IsInputKeyDown(EKeys::C) || PC->IsInputKeyDown(EKeys::LeftControl)) ? 1.f : 0.f));
 		FVector Move = Input;
 		if (Input.IsNearlyZero() && !AutoMove.IsNearlyZero())
 		{
@@ -266,7 +266,6 @@ void ADVGunship::Tick(float DeltaSeconds)
 	}
 	if (HasAuthority() && !bScriptedFlight)
 	{
-		const FRotator Heading(0.f, GetActorRotation().Yaw, 0.f);
 		FVector Desired;
 		if (bJetMode && GetController())
 		{
@@ -277,8 +276,8 @@ void ADVGunship::Tick(float DeltaSeconds)
 		}
 		else
 		{
-			// Arcade VTOL: accelerate toward the commanded velocity in the heading frame; hover when idle.
-			Desired = Heading.RotateVector(FVector(MoveInput.X * 4200.f, MoveInput.Y * 2400.f, 0.f)) + FVector(0.f, 0.f, MoveInput.Z * 1600.f);
+			// Arcade VTOL: WASD in the camera's frame (the hull turns to follow it); hover when idle.
+			Desired = FRotator(0.f, TargetYaw, 0.f).RotateVector(FVector(MoveInput.X * 4200.f, MoveInput.Y * 2400.f, 0.f)) + FVector(0.f, 0.f, MoveInput.Z * 1600.f);
 		}
 		Velocity = FMath::VInterpTo(Velocity, Desired, DeltaSeconds, bJetMode ? 0.9f : 1.6f);
 		FHitResult Hit;

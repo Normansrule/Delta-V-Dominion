@@ -120,15 +120,18 @@ void ADVBoat::Tick(float DeltaSeconds)
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC && IsLocallyControlled())
 	{
-		float Throttle = (PC->IsInputKeyDown(EKeys::W) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::S) ? 0.5f : 0.f);
+		const DVKit::FDriveInput Drive = DVKit::ReadCameraDrive(PC, GetActorRotation().Yaw, -0.5f);	// mouse picks the direction, WASD relative to it
+		float Throttle = Drive.Throttle;
+		float WantYaw = Drive.Yaw;
 		if (FMath::IsNearlyZero(Throttle) && !FMath::IsNearlyZero(AutoThrottle))
 		{
 			Throttle = AutoThrottle;
 			FRotator Steer = PC->GetControlRotation();
 			Steer.Yaw += AutoYawRate * DeltaSeconds;
 			PC->SetControlRotation(Steer);
+			WantYaw = Steer.Yaw;
 		}
-		ServerInput(Throttle, PC->GetControlRotation().Yaw);
+		ServerInput(Throttle, WantYaw);
 		const FVector Start = PC->PlayerCameraManager->GetCameraLocation();
 		const FVector End = Start + PC->PlayerCameraManager->GetActorForwardVector() * 30000.f;
 		FHitResult Hit;

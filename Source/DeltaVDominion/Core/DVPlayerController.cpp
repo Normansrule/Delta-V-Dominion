@@ -1154,6 +1154,39 @@ void ADVPlayerController::DVInteract(float Delay)
 	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { OnInteractPressed(); }), FMath::Max(Delay, 0.001f), false);
 }
 
+void ADVPlayerController::DVDriveTest(const FString& Keys, float CameraYaw, float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Keys, CameraYaw]()
+	{
+		APawn* Vehicle = GetPawn();
+		if (!Vehicle)
+		{
+			return;
+		}
+		const FVector From = Vehicle->GetActorLocation();
+		UE_LOG(LogTemp, Log, TEXT("DVDriveTest: %s holding %s, camera yaw %.0f, vehicle yaw %.0f"), *Vehicle->GetName(), *Keys, CameraYaw, Vehicle->GetActorRotation().Yaw);
+		DVKit::TestDriveKeys = Keys.ToUpper();
+		SetControlRotation(FRotator(-10.f, CameraYaw, 0.f));
+		for (const float At : { 2.f, 4.f, 6.f })
+		{
+			FTimerHandle Log;
+			GetWorldTimerManager().SetTimer(Log, FTimerDelegate::CreateWeakLambda(this, [this, From, At]()
+			{
+				if (APawn* V = GetPawn())
+				{
+					const FVector Moved = V->GetActorLocation() - From;
+					UE_LOG(LogTemp, Log, TEXT("DVDriveTest: %.0fs vehicle yaw %.0f, moved %.0f m toward yaw %.0f"), At, V->GetActorRotation().Yaw, Moved.Size2D() / 100.f, Moved.Rotation().Yaw);
+				}
+				if (At >= 6.f)
+				{
+					DVKit::TestDriveKeys.Reset();
+				}
+			}), At, false);
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
 void ADVPlayerController::DVAutopilot(float Delay, float Throttle, float Steer, float Up, int32 Fire)
 {
 	FTimerHandle Handle;
