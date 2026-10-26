@@ -96,8 +96,8 @@ void ADVGameMode::StartPlay()
 		const bool bHasPoints = TActorIterator<ADVPointOfInterest>(GetWorld()) ? true : false;
 		if (bHasPoints || DVWorldGen::PlacePointsOfInterest(GetWorld(), Key) > 0 || ++(*Tries) >= 20)
 		{
-			GetWorldTimerManager().ClearTimer(WorldGenTimer);
 			SetupChallenges();
+			GetWorldTimerManager().ClearTimer(WorldGenTimer);	// last: clearing destroys this lambda, captures and all
 		}
 	}), 0.5f, true, 0.2f);
 }
