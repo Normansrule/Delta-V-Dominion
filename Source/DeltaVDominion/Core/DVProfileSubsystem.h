@@ -29,6 +29,9 @@ public:
 	UPROPERTY() TArray<int32> Reputation;
 	UPROPERTY() int32 ActiveContract = -1;
 	UPROPERTY() int32 ContractProgress = 0;
+	UPROPERTY() int32 Requisition = 0;
+	UPROPERTY() TArray<FString> Challenges;
+	UPROPERTY() TArray<int32> OwnedPaints;
 };
 
 /** The powers that remember what Delta does (-100..100 each). */
@@ -121,6 +124,26 @@ public:
 	int32 PayContract();
 	FString ContractNote;
 	double ContractNoteTime = -100.0;
+	/**
+	 * Requisition: what the Kestrel's quartermaster trades in. Earned only by playing (operations won, challenges met,
+	 * wrecks salvaged); there is nothing to buy with real money. Spent on paint schemes at the quartermaster.
+	 */
+	int32 GetRequisition() const { return Requisition; }
+	void AddRequisition(int32 Amount, const FString& Reason);
+	FString LastRequisition;
+	double LastRequisitionTime = -100.0;
+	/** A challenge met (Id like "Outpost.Intel"). The first time pays in full; doing it again pays a fifth, no XP. Returns requisition paid. */
+	int32 CompleteChallenge(const FString& Id, const FString& Name, int32 Req, int32 XPReward);
+	bool HasChallenge(const FString& Id) const { return Challenges.Contains(Id); }
+	/** How many challenges on this map (its key, e.g. "Outpost") have ever been met. */
+	int32 CountChallenges(const FString& MapKey) const;
+	/** Paint schemes: the first eight are free; the rest are bought from the quartermaster. */
+	static int32 PaintPrice(int32 Index);
+	bool OwnsPaint(int32 Index) const { return PaintPrice(Index) == 0 || OwnedPaints.Contains(Index); }
+	/** Buy and wear a scheme. False if it's owned already or there isn't enough requisition. */
+	bool BuyPaint(int32 Index);
+	/** The next scheme the quartermaster has for sale after From (-1 for the first). */
+	int32 NextShopPaint(int32 From) const;
 	/** Field 0 body, 1 paint, 2 optics, 3 callsign: step to the next option and save. */
 	void Cycle(int32 Field);
 
@@ -140,5 +163,8 @@ private:
 	TArray<int32> Reputation;
 	int32 ActiveContract = -1;
 	int32 ContractProgress = 0;
+	int32 Requisition = 0;
+	TArray<FString> Challenges;
+	TArray<int32> OwnedPaints;
 	double Now() const;
 };

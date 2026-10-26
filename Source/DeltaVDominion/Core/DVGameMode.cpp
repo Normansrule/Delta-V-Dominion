@@ -14,6 +14,8 @@
 #include "Core/DVAscent.h"
 #include "Core/DVDeparture.h"
 #include "Core/DVDescent.h"
+#include "Core/DVPointOfInterest.h"
+#include "Core/DVWorldGen.h"
 #include "Vehicles/DVWalker.h"
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
@@ -80,6 +82,24 @@ void ADVGameMode::StartPlay()
 	}
 	SetupMissionForMap();
 	SetupOperation();
+	if (bIsHub || bIsTrainingMap)
+	{
+		return;
+	}
+	// Points of interest are generated once the navmesh can answer "can you walk there from the landing zone?";
+	// the challenges are counted from what was placed.
+	TSharedRef<int32> Tries = MakeShared<int32>(0);
+	GetWorldTimerManager().SetTimer(WorldGenTimer, FTimerDelegate::CreateWeakLambda(this, [this, Tries]()
+	{
+		FString Key = GetWorld()->GetMapName();
+		Key.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+		const bool bHasPoints = TActorIterator<ADVPointOfInterest>(GetWorld()) ? true : false;
+		if (bHasPoints || DVWorldGen::PlacePointsOfInterest(GetWorld(), Key) > 0 || ++(*Tries) >= 20)
+		{
+			GetWorldTimerManager().ClearTimer(WorldGenTimer);
+			SetupChallenges();
+		}
+	}), 0.5f, true, 0.2f);
 }
 
 void ADVGameMode::SetupMissionForMap()
@@ -1391,6 +1411,10 @@ void ADVGameMode::EndMission(bool bSuccess)
 	}
 	bMissionEnded = true;
 
+	if (bSuccess)
+	{
+		PayChallenges();
+	}
 	// Who remembers this operation, and how.
 	if (ADVGameState* RepGS = GetDVGameState(); RepGS && !bIsHub)
 	{
@@ -1866,4 +1890,98 @@ void ADVGameMode::OnDescentLanded(APlayerController* PC, ADVGunship* Raven)
 	GS->StrafeReadyTime = Now + 20.f;
 	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Boots on the ground! Spread out, Delta. Move!"), 0.5f);
 	UE_LOG(LogTemp, Log, TEXT("DVDescent: landed at the LZ, %d squadmates out"), Slot);
+}
+
+void ADVGameMode::SetupChallenges()
+{
+	ADVGameState* GS = GetDVGameState();
+	MapKey = GetWorld()->GetMapName();
+	MapKey.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+	if (!GS || bIsHub || bIsTrainingMap)
+	{
+		return;
+	}
+	for (TActorIterator<ADVPointOfInterest> It(GetWorld()); It; ++It)
+	{
+		GS->IntelTotal += It->Kind == EDVPointKind::Intel ? 1 : 0;
+		GS->SurvivorsTotal += It->Kind == EDVPointKind::Survivor ? 1 : 0;
+	}
+	// Four or five per operation: things to go out of your way for, all optional, all repeatable for a smaller payout.
+	auto Add = [&](const TCHAR* Kind, const FString& Name, int32 Req, int32 XP)
+	{
+		FDVChallengeLine Line;
+		Line.Id = MapKey + TEXT(".") + Kind;
+		Line.Name = Name;
+		Line.Requisition = Req;
+		Line.XP = XP;
+		GS->ChallengeLines.Add(Line);
+	};
+	if (GS->IntelTotal > 0)
+	{
+		Add(TEXT("Intel"), FString::Printf(TEXT("Recover all %d intel caches"), GS->IntelTotal), 150, 200);
+	}
+	if (GS->SurvivorsTotal > 0)
+	{
+		Add(TEXT("Rescue"), GS->SurvivorsTotal == 1 ? FString(TEXT("Get the stranded survivor out")) : FString::Printf(TEXT("Get all %d survivors out"), GS->SurvivorsTotal), 120, 150);
+	}
+	Add(TEXT("NoLoss"), TEXT("Bring everyone home"), 150, 200);
+	Add(TEXT("Swift"), TEXT("Win in under nine minutes"), 100, 150);
+	if (GS->bRestrained)
+	{
+		Add(TEXT("Clean"), TEXT("Hurt no civilians"), 120, 150);
+	}
+}
+
+void ADVGameMode::OnPointTaken(ADVPointOfInterest* Point, ADVSoldierCharacter* By)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || !Point || bMissionEnded)
+	{
+		return;
+	}
+	switch (Point->Kind)
+	{
+	case EDVPointKind::Intel:
+		++GS->IntelFound;
+		Radio(TEXT("Dr. Liang Morrow"), GS->IntelFound >= GS->IntelTotal ? FString(TEXT("That's every cache. CINDER's whole local picture, and now it's ours."))
+			: FString::Printf(TEXT("Intel recovered. That's %d of %d. Keep looking, Commander."), GS->IntelFound, GS->IntelTotal));
+		GS->MulticastRequisition(20, TEXT("Intel recovered"));
+		break;
+	case EDVPointKind::Survivor:
+		++GS->SurvivorsFound;
+		Radio(TEXT("Survivor"), TEXT("Oh thank God. I'll make for your landing zone. Thank you, thank you."));
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Good work. That's one more name that isn't going on a wall."), 4.f);
+		GS->MulticastRequisition(30, TEXT("Survivor rescued"));
+		break;
+	case EDVPointKind::Cache:
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Accord supply cache. Top up and keep moving."));
+		break;
+	default:
+		GS->MulticastRequisition(40, TEXT("Wreck salvaged"));
+		Radio(TEXT("Deck Chief Ruiz"), TEXT("Salvage from that wreck goes straight to the quartermaster. Nice find."));
+		break;
+	}
+}
+
+void ADVGameMode::PayChallenges()
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS || bIsHub || bIsTrainingMap)
+	{
+		return;
+	}
+	GS->MulticastRequisition(60, FString::Printf(TEXT("%s complete"), *MissionName));
+	const float Duration = GetWorld()->GetTimeSeconds() - GS->MissionStartTime;
+	for (FDVChallengeLine& Line : GS->ChallengeLines)
+	{
+		if (Line.Id.EndsWith(TEXT(".Intel"))) { Line.bMet = GS->IntelFound >= GS->IntelTotal; }
+		else if (Line.Id.EndsWith(TEXT(".Rescue"))) { Line.bMet = GS->SurvivorsFound >= GS->SurvivorsTotal; }
+		else if (Line.Id.EndsWith(TEXT(".NoLoss"))) { Line.bMet = LostThisOp == 0; }
+		else if (Line.Id.EndsWith(TEXT(".Swift"))) { Line.bMet = Duration < 540.f; }
+		else if (Line.Id.EndsWith(TEXT(".Clean"))) { Line.bMet = GS->CiviliansHurt == 0; }
+		if (Line.bMet)
+		{
+			GS->MulticastChallenge(Line.Id, Line.Name, Line.Requisition, Line.XP);
+		}
+	}
 }

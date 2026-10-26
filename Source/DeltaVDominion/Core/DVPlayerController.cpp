@@ -39,6 +39,7 @@
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
 #include "Core/DVNeonVerge.h"
+#include "Core/DVPointOfInterest.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Characters/DVTownsfolk.h"
 
@@ -206,6 +207,7 @@ void ADVPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
 	InputComponent->BindKey(EKeys::K, IE_Pressed, this, &ADVPlayerController::OnFlyHomePressed);
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
+	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ADVPlayerController::OnBuyPressed);
 	InputComponent->BindKey(EKeys::Z, IE_Released, this, &ADVPlayerController::OnInteractReleased);
 }
 
@@ -600,6 +602,16 @@ void ADVPlayerController::OnInteractPressed()
 			break;
 		case EDVInteraction::Locker:
 			SetLockerOpen(!bShowLocker);
+			break;
+		case EDVInteraction::Quartermaster:
+			// Each press puts the next scheme you don't own on the counter; Y buys what's on the counter.
+			if (const UDVProfileSubsystem* Shop = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+			{
+				ShopPaint = Shop->NextShopPaint(ShopPaint);
+				ShopTime = GetWorld()->GetRealTimeSeconds();
+				ShopNote.Reset();
+				DVSound::UI(GetWorld(), TEXT("SW_UIClick"), 0.5f);
+			}
 			break;
 		case EDVInteraction::Armoury:
 			if (const UDVRosterSubsystem* Roster = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVRosterSubsystem>() : nullptr)
@@ -1459,4 +1471,58 @@ void ADVPlayerController::DVLaunch(float Delay)
 {
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { ServerRequestDeparture(); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::OnBuyPressed()
+{
+	const ADVInteractable* Thing = ADVInteractable::FindNear(GetPawn());
+	UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	if (!Thing || Thing->Interaction != EDVInteraction::Quartermaster || !Profile || ShopPaint < 0)
+	{
+		return;
+	}
+	const int32 Price = UDVProfileSubsystem::PaintPrice(ShopPaint);
+	if (Profile->BuyPaint(ShopPaint))
+	{
+		ShopNote = FString::Printf(TEXT("%s is yours. It's in your locker, and you're wearing it."), *UDVProfileSubsystem::PaintName(ShopPaint));
+		PushLookToPawn();
+		DVSound::UI(GetWorld(), TEXT("SW_PlantBeep"), 0.7f);
+		ShopPaint = Profile->NextShopPaint(ShopPaint);
+	}
+	else
+	{
+		ShopNote = FString::Printf(TEXT("You need %d more requisition. Win operations, meet challenges, strip wrecks."), Price - Profile->GetRequisition());
+	}
+	ShopTime = GetWorld()->GetRealTimeSeconds();
+}
+
+void ADVPlayerController::DVPointsTest(float Delay, float Away)
+{
+#if !UE_BUILD_SHIPPING
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Away]()
+	{
+		int32 i = 0;
+		for (TActorIterator<ADVPointOfInterest> It(GetWorld()); It; ++It, ++i)
+		{
+			TWeakObjectPtr<ADVPointOfInterest> Point = *It;
+			FTimerHandle Visit;
+			GetWorldTimerManager().SetTimer(Visit, FTimerDelegate::CreateWeakLambda(this, [this, Point, Away]()
+			{
+				if (APawn* Me = GetPawn(); Me && Point.IsValid() && !Point->IsTaken())
+				{
+					UE_LOG(LogTemp, Display, TEXT("DVPointsTest: visiting %s"), *Point->Label());
+					Me->TeleportTo(Point->GetActorLocation() + FVector(-Away, 0.f, 110.f), FRotator(0.f, 0.f, 0.f));
+					SetControlRotation(FRotator(Away > 300.f ? -8.f : -25.f, 0.f, 0.f));
+				}
+			}), 0.1f + 6.f * i, false);
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+#endif
+}
+
+void ADVPlayerController::DVBuy(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { OnBuyPressed(); }), FMath::Max(Delay, 0.001f), false);
 }

@@ -59,6 +59,8 @@ public:
 	/** Arriving: launched from the galaxy map ("descent" option), the commander rides the LZ's Raven in (ADVDescent). */
 	void BeginDescent(APlayerController* PC);
 	void OnDescentLanded(APlayerController* PC, class ADVGunship* Raven);
+	/** A point of interest was taken (intel recovered, survivor out, cache opened, wreck stripped). */
+	void OnPointTaken(class ADVPointOfInterest* Point, class ADVSoldierCharacter* By);
 
 	/** Ironstride: a power coupling blew (Count of 3), and the walker hit the ground. */
 	void OnWalkerCoupling(int32 Count);
@@ -123,6 +125,11 @@ private:
 	/** The faction whose people live on this map (who minds if they get hurt). */
 	int32 LocalFaction = -1;
 	bool bWarnedRoE = false;
+	/** This map's key ("Outpost", "Brasshaven"...): challenge ids are "Key.Kind". */
+	FString MapKey;
+	void SetupChallenges();
+	FTimerHandle WorldGenTimer;
+	void PayChallenges();
 	FVector SecondObjective = FVector::ZeroVector;
 	void StartExtract();
 	void SpawnWave(int32 Count);

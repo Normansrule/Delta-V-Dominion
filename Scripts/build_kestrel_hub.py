@@ -1,4 +1,4 @@
-﻿"""Builds /Game/Maps/Kestrel: the hangar deck of the TAS Kestrel, Delta Squadron's home base.
+"""Builds /Game/Maps/Kestrel: the hangar deck of the TAS Kestrel, Delta Squadron's home base.
 
 Walk the deck with your squad, look out of the open hangar mouth at Mars below, use the war table (Z) to
 open the galaxy map and pick the next operation, and visit the memorial wall. The gunships, tank and LTV
@@ -321,6 +321,24 @@ def build():
         x = 1700 + i * 170
         block("LockerUnit_%d" % i, (x, W / 2 - 160, 110), (150, 70, 220), steel if i % 2 else hull, folder="Stations")
         block("LockerTag_%d" % i, (x, W / 2 - 198, 180), (60, 4, 14), mat("MI_Strip_Cyan"), folder="Stations")
+    # The quartermaster: paint schemes for requisition earned in the field (never real money).
+    qm = spawn(inter, "Quartermaster", (700, W / 2 - 600, 0), folder="Stations")
+    qm.set_editor_property("interaction", unreal.DVInteraction.QUARTERMASTER)
+    qm.set_editor_property("prompt", "Quartermaster: paint schemes for requisition")
+    block("QM_Counter", (700, W / 2 - 420, 55), (900, 120, 110), steel, folder="Stations")
+    block("QM_CounterTop", (700, W / 2 - 420, 114), (940, 140, 8), hull, folder="Stations")
+    block("QM_Board", (700, W / 2 - 160, 420), (1000, 30, 420), hull, folder="Stations")
+    swatches = ["MI_Container_Navy", "MI_Container_Rust", "MI_Brass", "MI_Canvas_Teal", "MI_Canvas_Red", "MI_Neon_Blue_V", "MI_Copper", "MI_Brick"]
+    for i, name in enumerate(swatches):   # paint chips on the board, one per scheme for sale
+        block("QM_Swatch_%d" % i, (340 + i * 103, W / 2 - 180, 470), (80, 6, 120), mat(name), folder="Stations")
+    block("QM_Sign", (700, W / 2 - 180, 650), (700, 6, 50), amber, folder="Stations")
+    qmp = actors.spawn_actor_from_class(unreal.load_class(None, "/Script/DeltaVDominion.DVTownsfolk"), unreal.Vector(700, W / 2 - 300, 100), rot(yaw=-90))
+    qmp.set_actor_label("Quartermaster_Okonkwo")
+    qmp.set_folder_path("Stations")
+    qmp.set_editor_property("display_name", "Quartermaster Okonkwo")
+    qmp.set_editor_property("wanders", False)
+    qmp.set_editor_property("custom_line", "No credits on this ship, Commander. You pay me in what you bring back.")
+    light("QuartermasterLight", (700, W / 2 - 700, 900), (255, 220, 170), 2200.0, 2000.0, spot=True, pitch=-60.0)
     # The Kestrel remembers: plaques, sealed lockers, medbay patients, repairs and trophies, rebuilt from the save.
     spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVKestrelMemory"), "KestrelMemory", (0, 0, 0), folder="Stations")
     # Shore leave: the shuttle down to Rook's Rest, the Free Ports town under the Tharsis rim.

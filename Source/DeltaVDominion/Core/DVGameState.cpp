@@ -53,6 +53,11 @@ void ADVGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ADVGameState, bHackOp);
 	DOREPLIFETIME(ADVGameState, JumpTime);
 	DOREPLIFETIME(ADVGameState, ArrivalTime);
+	DOREPLIFETIME(ADVGameState, IntelFound);
+	DOREPLIFETIME(ADVGameState, IntelTotal);
+	DOREPLIFETIME(ADVGameState, SurvivorsFound);
+	DOREPLIFETIME(ADVGameState, SurvivorsTotal);
+	DOREPLIFETIME(ADVGameState, ChallengeLines);
 	DOREPLIFETIME(ADVGameState, ValeDone);
 	DOREPLIFETIME(ADVGameState, ValeTotal);
 	DOREPLIFETIME(ADVGameState, CiviliansHurt);
@@ -329,5 +334,21 @@ void ADVGameState::MulticastFirework_Implementation(FVector_NetQuantize Location
 	if (ADVFirework* Shell = GetWorld()->SpawnActor<ADVFirework>(ADVFirework::StaticClass(), FVector(Location), FRotator::ZeroRotator))
 	{
 		Shell->Burst(Color);
+	}
+}
+
+void ADVGameState::MulticastRequisition_Implementation(int32 Amount, const FString& Reason)
+{
+	if (UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+	{
+		Profile->AddRequisition(Amount, Reason);
+	}
+}
+
+void ADVGameState::MulticastChallenge_Implementation(const FString& Id, const FString& Name, int32 Requisition, int32 XP)
+{
+	if (UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr)
+	{
+		Profile->CompleteChallenge(Id, Name, Requisition, XP);
 	}
 }

@@ -74,6 +74,18 @@ public:
 	UFUNCTION(Server, Reliable) void ServerTurnValve(uint8 Valve);
 	/** Leave the Kestrel by Raven for the galaxy map (the war table, in the hangar hub). */
 	UFUNCTION(Server, Reliable) void ServerRequestDeparture();
+	/** The quartermaster: the scheme on the counter (-1 none), when it was put there, and Y to buy it. */
+	int32 ShopPaint = -1;
+	double ShopTime = -100.0;
+	FString ShopNote;
+	void OnBuyPressed();
+	/** Console (tests): "DVBuy [Delay]" presses Y at the quartermaster. */
+	UFUNCTION(Exec)
+	void DVBuy(float Delay = 0.f);
+	/** Console (tests): "DVPointsTest [Delay] [Away]" visits every point of interest in turn (a warp Away cm short of
+	 *  each, 6 s apart). Close enough (the default) and you take it; further away, you get a look at it. */
+	UFUNCTION(Exec)
+	void DVPointsTest(float Delay = 0.f, float Away = 150.f);
 	/** Console / capture: "DVLaunch [Delay]" uses the war table: board a Raven and fly out to the Lattice. */
 	UFUNCTION(Exec)
 	void DVLaunch(float Delay = 0.f);

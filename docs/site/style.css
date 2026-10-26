@@ -302,6 +302,8 @@ figcaption { margin-top: var(--s2); font-size: var(--t-small); color: var(--ink-
 .world-rules.gentle { background: #1d3b2a; color: #a9f0c3; }
 .world-ops { color: #f2b01e !important; font-family: var(--f-display); font-weight: 700; font-size: 1.2rem; text-transform: uppercase; }
 .world-card .frame { margin-top: var(--s4); }
+.world-play-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-top: var(--s4); }
+.world-play-note { color: #aab0b7; font-size: var(--t-small); max-width: 32ch; }
 .world-card.is-swapping > * { animation: rise 220ms var(--ease-out) both; }
 
 @media (max-width: 1180px) {

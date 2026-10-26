@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.22-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.30-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -21,6 +21,26 @@ you see, and remember the names of everyone you lose, because death is permanent
 squad shooters with consequences (think Halo or Helldivers, with a memorial wall), and for anyone who wants to read a
 working UE5 C++ game that's built in the open, one playable slice at a time. It runs single player today, and co-op
 is designed in but not yet tested over two machines.
+
+### Play
+
+Every operation is playable. Download the game, open the war table on the Kestrel (or the galaxy map), and press
+**PLAY** next to the one you want; the Raven drops you straight in.
+
+| Operation | Where | Rules | |
+|---|---|---|---|
+| Boot Camp | Copernicus Range, Luna | Training | [![Play](https://img.shields.io/badge/Boot%20Camp-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Red Tide | Tharsis Ridge, Mars | Lethal | [![Play](https://img.shields.io/badge/Red%20Tide-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Ironstride | Arcadia Planitia, Mars | Lethal | [![Play](https://img.shields.io/badge/Ironstride-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Breakwater | Port Halden, Gaia | Lethal | [![Play](https://img.shields.io/badge/Breakwater-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Gaia Falls | Lagos Arcology, Gaia | Lethal | [![Play](https://img.shields.io/badge/Gaia%20Falls-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Glass Ocean | Conamara Chaos, Europa | Lethal | [![Play](https://img.shields.io/badge/Glass%20Ocean-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Forgefall | Loki Patera, Io | Lethal | [![Play](https://img.shields.io/badge/Forgefall-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Ghost Signal | Occator District, Ceres | Lethal | [![Play](https://img.shields.io/badge/Ghost%20Signal-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Cold Wake | New Albion, Proxima b | Lethal | [![Play](https://img.shields.io/badge/Cold%20Wake-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Steamheart | Brasshaven, Wolf 359 | Restrained | [![Play](https://img.shields.io/badge/Steamheart-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Clean Signal | Neon Verge, Luyten's Star | Lethal | [![Play](https://img.shields.io/badge/Clean%20Signal-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Lantern Night | Hollyhock Vale, Tau Ceti | Non-lethal | [![Play](https://img.shields.io/badge/Lantern%20Night-Play-f2b01e?style=flat-square)](../../releases/latest) |
 
 **Website:** [normansrule.github.io/delta-v-dominion](https://normansrule.github.io/delta-v-dominion/). You can plan an op there and
 watch who comes home.
@@ -65,6 +85,10 @@ mock-ups and no pre-rendered cinematics.
   instead of dying. The objective is a pressure-valve puzzle you solve with your hands, not your rifle. In
   Hollyhock Vale your rifles fire foam: you mend windpumps, lead runaway puffbots home, and hurting a villager
   twice sends you home. In Neon Verge everyone shoots back, and the sample you came for is running away from you.
+- **Things to do off the main path.** Every operation map gets intel caches, a survivor to rescue, supply caches and
+  wrecks, generated when the operation starts and always reachable from the landing zone. Each operation has
+  optional challenges, and they pay requisition you spend on paint schemes at the Kestrel's quartermaster. It's all
+  earned in play: no microtransactions, no daily streaks.
 - **A town with jobs.** Rook's Rest is a frontier market whose townsfolk talk to you based on your reputation. Its
   job board has contracts you work on your next operations.
 - **Your commander.** Customise your commander's look and callsign. Earn experience points (XP), levels and perks,
@@ -82,10 +106,10 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 | Area | Progress | What's built | What's left |
 |---|---|---|---|
 | Combat and squad | <img src="docs/media/progress/combat.svg" width="260" alt="82%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
-| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="60%"> | 11 operations on planet maps plus Boot Camp, including Ironstride, Brasshaven, Hollyhock Vale and Neon Verge; a valve puzzle, repairs, herding, hacks and a chase | The rest of the campaign's maps |
+| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="66%"> | 11 operations on planet maps plus Boot Camp, including Ironstride, Brasshaven, Hollyhock Vale and Neon Verge; a valve puzzle, repairs, herding, hacks and a chase | The rest of the campaign's maps |
 | Vehicles | <img src="docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
-| Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="82%"> | Hangar, war table, armoury, lockers, memorial; fly home and launch out with no loading screen; the hangar remembers | Talking with the crew |
-| Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="52%"> | Rook's Rest, Brasshaven's Valve Quarter, Hollyhock Vale, 6 factions with standing, 5 contracts, townsfolk who flee gunfire | Town hubs with contracts on the new worlds |
+| Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="86%"> | Hangar, war table, armoury, lockers, memorial; fly home and launch out with no loading screen; the hangar remembers | Talking with the crew |
+| Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="56%"> | Rook's Rest, Brasshaven's Valve Quarter, Hollyhock Vale, 6 factions with standing, 5 contracts, townsfolk who flee gunfire | Town hubs with contracts on the new worlds |
 | Co-op | <img src="docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions through Epic Online Services (EOS), Easy Anti-Cheat |
 | Art and audio | <img src="docs/media/progress/art.svg" width="260" alt="15%"> | Kit-bashed geometry, UE5 mannequins, generated materials and sounds | Real character, vehicle and environment art; music |
 | Campaign and story | <img src="docs/media/progress/campaign.svg" width="260" alt="32%"> | Story bible, mission intros, radio chatter, Acts I and II settings, all three Act IV cure worlds | Cinematics, Acts III and IV, the Static virus arc |
@@ -366,6 +390,28 @@ Test report: **[docs/TEST_REPORT_NEONVERGE.md](docs/TEST_REPORT_NEONVERGE.md)**.
 | ![Caught](docs/media/neonverge/neon_caught.png) | ![The maglev](docs/media/neonverge/neon_maglev.png) |
 | Caught, sample intact | The maglev platform he was running for |
 
+### Things to do on every map
+
+Every operation now has more to it than its objective:
+- **Points of interest**, generated when the operation starts: three intel caches, a survivor in a crashed pod, two
+  supply caches and two wrecks. They're placed by a small pipeline modelled on Azgaar's Fantasy-Map-Generator
+  (settings, then generators, then world data, then a renderer). It uses mapgen4-style Poisson-disk sampling, and
+  every spot is checked like a Wave Function Collapse constraint: it has to be flat, walkable, reachable from the
+  landing zone and clear of the fighting.
+- **Challenges** on each operation: recover all the intel, get the survivor out, bring everyone home, win in under nine
+  minutes, and hurt no civilians on restrained worlds. The first time pays in full; doing one again pays a fifth.
+- **Requisition and the quartermaster.** Everything you earn in the field buys paint schemes at the Kestrel's
+  quartermaster, each one named after a world. There's no real money anywhere in the game.
+
+Test report: **[docs/TEST_REPORT_THINGS_TO_DO.md](docs/TEST_REPORT_THINGS_TO_DO.md)**.
+
+| | |
+|---|---|
+| ![Points of interest](docs/media/retention/points_of_interest.jpg) | ![Play buttons on the galaxy map](docs/media/retention/galaxy_play.png) |
+| An intel cache, the survivor's pod, a supply cache and a wreck | A PLAY button on every operation |
+| ![The quartermaster](docs/media/retention/quartermaster.png) | ![Challenges on the after-action report](docs/media/retention/after_action_challenges.png) |
+| The quartermaster: paint schemes for requisition | Challenges met, on the after-action report |
+
 ---
 
 ## Setup and usage
@@ -466,6 +512,7 @@ Press `~` in a development build. These commands are how the screenshots and tes
 | `DVEndMission 1` / `DVFlyHome` / `DVLaunch` / `DVLaunchOperation N` | End the operation as a win / fly home / leave the Kestrel for the galaxy map / launch operation N from the galaxy map |
 | `DVWalker 0`..`3`, `DVBoardTest` | Ironstride tests: kneel, collapse, deck, clear the field; scripted boarding |
 | `DVValve 0`..`2` [Times], `DVValve -1` | Brasshaven: turn a valve, or solve the manifold the way a player would |
+| `DVPointsTest [Delay] [Away]`, `DVBuy` | Visit every point of interest (or just look at each); buy at the quartermaster |
 | `DVRepairTest`, `DVHerdTest`, `DVChaseTest` | Mend every pump or hack every relay; lead every puffbot home; sprint after the Neon Verge courier (all with real movement) |
 | `DVClearHostiles`, `DVCivilianTest` | Take every hostile out one by one; fire on the nearest citizen (rules of engagement test) |
 | `DVCasualty 0`..`2` | Kill or wound a squadmate, or destroy a Bulwark (tests the Kestrel's memory) |

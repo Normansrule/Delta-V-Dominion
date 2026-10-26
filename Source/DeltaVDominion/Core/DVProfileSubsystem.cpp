@@ -17,7 +17,18 @@ namespace
 		{ TEXT("Urban Grey"), FLinearColor(0.2f, 0.21f, 0.22f) },
 		{ TEXT("Black Ops"), FLinearColor(0.02f, 0.02f, 0.025f) },
 		{ TEXT("Hazard Yellow"), FLinearColor(0.6f, 0.42f, 0.02f) },
+		// Sold by the quartermaster for requisition earned in the field. Each one remembers somewhere you've been.
+		{ TEXT("Kestrel Blue"), FLinearColor(0.05f, 0.18f, 0.32f) },
+		{ TEXT("Ironstride Rust"), FLinearColor(0.38f, 0.12f, 0.05f) },
+		{ TEXT("Guild Brass"), FLinearColor(0.55f, 0.36f, 0.12f) },
+		{ TEXT("Hollyhock Sage"), FLinearColor(0.3f, 0.52f, 0.38f) },
+		{ TEXT("Lantern Rose"), FLinearColor(0.62f, 0.25f, 0.36f) },
+		{ TEXT("Verge Neon"), FLinearColor(0.04f, 0.1f, 0.4f) },
+		{ TEXT("Europa Ice"), FLinearColor(0.55f, 0.7f, 0.8f) },
+		{ TEXT("Memorial Brass"), FLinearColor(0.42f, 0.32f, 0.16f) },
 	};
+	constexpr int32 FreePaints = 8;
+	const int32 PaintPrices[] = { 250, 300, 300, 300, 350, 400, 400, 600 };
 	const FPaint CommanderOptics[] = {
 		{ TEXT("Cyan"), FLinearColor(0.2f, 0.7f, 1.f) },
 		{ TEXT("Amber"), FLinearColor(1.f, 0.55f, 0.08f) },
@@ -55,6 +66,9 @@ void UDVProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		Reputation = Saved->Reputation;
 		ActiveContract = Saved->ActiveContract < NumContracts() ? Saved->ActiveContract : -1;
 		ContractProgress = Saved->ContractProgress;
+		Requisition = Saved->Requisition;
+		Challenges = Saved->Challenges;
+		OwnedPaints = Saved->OwnedPaints;
 	}
 	Reputation.SetNumZeroed(DVFactions::Num);
 	Look.bSet = true;	// a fresh profile is the default commander
@@ -65,7 +79,14 @@ void UDVProfileSubsystem::Cycle(int32 Field)
 	switch (Field)
 	{
 	case 0: Look.Body = (Look.Body + 1) % 2; break;
-	case 1: Look.Paint = (Look.Paint + 1) % NumPaints(); break;
+	case 1:
+		// The locker only offers schemes you own; the quartermaster sells the rest.
+		do
+		{
+			Look.Paint = (Look.Paint + 1) % NumPaints();
+		}
+		while (!OwnsPaint(Look.Paint));
+		break;
 	case 2: Look.Optics = (Look.Optics + 1) % NumOptics(); break;
 	case 3: Look.Callsign = (Look.Callsign + 1) % NumCallsigns(); break;
 	default: return;
@@ -80,6 +101,9 @@ void UDVProfileSubsystem::Save()
 	Data->XP = XP;
 	Data->Reputation = Reputation;
 	Data->ActiveContract = ActiveContract;
+	Data->Requisition = Requisition;
+	Data->Challenges = Challenges;
+	Data->OwnedPaints = OwnedPaints;
 	Data->ContractProgress = ContractProgress;
 	UGameplayStatics::SaveGameToSlot(Data, CommanderSlot, 0);
 }
@@ -230,4 +254,70 @@ int32 UDVProfileSubsystem::PayContract()
 	ContractNoteTime = Now();
 	AddRep(C.Faction, C.Rep, FString::Printf(TEXT("Contract paid: %s"), C.Name));	// also saves
 	return C.XP;
+}
+
+void UDVProfileSubsystem::AddRequisition(int32 Amount, const FString& Reason)
+{
+	if (Amount == 0)
+	{
+		return;
+	}
+	Requisition = FMath::Max(0, Requisition + Amount);
+	LastRequisition = FString::Printf(TEXT("%s%d REQUISITION  %s"), Amount > 0 ? TEXT("+") : TEXT(""), Amount, *Reason);
+	LastRequisitionTime = Now();
+	Save();
+}
+
+int32 UDVProfileSubsystem::CompleteChallenge(const FString& Id, const FString& Name, int32 Req, int32 XPReward)
+{
+	const bool bFirst = !Challenges.Contains(Id);
+	const int32 Paid = bFirst ? Req : Req / 5;	// worth repeating, not worth grinding
+	if (bFirst)
+	{
+		Challenges.Add(Id);
+		AddXP(XPReward, FString::Printf(TEXT("Challenge: %s"), *Name));
+	}
+	AddRequisition(Paid, FString::Printf(TEXT("%s%s"), bFirst ? TEXT("Challenge: ") : TEXT("Again: "), *Name));
+	return Paid;
+}
+
+int32 UDVProfileSubsystem::CountChallenges(const FString& MapKey) const
+{
+	int32 N = 0;
+	for (const FString& Id : Challenges)
+	{
+		N += Id.StartsWith(MapKey + TEXT(".")) ? 1 : 0;
+	}
+	return N;
+}
+
+int32 UDVProfileSubsystem::PaintPrice(int32 Index)
+{
+	return Index < FreePaints || Index >= NumPaints() ? 0 : PaintPrices[Index - FreePaints];
+}
+
+bool UDVProfileSubsystem::BuyPaint(int32 Index)
+{
+	const int32 Price = PaintPrice(Index);
+	if (Price <= 0 || OwnsPaint(Index) || Requisition < Price)
+	{
+		return false;
+	}
+	OwnedPaints.Add(Index);
+	Look.Paint = Index;	// wear it straight away
+	AddRequisition(-Price, FString::Printf(TEXT("%s paint scheme"), *PaintName(Index)));
+	return true;
+}
+
+int32 UDVProfileSubsystem::NextShopPaint(int32 From) const
+{
+	for (int32 Step = 1; Step <= NumPaints(); ++Step)
+	{
+		const int32 I = (FMath::Max(From, FreePaints - 1) + Step - FreePaints) % (NumPaints() - FreePaints) + FreePaints;
+		if (!OwnsPaint(I))
+		{
+			return I;
+		}
+	}
+	return -1;	// the quartermaster's sold you everything
 }

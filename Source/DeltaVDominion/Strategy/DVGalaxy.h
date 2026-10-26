@@ -115,4 +115,8 @@ private:
 	float S(float V) const { return V * UIScale; }
 	void Text(const FString& Str, float X, float Y, const FLinearColor& Color, UFont* Font, float Scale = 1.f, bool bCentre = false, bool bRight = false);
 	float UIScale = 1.f;
+public:
+	/** Play buttons drawn this frame: screen rectangle and the operation index each one launches. */
+	TArray<TPair<FBox2D, int32>> PlayButtons;
+private:
 };

@@ -45,6 +45,19 @@ struct FDVRadioLine
 	double Time = 0.0;
 };
 
+/** One challenge on this operation, as shown on the HUD and the after-action report. */
+USTRUCT(BlueprintType)
+struct FDVChallengeLine
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly) FString Id;
+	UPROPERTY(BlueprintReadOnly) FString Name;
+	UPROPERTY(BlueprintReadOnly) int32 Requisition = 0;
+	UPROPERTY(BlueprintReadOnly) int32 XP = 0;
+	UPROPERTY(BlueprintReadOnly) bool bMet = false;
+};
+
 /** Local-only kill feed entry (filled by a multicast, never replicated as state). */
 struct FDVKillFeedEntry
 {
@@ -74,6 +87,20 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") uint8 Ascent = 0;
 	/** Server time the departing Raven's Lattice jump began (the white-out), or 0. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float JumpTime = 0.f;
+	/** Points of interest on this operation (see ADVPointOfInterest). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 IntelFound = 0;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 IntelTotal = 0;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 SurvivorsFound = 0;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") int32 SurvivorsTotal = 0;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") TArray<FDVChallengeLine> ChallengeLines;
+
+	/** Server -> everyone: requisition for every player's own profile (earned in play only). */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRequisition(int32 Amount, const FString& Reason);
+	/** Server -> everyone: a challenge met; each player's profile pays it (in full the first time). */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastChallenge(const FString& Id, const FString& Name, int32 Requisition, int32 XP);
+
 	/** Server time the descent began: the arrival white-out fades from here. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float ArrivalTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString ObjectiveText;

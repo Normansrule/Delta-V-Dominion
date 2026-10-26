@@ -1,5 +1,7 @@
 #include "Strategy/DVGalaxy.h"
 #include "Strategy/DVStarSystem.h"
+#include "Core/DVProfileSubsystem.h"
+#include "Engine/GameInstance.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
@@ -156,6 +158,22 @@ void ADVGalaxyPlayerController::OnLeftPressed()
 void ADVGalaxyPlayerController::OnLeftReleased()
 {
 	bLeftDown = false;
+	// A Play button under the cursor launches its operation.
+	float MX = 0.f, MY = 0.f;
+	if (DragAmount < 0.02f && GetMousePosition(MX, MY))
+	{
+		if (const ADVGalaxyHUD* GHUD = Cast<ADVGalaxyHUD>(GetHUD()))
+		{
+			for (const TPair<FBox2D, int32>& Button : GHUD->PlayButtons)
+			{
+				if (Button.Key.IsInside(FVector2D(MX, MY)))
+				{
+					LaunchOperation(Button.Value);
+					return;
+				}
+			}
+		}
+	}
 	if (DragAmount < 0.02f)
 	{
 		if (ADVStarSystem* Picked = PickUnderCursor())
@@ -351,6 +369,7 @@ void ADVGalaxyHUD::DrawHUD()
 	Text(TEXT("2189  |  Day 3 of the CINDER uprising  |  Home world: Gaia (Sol III)"), S(40.f), S(116.f), FLinearColor(0.7f, 0.7f, 0.75f, 1.f), Small, 1.f);
 
 	// Selected system panel.
+	PlayButtons.Reset();
 	if (const ADVStarSystem* System = PC->GetSelected())
 	{
 		const float PX = W - S(560.f);
@@ -385,10 +404,26 @@ void ADVGalaxyHUD::DrawHUD()
 		}
 		Text(Line, PX, Y, FLinearColor(0.9f, 0.9f, 0.92f, 1.f), Small, 1.f);
 		Y += S(40.f);
+		const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
 		for (int32 i = 0; i < System->Operations.Num(); ++i)
 		{
 			const FDVOperation& Op = System->Operations[i];
 			const bool bPlayable = !Op.Map.IsEmpty();
+			if (bPlayable)
+			{
+				// A Play button for every operation you can fly to, and how many of its challenges you've met.
+				const FBox2D Box(FVector2D(PX + S(400.f), Y - S(2.f)), FVector2D(PX + S(500.f), Y + S(40.f)));
+				DrawRect(FLinearColor(0.95f, 0.69f, 0.12f, 1.f), Box.Min.X, Box.Min.Y, Box.GetSize().X, Box.GetSize().Y);
+				Text(TEXT("PLAY"), Box.GetCenter().X, Box.Min.Y + S(8.f), FLinearColor(0.08f, 0.07f, 0.05f, 1.f), Medium, 0.9f, true);
+				PlayButtons.Emplace(Box, i);
+				FString Key;
+				Op.Map.Split(TEXT("/"), nullptr, &Key, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				const int32 Done = Profile ? Profile->CountChallenges(Key) : 0;
+				if (Done > 0)
+				{
+					Text(FString::Printf(TEXT("%d challenge%s met"), Done, Done == 1 ? TEXT("") : TEXT("s")), PX + S(400.f), Y + S(44.f), FLinearColor(0.82f, 0.67f, 0.45f, 1.f), Small, 0.8f);
+				}
+			}
 			Text(FString::Printf(TEXT("[%d]  OPERATION %s"), i + 1, *Op.Name.ToUpper()), PX, Y, bPlayable ? FLinearColor(1.f, 0.6f, 0.2f, 1.f) : FLinearColor(0.5f, 0.5f, 0.55f, 1.f), Medium, 1.f);
 			Y += S(26.f);
 			Text(bPlayable ? Op.Location : Op.Location + TEXT("  (coming soon)"), PX + S(44.f), Y, FLinearColor(0.75f, 0.75f, 0.8f, 1.f), Small, 1.f);
@@ -396,7 +431,7 @@ void ADVGalaxyHUD::DrawHUD()
 		}
 	}
 
-	Text(TEXT("Left-drag orbit   Right-drag / WASD pan   Wheel / Q E zoom   Click select   1-8 launch operation   H home (Sol)   G whole galaxy"),
+	Text(TEXT("Left-drag orbit   Right-drag / WASD pan   Wheel / Q E zoom   Click select   PLAY or 1-8 launch operation   H home (Sol)   G whole galaxy"),
 		W * 0.5f, H - S(46.f), FLinearColor(0.7f, 0.75f, 0.85f, 0.85f), Small, 1.f, true);
 }
 

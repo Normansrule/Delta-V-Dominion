@@ -24,6 +24,7 @@
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
 #include "Core/DVNeonVerge.h"
+#include "Core/DVPointOfInterest.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
@@ -432,6 +433,7 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 	Text(FString::Printf(TEXT("%s  -  %s"), *GS->MissionName.ToUpper(), *Clock), CX, Y - S(7.f), DVHudColors::DeckInk, GEngine->GetSmallFont(), DVType::Body, true, false, false);
 	Text(GS->ObjectiveText, CX, Y + S(26.f), DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph, true);
 	const int32 Down = GS->EnemiesTotal - GS->EnemiesRemaining;
+	DrawPoints(GS, Y + S(112.f));	// below the contract line
 	if (!GS->bMultiStage || GS->Stage == EDVMissionStage::Clear)
 	{
 		Bar(CX - S(200.f), Y + S(62.f), S(400.f), S(4.f), GS->EnemiesTotal > 0 ? static_cast<float>(Down) / GS->EnemiesTotal : 0.f, DVHudColors::Hostile);
@@ -636,6 +638,17 @@ void ADVHUD::DrawAfterAction(const ADVGameState* GS)
 			GS->CiviliansHurt == 0 ? DVHudColors::Health : DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
 		Y += S(40.f);
 	}
+	if (GS->ChallengeLines.Num() > 0)
+	{
+		Y += S(10.f);
+		FString Line = TEXT("Challenges:  ");
+		for (const FDVChallengeLine& C : GS->ChallengeLines)
+		{
+			Line += FString::Printf(TEXT("%s %s%s     "), C.bMet ? TEXT("[x]") : TEXT("[ ]"), *C.Name, C.bMet ? *FString::Printf(TEXT(" +%d"), C.Requisition) : TEXT(""));
+		}
+		Text(Line, CX, Y, DVHudColors::Brass, GEngine->GetSmallFont(), DVType::Body, true);
+		Y += S(36.f);
+	}
 	if (GS->AfterAction.ContainsByPredicate([](const FDVAfterActionLine& L) { return L.bKIA; }))
 	{
 		Y += S(12.f);
@@ -759,6 +772,10 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 		if (Thing->Interaction == EDVInteraction::ContractBoard)
 		{
 			DrawContractBoard();
+		}
+		else if (Thing->Interaction == EDVInteraction::Quartermaster)
+		{
+			DrawQuartermaster();
 		}
 	}
 	else
@@ -1116,6 +1133,12 @@ void ADVHUD::DrawProgression()
 		DVMotion::Reveal(Now - Profile->LastAwardTime, 2.2, A, Rise);
 		Text(Profile->LastAward, Canvas->ClipX * 0.5f, Canvas->ClipY * 0.56f + S(Rise), DVHudColors::A(DVHudColors::Gold, A), GEngine->GetSmallFont(), DVType::Body, true);
 	}
+	if (Now - Profile->LastRequisitionTime < 2.6 + DVMotion::Out)
+	{
+		float A = 1.f, Rise = 0.f;
+		DVMotion::Reveal(Now - Profile->LastRequisitionTime, 2.6, A, Rise);
+		Text(Profile->LastRequisition, Canvas->ClipX * 0.5f, Canvas->ClipY * 0.59f + S(Rise), DVHudColors::A(DVHudColors::Brass, A), GEngine->GetSmallFont(), DVType::Body, true);
+	}
 	if (Now - Profile->LastRepTime < 3.8 + DVMotion::Out)
 	{
 		float A = 1.f, Rise = 0.f;
@@ -1381,4 +1404,88 @@ void ADVHUD::DrawManifold(const ADVPressureManifold* Manifold, int32 NearValve)
 	}
 	Text(FString::Printf(TEXT("Valve %s feeds %s"), *ADVPressureManifold::ValveName(NearValve), NearValve == 1 ? TEXT("all three gauges") : NearValve == 0 ? TEXT("gauges 1 and 2") : TEXT("gauges 2 and 3")),
 		X0 + W * 0.5f, Y0 + S(168.f), DVHudColors::Warn, GEngine->GetSmallFont(), DVType::Caption, true);
+}
+
+void ADVHUD::DrawPoints(const ADVGameState* GS, float BelowY)
+{
+	if (GS->Phase != EDVMissionPhase::InProgress || GS->Ascent != 0)
+	{
+		return;
+	}
+	// One quiet line under the objective: what's still out there, and how many challenges this op holds.
+	FString Line;
+	if (GS->IntelTotal > 0)
+	{
+		Line += FString::Printf(TEXT("Intel %d/%d     "), GS->IntelFound, GS->IntelTotal);
+	}
+	if (GS->SurvivorsTotal > 0)
+	{
+		Line += FString::Printf(TEXT("Survivors %d/%d     "), GS->SurvivorsFound, GS->SurvivorsTotal);
+	}
+	if (GS->ChallengeLines.Num() > 0)
+	{
+		Line += FString::Printf(TEXT("%d optional challenges"), GS->ChallengeLines.Num());
+	}
+	if (!Line.IsEmpty())
+	{
+		Text(Line, Canvas->ClipX * 0.5f, BelowY, DVHudColors::Brass, GEngine->GetSmallFont(), DVType::Caption, true);
+	}
+	// Markers on points close enough to matter (45 m): you find them by exploring, not by following a list.
+	const APawn* Me = GetOwningPawn();
+	for (TActorIterator<ADVPointOfInterest> It(GetWorld()); Me && It; ++It)
+	{
+		const float M = FVector::Dist(Me->GetActorLocation(), It->GetActorLocation()) / 100.f;
+		if (It->IsTaken() || M > 45.f)
+		{
+			continue;
+		}
+		const FVector P = Project(It->GetActorLocation() + FVector(0.f, 0.f, 220.f));
+		if (P.Z <= 0.f)
+		{
+			continue;
+		}
+		const FString Tag = It->Kind == EDVPointKind::Survivor && It->GetProgress() > 0.01f
+			? FString::Printf(TEXT("GETTING OUT  %d%%"), FMath::RoundToInt(It->GetProgress() * 100.f))
+			: FString::Printf(TEXT("%s  %dm"), *It->Label(), FMath::RoundToInt(M));
+		Text(Tag, P.X, P.Y, It->Kind == EDVPointKind::Intel ? DVHudColors::Cyan : DVHudColors::Brass, GEngine->GetSmallFont(), DVType::Caption, true);
+	}
+}
+
+void ADVHUD::DrawQuartermaster()
+{
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	const ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner);
+	if (!Profile || !PC)
+	{
+		return;
+	}
+	const float W = S(620.f);
+	const float X = Canvas->ClipX * 0.5f - W * 0.5f;
+	float Y = Canvas->ClipY * 0.2f;
+	DrawRect(DVHudColors::A(DVHudColors::PanelStrong, 0.86f), X, Y, W, S(250.f));
+	DeckBand(X, Y, W, S(36.f));
+	Text(TEXT("QUARTERMASTER OKONKWO  -  PAINT SCHEMES"), X + W * 0.5f, Y + S(4.f), DVHudColors::DeckInk, GEngine->GetSmallFont(), DVType::Body, true, false, false);
+	Y += S(52.f);
+	Text(FString::Printf(TEXT("Your requisition: %d"), Profile->GetRequisition()), X + S(24.f), Y, DVHudColors::Brass, GEngine->GetMediumFont(), DVType::Emph);
+	Y += S(44.f);
+	if (PC->ShopPaint < 0)
+	{
+		Text(TEXT("[Z]  See what's on the shelf"), X + S(24.f), Y, DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph);
+	}
+	else
+	{
+		const int32 Price = UDVProfileSubsystem::PaintPrice(PC->ShopPaint);
+		DrawRect(UDVProfileSubsystem::PaintColor(PC->ShopPaint), X + S(24.f), Y, S(56.f), S(56.f));
+		Text(UDVProfileSubsystem::PaintName(PC->ShopPaint), X + S(100.f), Y, DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph);
+		Text(FString::Printf(TEXT("%d requisition   %s"), Price, Profile->GetRequisition() >= Price ? TEXT("[Y] buy and wear it") : TEXT("not enough yet")),
+			X + S(100.f), Y + S(32.f), Profile->GetRequisition() >= Price ? DVHudColors::Health : DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body);
+		Y += S(70.f);
+		Text(TEXT("[Z]  next scheme"), X + S(24.f), Y, DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body);
+	}
+	if (!PC->ShopNote.IsEmpty() && GetWorld()->GetRealTimeSeconds() - PC->ShopTime < 5.0)
+	{
+		Text(PC->ShopNote, X + W * 0.5f, Canvas->ClipY * 0.2f + S(262.f), DVHudColors::Warn, GEngine->GetSmallFont(), DVType::Body, true);
+	}
+	Text(TEXT("Requisition is earned in the field only: operations won, challenges met, intel recovered, wrecks salvaged."),
+		X + W * 0.5f, Canvas->ClipY * 0.2f + S(222.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Caption, true);
 }

@@ -63,6 +63,9 @@ private:
 	void DrawOrbital(const ADVGameState* GS);
 	/** Brasshaven: the Steamheart's three gauges as a readout, and which valve feeds which. */
 	void DrawManifold(const class ADVPressureManifold* Manifold, int32 NearValve);
+	/** Points of interest nearby, and the operation's challenges in a line under the objective. */
+	void DrawPoints(const ADVGameState* GS, float BelowY);
+	void DrawQuartermaster();
 	void BindOrders(ADVSoldierCharacter* Soldier);
 
 	// Helpers (all positions in 1080p reference units, scaled to the viewport).

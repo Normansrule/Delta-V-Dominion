@@ -16,6 +16,7 @@ enum class EDVInteraction : uint8
 	Locker,		// commander customisation (look, optics, callsign)
 	ContractBoard,	// Rook's Rest job board: take a side contract for the next operations
 	Shuttle,	// ride to Destination (Kestrel hangar <-> Rook's Rest)
+	Quartermaster,	// the Kestrel's quartermaster: paint schemes for requisition earned in the field
 };
 
 /**

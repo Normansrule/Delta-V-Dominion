@@ -171,6 +171,13 @@
     rules.className = "world-rules " + w.rules;
     card.querySelector("[data-world-text]").textContent = w.text;
     card.querySelector("[data-world-ops]").textContent = "Operations: " + w.ops;
+    const play = card.querySelector("[data-world-play]");
+    if (play) {
+      play.textContent = "Play " + w.ops.split("  ·  ")[0];
+      play.setAttribute("aria-label", "Play " + w.ops.split("  ·  ")[0] + " on " + w.name + ": download the game");
+      card.querySelector("[data-world-play-note]").textContent =
+        "Download the game, open the war table on the Kestrel and pick " + w.name + " (" + w.where + ").";
+    }
     const img = card.querySelector("[data-world-img]");
     img.src = "site/img/" + w.img + "-640.webp";
     img.alt = "In-engine view of " + w.name;
