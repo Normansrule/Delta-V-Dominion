@@ -13,6 +13,7 @@
 #include "Core/DVProfileSubsystem.h"
 #include "Core/DVAscent.h"
 #include "Core/DVDeparture.h"
+#include "Core/DVDescent.h"
 #include "Vehicles/DVWalker.h"
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
@@ -1127,6 +1128,12 @@ void ADVGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewP
 			SquadLeader = Leader;
 			LeaderController = NewPlayer;
 			SpawnSquadFor(Leader);
+			if (GetWorld()->URL.HasOption(TEXT("descent")) && !bIsHub)
+			{
+				// Launched from the galaxy map: start aboard the Raven, high over the LZ (next tick, once everyone exists).
+				TWeakObjectPtr<APlayerController> Weak = NewPlayer;
+				GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, Weak]() { BeginDescent(Weak.Get()); }));
+			}
 		}
 	}
 }
@@ -1783,4 +1790,80 @@ void ADVGameMode::BeginDeparture(APlayerController* PC)
 	}
 	Radio(TEXT("Deck Chief Ruiz"), TEXT("Two-One, you're cleared off the deck. Mind the lip on the way out."), 0.5f);
 	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("War table's yours from the jump, Commander. Pick us somewhere worth going."), 6.f);
+}
+
+void ADVGameMode::BeginDescent(APlayerController* PC)
+{
+	ADVGameState* GS = GetDVGameState();
+	ADVSoldierCharacter* Soldier = PC ? Cast<ADVSoldierCharacter>(PC->GetPawn()) : nullptr;
+	if (!GS || !Soldier || GS->Ascent != 0)
+	{
+		return;
+	}
+	// The Raven parked at the LZ is the one that brings you in: its pad is where it lands.
+	ADVGunship* Raven = nullptr;
+	float Best = TNumericLimits<float>::Max();
+	for (TActorIterator<ADVGunship> It(GetWorld()); It; ++It)
+	{
+		const float D = FVector::Dist(It->GetActorLocation(), Soldier->GetActorLocation());
+		if (D < Best && !It->GetSeat()->bWrecked && !It->GetSeat()->Driver)
+		{
+			Best = D;
+			Raven = *It;
+		}
+	}
+	if (!Raven)
+	{
+		return;	// no Raven on this map: the squad just starts on the ground, as before
+	}
+	const FTransform Pad(FRotator(0.f, Raven->GetActorRotation().Yaw, 0.f), Raven->GetActorLocation());
+	Raven->SetScriptedFlight(false);
+	Soldier->TeleportTo(Raven->GetActorLocation() + FVector(0.f, 0.f, 50.f), Soldier->GetActorRotation());
+	if (!Raven->GetSeat()->Enter(Soldier, PC))
+	{
+		return;
+	}
+	GS->Ascent = 4;
+	GS->ArrivalTime = GetWorld()->GetTimeSeconds();
+	if (ADVDescent* Flight = GetWorld()->SpawnActor<ADVDescent>())
+	{
+		Flight->Begin(Raven, PC, Pad);
+	}
+	Radio(TEXT("Raven Two-One"), TEXT("Out of the Lattice and on the approach. Two minutes to the LZ, Delta. Make it thirty seconds."), 3.5f);
+}
+
+void ADVGameMode::OnDescentLanded(APlayerController* PC, ADVGunship* Raven)
+{
+	ADVGameState* GS = GetDVGameState();
+	if (!GS)
+	{
+		return;
+	}
+	GS->Ascent = 0;
+	if (Raven && PC)
+	{
+		Raven->GetSeat()->Exit(PC);
+		Raven->SetScriptedFlight(true);	// it stays on the pad for the extraction
+	}
+	// The squad piles out of the troop bay beside you.
+	const FVector Pad = Raven ? Raven->GetActorLocation() : FVector::ZeroVector;
+	const FRotator Facing = Raven ? Raven->GetActorRotation() : FRotator::ZeroRotator;
+	int32 Slot = 0;
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		if (It->TeamId == PlayerTeamId && !It->IsPlayerControlled() && !It->IsDead() && !It->IsA<ADVBulwark>())
+		{
+			const FVector Spot = Pad + Facing.RotateVector(FVector(-500.f - 150.f * (Slot / 2), (Slot % 2 ? 1.f : -1.f) * (500.f + 60.f * Slot), 100.f));
+			It->TeleportTo(Spot, FRotator(0.f, Facing.Yaw, 0.f));
+			++Slot;
+		}
+	}
+	// The clock and the call-ins start when boots touch the ground, not when the map loaded.
+	const float Now = GetWorld()->GetTimeSeconds();
+	GS->MissionStartTime = Now;
+	GS->OrbitalReadyTime = Now + 12.f;
+	GS->SupplyReadyTime = Now + 15.f;
+	GS->StrafeReadyTime = Now + 20.f;
+	Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Boots on the ground! Spread out, Delta. Move!"), 0.5f);
+	UE_LOG(LogTemp, Log, TEXT("DVDescent: landed at the LZ, %d squadmates out"), Slot);
 }

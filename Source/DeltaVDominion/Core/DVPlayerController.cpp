@@ -554,7 +554,7 @@ void ADVPlayerController::OnInteractPressed()
 	if (MyPawn->FindComponentByClass<UDVSeatComponent>())
 	{
 		const ADVGameState* FlightGS = GetWorld()->GetGameState<ADVGameState>();
-		if (!FlightGS || (FlightGS->Ascent != 1 && FlightGS->Ascent != 3))	// no stepping out of a Raven in flight to or from the Kestrel
+		if (!FlightGS || FlightGS->Ascent == 0 || FlightGS->Ascent == 2)	// no stepping out of a Raven in flight
 		{
 			ServerExitVehicle();
 		}

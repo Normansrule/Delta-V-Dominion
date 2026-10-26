@@ -7,6 +7,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "EngineUtils.h"
+#include "TimerManager.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -257,7 +258,18 @@ void ADVGalaxyPlayerController::LaunchOperation(int32 Index)
 	{
 		return;
 	}
-	UGameplayStatics::OpenLevel(this, FName(*System->Operations[Index].Map));
+	if (JumpOut > 0.0)
+	{
+		return;	// already jumping
+	}
+	// The Lattice jump: the screen washes white, then the operation opens with the Raven already on its way down.
+	JumpOut = GetWorld()->GetRealTimeSeconds();
+	const FString Map = System->Operations[Index].Map;
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Map]()
+	{
+		UGameplayStatics::OpenLevel(this, FName(*Map), true, TEXT("descent"));
+	}), 1.1f, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +293,12 @@ void ADVGalaxyHUD::DrawHUD()
 		return;
 	}
 	UIScale = Canvas->ClipY / 1080.f;
+	// Leaving for an operation: the screen washes white for the jump.
+	if (PC->JumpOut > 0.0)
+	{
+		const float A = FMath::Clamp(float((GetWorld()->GetRealTimeSeconds() - PC->JumpOut) / 1.0), 0.f, 1.f);
+		DrawRect(FLinearColor(0.92f, 0.97f, 1.f, A * A), 0.f, 0.f, Canvas->ClipX, Canvas->ClipY);
+	}
 	// Arriving from the Lattice jump: the white-out the Raven started fades away as the camera pulls back from Sol.
 	const double SinceJump = GetWorld()->GetRealTimeSeconds() - PC->JumpArrival;
 	if (SinceJump >= 0.0 && SinceJump < 2.5)
@@ -380,4 +398,10 @@ void ADVGalaxyHUD::DrawHUD()
 
 	Text(TEXT("Left-drag orbit   Right-drag / WASD pan   Wheel / Q E zoom   Click select   1-8 launch operation   H home (Sol)   G whole galaxy"),
 		W * 0.5f, H - S(46.f), FLinearColor(0.7f, 0.75f, 0.85f, 0.85f), Small, 1.f, true);
+}
+
+void ADVGalaxyPlayerController::DVLaunchOperation(int32 Index, float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Index]() { LaunchOperation(Index); }), FMath::Max(Delay, 0.001f), false);
 }

@@ -55,6 +55,9 @@ public:
 	/** Console / capture: "DVSelectSystem Name" selects and flies to a star system. */
 	UFUNCTION(Exec)
 	void DVSelectSystem(const FString& Name);
+	/** Console / capture: "DVLaunchOperation Index [Delay]" launches the selected system's operation, like its number key. */
+	UFUNCTION(Exec)
+	void DVLaunchOperation(int32 Index, float Delay = 0.f);
 
 	ADVStarSystem* GetSelected() const { return Selected.Get(); }
 	ADVStarSystem* GetHovered() const { return Hovered.Get(); }
@@ -95,6 +98,8 @@ private:
 public:
 	/** Real time the map opened from a Lattice jump (the white-out fades from here), or a negative number. */
 	double JumpArrival = -100.0;
+	/** Real time an operation launch began its jump (white-out), or 0. */
+	double JumpOut = 0.0;
 protected:
 };
 

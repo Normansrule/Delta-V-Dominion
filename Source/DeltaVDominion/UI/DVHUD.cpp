@@ -133,7 +133,7 @@ void ADVHUD::DrawHUD()
 	APawn* OwningPawn = GetOwningPawn();
 	if (OwningPawn && OwningPawn->FindComponentByClass<UDVSeatComponent>())
 	{
-		if (GS && (GS->Ascent == 1 || GS->Ascent == 3))
+		if (GS && (GS->Ascent == 1 || GS->Ascent >= 3))
 		{
 			DrawAscent(GS);	// cinematic: no gunship instruments, just the ride home
 			return;
@@ -1316,6 +1316,21 @@ void ADVHUD::DrawAscent(const ADVGameState* GS)
 	const ADVKestrel* Kestrel = ADVKestrel::Find(GetWorld());
 	const APawn* Ship = GetOwningPawn();
 	const float Dist = Kestrel && Ship ? FVector::Dist(Kestrel->GetHangarTransform().GetLocation(), Ship->GetActorLocation()) / 100.f : 0.f;
+	if (GS->Ascent == 4)
+	{
+		// Inbound from the Lattice: out of the jump's white, the long drop to the LZ with the briefing on the radio.
+		Text(FString::Printf(TEXT("RAVEN TWO-ONE  -  INBOUND  -  %s"), *GS->MissionLocation.ToUpper()), W * 0.5f, H * 0.035f, DVHudColors::Cyan, GEngine->GetMediumFont(), DVType::Emph, true);
+		const float Alt = Ship ? FMath::Max(0.f, Ship->GetActorLocation().Z - FVector(GS->ExtractLocation).Z) / 100.f : 0.f;
+		Text(Alt > 12.f ? FString::Printf(TEXT("Altitude  %d m"), FMath::RoundToInt(Alt)) : FString(TEXT("Touching down")), W * 0.5f, H * 0.925f,
+			DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);
+		DrawRadio(GS);
+		const float A = 1.f - FMath::Clamp((GetWorld()->GetTimeSeconds() - GS->ArrivalTime) / 2.2f, 0.f, 1.f);
+		if (A > 0.f)
+		{
+			DrawRect(FLinearColor(0.92f, 0.97f, 1.f, A * A), 0.f, 0.f, W, H);
+		}
+		return;
+	}
 	if (GS->Ascent == 3)
 	{
 		// Outbound: the burn, then the Lattice jump washes the screen white before the galaxy map opens.

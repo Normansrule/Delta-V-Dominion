@@ -84,7 +84,7 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 | Combat and squad | <img src="docs/media/progress/combat.svg" width="260" alt="82%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
 | Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="60%"> | 11 operations on planet maps plus Boot Camp, including Ironstride, Brasshaven, Hollyhock Vale and Neon Verge; a valve puzzle, repairs, herding, hacks and a chase | The rest of the campaign's maps |
 | Vehicles | <img src="docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
-| Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="82%"> | Hangar, war table, armoury, lockers, memorial; fly home and launch out with no loading screen; the hangar remembers | Talking with the crew; launching straight to an operation |
+| Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="82%"> | Hangar, war table, armoury, lockers, memorial; fly home and launch out with no loading screen; the hangar remembers | Talking with the crew |
 | Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="52%"> | Rook's Rest, Brasshaven's Valve Quarter, Hollyhock Vale, 6 factions with standing, 5 contracts, townsfolk who flee gunfire | Town hubs with contracts on the new worlds |
 | Co-op | <img src="docs/media/progress/coop.svg" width="260" alt="25%"> | Server-authoritative design, replicated combat and vehicles | Not yet played over two machines; sessions through Epic Online Services (EOS), Easy Anti-Cheat |
 | Art and audio | <img src="docs/media/progress/art.svg" width="260" alt="15%"> | Kit-bashed geometry, UE5 mannequins, generated materials and sounds | Real character, vehicle and environment art; music |
@@ -102,7 +102,7 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 - [x] Fly home with no loading screen
 - [x] The Kestrel remembers
 - [x] The Ironstride walker: board a moving giant, overload its couplings, ride it down
-- [x] Launch from the Kestrel to orbit and the galaxy map, with no loading screen either way
+- [x] Launch from the Kestrel to orbit and the galaxy map, and drop from the galaxy map into an operation, with no loading screen anywhere
 - [ ] Co-op played and tested over two machines
 - [x] Brasshaven (steampunk): restrained rules, clockwork constables, the Steamheart valve puzzle
 - [x] Hollyhock Vale (non-lethal): foam, windpumps, puffbots to lead home, the lantern festival
@@ -250,6 +250,13 @@ white for the Lattice jump, and the galaxy map opens out of the white, pulling b
 |---|---|
 | ![Leaving the Kestrel](docs/media/launch_departure.gif) | ![Arriving on the galaxy map](docs/media/launch_arrival.gif) |
 | Off the pad, out of the mouth, burning for the Lattice | Out of the white-out, pulling back from Sol |
+
+**And down again.** Pick an operation on the galaxy map and the jump washes the screen white again. The operation
+opens out of it with you already aboard the LZ's Raven, 90 m up. It drops in while the briefing plays on the radio,
+flares over the pad and sets down; your squad piles out and the mission clock starts. From the battlefield, to the
+Kestrel, to the stars and back down, there's no loading screen anywhere.
+
+<p align="center"><img src="docs/media/descent.gif" width="560" alt="The Raven drops out of the sky onto the landing zone at Tharsis Ridge"></p>
 
 ### The Kestrel remembers
 
@@ -456,7 +463,7 @@ Press `~` in a development build. These commands are how the screenshots and tes
 |---|---|
 | `DVShowcase 0`..`6` | Jump to a map's showcase camera |
 | `DVCapture Name Frames Interval Delay UI` | Render frames off-screen to `Saved/Screenshots` |
-| `DVEndMission 1` / `DVFlyHome` / `DVLaunch` | End the operation as a win / fly home / leave the Kestrel for the galaxy map |
+| `DVEndMission 1` / `DVFlyHome` / `DVLaunch` / `DVLaunchOperation N` | End the operation as a win / fly home / leave the Kestrel for the galaxy map / launch operation N from the galaxy map |
 | `DVWalker 0`..`3`, `DVBoardTest` | Ironstride tests: kneel, collapse, deck, clear the field; scripted boarding |
 | `DVValve 0`..`2` [Times], `DVValve -1` | Brasshaven: turn a valve, or solve the manifold the way a player would |
 | `DVRepairTest`, `DVHerdTest`, `DVChaseTest` | Mend every pump or hack every relay; lead every puffbot home; sprint after the Neon Verge courier (all with real movement) |

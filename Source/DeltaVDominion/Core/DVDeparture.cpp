@@ -7,7 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
-namespace
+namespace DVDepartureFlight	// named: unity builds merge the anonymous namespaces of the other flight directors
 {
 	float EaseInOut(float T) { T = FMath::Clamp(T, 0.f, 1.f); return T * T * (3.f - 2.f * T); }
 	float EaseIn(float T) { T = FMath::Clamp(T, 0.f, 1.f); return T * T * T; }
@@ -32,7 +32,7 @@ void ADVDeparture::Begin(ADVGunship* InRaven, APlayerController* InPilot)
 	Pilot = InPilot;
 	Start = InRaven->GetActorLocation();
 	Lifted = FVector(Start.X, Start.Y, InsideMouth.Z);
-	Burn = OutsideMouth + BurnDir * BurnDistance;
+	Burn = OutsideMouth + DVDepartureFlight::BurnDir * DVDepartureFlight::BurnDistance;
 	StartTime = GetWorld()->GetTimeSeconds();
 	InRaven->SetScriptedFlight(true);
 	InRaven->DebugSetModes(false, false);	// hover mode on the deck
@@ -49,19 +49,19 @@ void ADVDeparture::Tick(float DeltaSeconds)
 		return;
 	}
 	const float T = GetWorld()->GetTimeSeconds() - StartTime;
-	const float T1 = LiftSeconds, T2 = T1 + TaxiSeconds, T3 = T2 + BurnSeconds;
+	const float T1 = DVDepartureFlight::LiftSeconds, T2 = T1 + DVDepartureFlight::TaxiSeconds, T3 = T2 + DVDepartureFlight::BurnSeconds;
 	FVector Pos;
 	float Yaw = Ship->GetActorRotation().Yaw;
 	if (T < T1)
 	{
 		// Up off the pad, swinging round to face the mouth.
-		Pos = FMath::Lerp(Start, Lifted, EaseInOut(T / T1));
+		Pos = FMath::Lerp(Start, Lifted, DVDepartureFlight::EaseInOut(T / T1));
 		Yaw = FMath::Lerp(FRotator(0.f, Yaw, 0.f), FRotator(0.f, 180.f, 0.f), FMath::Clamp(DeltaSeconds * 1.5f, 0.f, 1.f)).Yaw;
 	}
 	else if (T < T2)
 	{
 		// Slide down the deck, out over the launch lip and clear of the hull.
-		const float A = EaseInOut((T - T1) / TaxiSeconds);
+		const float A = DVDepartureFlight::EaseInOut((T - T1) / DVDepartureFlight::TaxiSeconds);
 		Pos = A < 0.5f ? FMath::Lerp(Lifted, InsideMouth, A * 2.f) : FMath::Lerp(InsideMouth, OutsideMouth, (A - 0.5f) * 2.f);
 		Yaw = 180.f;
 	}
@@ -74,9 +74,9 @@ void ADVDeparture::Tick(float DeltaSeconds)
 			GS->MulticastSound(TEXT("SW_Thruster"), Ship->GetActorLocation(), 1.f, 2);
 			GS->MulticastRadio(TEXT("Raven Two-One"), TEXT("Clear of the Kestrel. Burning for the Lattice. Hold on to something."));
 		}
-		const float A = (T - T2) / BurnSeconds;
-		Pos = FMath::Lerp(OutsideMouth, Burn, EaseIn(A));
-		Yaw = BurnDir.Rotation().Yaw;
+		const float A = (T - T2) / DVDepartureFlight::BurnSeconds;
+		Pos = FMath::Lerp(OutsideMouth, Burn, DVDepartureFlight::EaseIn(A));
+		Yaw = DVDepartureFlight::BurnDir.Rotation().Yaw;
 		if (Phase < 2 && T > T3 - JumpSeconds)
 		{
 			Phase = 2;
@@ -89,7 +89,7 @@ void ADVDeparture::Tick(float DeltaSeconds)
 		Jump();
 		return;
 	}
-	const float Pitch = T >= T2 ? BurnDir.Rotation().Pitch * 0.6f : 0.f;
+	const float Pitch = T >= T2 ? DVDepartureFlight::BurnDir.Rotation().Pitch * 0.6f : 0.f;
 	Ship->SetActorLocationAndRotation(Pos, FRotator(Pitch, Yaw, 0.f));
 
 	// Look where Two-One is going, as on the way home.
