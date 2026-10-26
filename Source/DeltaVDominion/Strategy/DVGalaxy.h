@@ -92,6 +92,10 @@ private:
 	bool bLeftDown = false;
 	float DragAmount = 0.f;
 	bool bAutoSpin = true;
+public:
+	/** Real time the map opened from a Lattice jump (the white-out fades from here), or a negative number. */
+	double JumpArrival = -100.0;
+protected:
 };
 
 UCLASS()

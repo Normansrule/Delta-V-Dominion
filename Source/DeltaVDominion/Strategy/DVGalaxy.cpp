@@ -43,9 +43,20 @@ void ADVGalaxyPlayerController::BeginPlay()
 	FInputModeGameAndUI Mode;
 	Mode.SetHideCursorDuringCapture(false);
 	SetInputMode(Mode);
-	DVGalaxyView(0);
-	Focus = TargetFocus;
-	Distance = TargetDistance * 1.6f;	// open with a slow push-in
+	if (GetWorld()->URL.HasOption(TEXT("launch")))
+	{
+		// Straight out of the Lattice jump: open on Sol, close enough to be in its light, and pull back.
+		DVGalaxyView(1);
+		Focus = TargetFocus;
+		Distance = 140.f;
+		JumpArrival = GetWorld()->GetRealTimeSeconds();
+	}
+	else
+	{
+		DVGalaxyView(0);
+		Focus = TargetFocus;
+		Distance = TargetDistance * 1.6f;	// open with a slow push-in
+	}
 }
 
 void ADVGalaxyPlayerController::SetupInputComponent()
@@ -270,6 +281,13 @@ void ADVGalaxyHUD::DrawHUD()
 		return;
 	}
 	UIScale = Canvas->ClipY / 1080.f;
+	// Arriving from the Lattice jump: the white-out the Raven started fades away as the camera pulls back from Sol.
+	const double SinceJump = GetWorld()->GetRealTimeSeconds() - PC->JumpArrival;
+	if (SinceJump >= 0.0 && SinceJump < 2.5)
+	{
+		const float A = 1.f - FMath::Clamp(float(SinceJump / 2.5), 0.f, 1.f);
+		DrawRect(FLinearColor(0.92f, 0.97f, 1.f, A * A), 0.f, 0.f, Canvas->ClipX, Canvas->ClipY);
+	}
 	const float W = Canvas->ClipX;
 	const float H = Canvas->ClipY;
 	UFont* Small = GEngine->GetSmallFont();

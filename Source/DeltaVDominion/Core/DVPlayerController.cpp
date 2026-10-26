@@ -554,7 +554,7 @@ void ADVPlayerController::OnInteractPressed()
 	if (MyPawn->FindComponentByClass<UDVSeatComponent>())
 	{
 		const ADVGameState* FlightGS = GetWorld()->GetGameState<ADVGameState>();
-		if (!FlightGS || FlightGS->Ascent != 1)	// no stepping out of a Raven on its way to orbit
+		if (!FlightGS || (FlightGS->Ascent != 1 && FlightGS->Ascent != 3))	// no stepping out of a Raven in flight to or from the Kestrel
 		{
 			ServerExitVehicle();
 		}
@@ -568,7 +568,14 @@ void ADVPlayerController::OnInteractPressed()
 		switch (Thing->Interaction)
 		{
 		case EDVInteraction::WarTable:
-			UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Galaxy")));
+			if (!ADVKestrel::Find(GetWorld()) && TActorIterator<ADVGunship>(GetWorld()))
+			{
+				ServerRequestDeparture();	// in the hangar: fly out of the mouth to the galaxy map, no loading screen
+			}
+			else
+			{
+				UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Galaxy")));
+			}
 			break;
 		case EDVInteraction::Memorial:
 			bShowMemorial = !bShowMemorial;
@@ -1438,4 +1445,18 @@ void ADVPlayerController::DVChaseTest(float Delay)
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { bChaseTest = true; HerdTestStart = GetWorld()->GetTimeSeconds(); }), FMath::Max(Delay, 0.001f), false);
 #endif
+}
+
+void ADVPlayerController::ServerRequestDeparture_Implementation()
+{
+	if (ADVGameMode* GM = GetWorld()->GetAuthGameMode<ADVGameMode>())
+	{
+		GM->BeginDeparture(this);
+	}
+}
+
+void ADVPlayerController::DVLaunch(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { ServerRequestDeparture(); }), FMath::Max(Delay, 0.001f), false);
 }

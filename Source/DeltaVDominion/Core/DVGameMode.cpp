@@ -12,6 +12,7 @@
 #include "Core/DVCallIns.h"
 #include "Core/DVProfileSubsystem.h"
 #include "Core/DVAscent.h"
+#include "Core/DVDeparture.h"
 #include "Vehicles/DVWalker.h"
 #include "Core/DVPressureManifold.h"
 #include "Core/DVHollyhock.h"
@@ -1736,4 +1737,50 @@ void ADVGameMode::TickChase()
 		GetWorldTimerManager().SetTimer(Lost, FTimerDelegate::CreateWeakLambda(this, [this]() { EndMission(false); }), 3.f, false);
 		GS->Stage = EDVMissionStage::Extract;	// stop ticking the chase
 	}
+}
+
+void ADVGameMode::BeginDeparture(APlayerController* PC)
+{
+	ADVGameState* GS = GetDVGameState();
+	ADVSoldierCharacter* Soldier = PC ? Cast<ADVSoldierCharacter>(PC->GetPawn()) : nullptr;
+	if (!GS || !Soldier || Soldier->IsOutOfAction() || GS->Ascent != 0 || !bIsHub || ADVKestrel::Find(GetWorld()))
+	{
+		return;	// only from the hangar itself (a hangar streamed into a planet's Kestrel has the war table's old route)
+	}
+	// The nearest Raven on the deck that nobody is flying.
+	ADVGunship* Raven = nullptr;
+	float Best = TNumericLimits<float>::Max();
+	for (TActorIterator<ADVGunship> It(GetWorld()); It; ++It)
+	{
+		const float D = FVector::Dist(It->GetActorLocation(), Soldier->GetActorLocation());
+		if (D < Best && !It->GetSeat()->bWrecked && !It->GetSeat()->Driver)
+		{
+			Best = D;
+			Raven = *It;
+		}
+	}
+	if (!Raven)
+	{
+		return;
+	}
+	Raven->SetScriptedFlight(false);
+	Soldier->TeleportTo(Raven->GetActorLocation() + FVector(0.f, 0.f, 50.f), Soldier->GetActorRotation());
+	if (!Raven->GetSeat()->Enter(Soldier, PC))
+	{
+		return;
+	}
+	GS->Ascent = 3;
+	GS->JumpTime = 0.f;
+	GS->ObjectiveText = TEXT("Raven Two-One is taking you out to the Lattice");
+	for (FTimerHandle& Pending : RadioTimers)
+	{
+		GetWorldTimerManager().ClearTimer(Pending);
+	}
+	RadioTimers.Reset();
+	if (ADVDeparture* Flight = GetWorld()->SpawnActor<ADVDeparture>())
+	{
+		Flight->Begin(Raven, PC);
+	}
+	Radio(TEXT("Deck Chief Ruiz"), TEXT("Two-One, you're cleared off the deck. Mind the lip on the way out."), 0.5f);
+	Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("War table's yours from the jump, Commander. Pick us somewhere worth going."), 6.f);
 }

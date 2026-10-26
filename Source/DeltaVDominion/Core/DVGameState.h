@@ -69,8 +69,11 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") EDVMissionPhase Phase = EDVMissionPhase::InProgress;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionName;
-	/** Flying home: 0 on the ground, 1 a Raven is carrying the squad up to the Kestrel, 2 landed aboard. */
+	/** Flying home: 0 on the ground, 1 a Raven is carrying the squad up to the Kestrel, 2 landed aboard,
+	 *  3 leaving the Kestrel for the Lattice (see ADVDeparture). */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") uint8 Ascent = 0;
+	/** Server time the departing Raven's Lattice jump began (the white-out), or 0. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") float JumpTime = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString ObjectiveText;
 	/** Title card lines, e.g. "Tharsis Ridge, Mars" / "Day 3 of the Uprising". */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mission") FString MissionLocation;

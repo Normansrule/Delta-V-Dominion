@@ -72,6 +72,11 @@ public:
 	UFUNCTION(Exec)
 	void DVCivilianTest(float Delay = 0.f);
 	UFUNCTION(Server, Reliable) void ServerTurnValve(uint8 Valve);
+	/** Leave the Kestrel by Raven for the galaxy map (the war table, in the hangar hub). */
+	UFUNCTION(Server, Reliable) void ServerRequestDeparture();
+	/** Console / capture: "DVLaunch [Delay]" uses the war table: board a Raven and fly out to the Lattice. */
+	UFUNCTION(Exec)
+	void DVLaunch(float Delay = 0.f);
 	/** Console (tests, standalone): "DVClearHostiles [Delay] [Spacing]" takes every hostile out of the fight one by one, as if the squad had (constables wind down). */
 	UFUNCTION(Exec)
 	void DVClearHostiles(float Delay = 0.f, float Spacing = 0.4f);

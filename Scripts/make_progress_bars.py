@@ -13,7 +13,7 @@ PROGRESS = {
     "combat": ("Combat and squad", 82),
     "missions": ("Missions and maps", 60),
     "vehicles": ("Vehicles", 75),
-    "kestrel": ("Kestrel hub", 75),
+    "kestrel": ("Kestrel hub", 82),
     "towns": ("Towns and factions", 52),
     "coop": ("Co-op", 25),
     "art": ("Art and audio", 15),

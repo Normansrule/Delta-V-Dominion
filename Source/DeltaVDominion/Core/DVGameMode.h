@@ -54,6 +54,8 @@ public:
 	 */
 	void BeginAscent(APlayerController* PC);
 	void OnAscentLanded(APlayerController* PC, class ADVGunship* Raven);
+	/** Leaving: from the hangar hub, the commander's Raven flies out of the mouth and jumps to the galaxy map (ADVDeparture). */
+	void BeginDeparture(APlayerController* PC);
 
 	/** Ironstride: a power coupling blew (Count of 3), and the walker hit the ground. */
 	void OnWalkerCoupling(int32 Count);

@@ -133,7 +133,7 @@ void ADVHUD::DrawHUD()
 	APawn* OwningPawn = GetOwningPawn();
 	if (OwningPawn && OwningPawn->FindComponentByClass<UDVSeatComponent>())
 	{
-		if (GS && GS->Ascent == 1)
+		if (GS && (GS->Ascent == 1 || GS->Ascent == 3))
 		{
 			DrawAscent(GS);	// cinematic: no gunship instruments, just the ride home
 			return;
@@ -1316,6 +1316,21 @@ void ADVHUD::DrawAscent(const ADVGameState* GS)
 	const ADVKestrel* Kestrel = ADVKestrel::Find(GetWorld());
 	const APawn* Ship = GetOwningPawn();
 	const float Dist = Kestrel && Ship ? FVector::Dist(Kestrel->GetHangarTransform().GetLocation(), Ship->GetActorLocation()) / 100.f : 0.f;
+	if (GS->Ascent == 3)
+	{
+		// Outbound: the burn, then the Lattice jump washes the screen white before the galaxy map opens.
+		Text(TEXT("RAVEN TWO-ONE  -  OUTBOUND TO THE LATTICE"), W * 0.5f, H * 0.035f, DVHudColors::Cyan, GEngine->GetMediumFont(), DVType::Emph, true);
+		const float Out = Ship ? FMath::Max(0.f, -6000.f - Ship->GetActorLocation().X) / 100.f : 0.f;
+		Text(Out > 1.f ? FString::Printf(TEXT("Clear of the Kestrel  %.1f km"), Out / 1000.f) : FString(TEXT("Leaving the hangar")), W * 0.5f, H * 0.925f,
+			DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);
+		DrawRadio(GS);
+		if (GS->JumpTime > 0.f)
+		{
+			const float A = FMath::Clamp((GetWorld()->GetTimeSeconds() - GS->JumpTime) / 1.1f, 0.f, 1.f);
+			DrawRect(FLinearColor(0.92f, 0.97f, 1.f, A * A), 0.f, 0.f, W, H);
+		}
+		return;
+	}
 	Text(TEXT("RAVEN TWO-ONE  -  RETURNING TO THE KESTREL"), W * 0.5f, H * 0.035f, DVHudColors::Cyan, GEngine->GetMediumFont(), DVType::Emph, true);
 	Text(Dist > 60.f ? FString::Printf(TEXT("Starboard bay  %.1f km"), Dist / 1000.f) : FString(TEXT("Coming aboard")), W * 0.5f, H * 0.925f,
 		DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body, true);

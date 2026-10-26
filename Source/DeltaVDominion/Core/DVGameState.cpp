@@ -51,6 +51,7 @@ void ADVGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ADVGameState, bNonLethal);
 	DOREPLIFETIME(ADVGameState, bValeOp);
 	DOREPLIFETIME(ADVGameState, bHackOp);
+	DOREPLIFETIME(ADVGameState, JumpTime);
 	DOREPLIFETIME(ADVGameState, ValeDone);
 	DOREPLIFETIME(ADVGameState, ValeTotal);
 	DOREPLIFETIME(ADVGameState, CiviliansHurt);
