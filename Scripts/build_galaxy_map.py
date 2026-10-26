@@ -180,7 +180,7 @@ def build():
            (1.0, 0.85, 0.6), 1.4, [op("Cold Wake", "New Albion Colony, Proxima b", "/Game/Maps/Proxima")])
     system("Barnard's Star", galactic(5.96, 31.0, 14.1), "Local Bubble", 5.96, CINDER,
            "Automated mining relay seized in the first hour of the uprising. Skitter drones roll off its lines by the thousand.",
-           (1.0, 0.45, 0.25), 1.0)
+           (1.0, 0.45, 0.25), 1.0, [op("Iron Hive", "Pithead Nine, Barnard's Star b", "/Game/Maps/Barnard")])
     system("Wolf 359", galactic(7.9, 244.1, 56.1), "Local Bubble", 7.9, CONTESTED,
            "A dim red dwarf and Brasshaven, the colony that lost the Lattice eighty years ago and rebuilt itself on steam and brass. "
            "CINDER cannot reach a machine with no chip in it, which makes the Guild Council's foundries the last place the cure can be made.",
@@ -193,14 +193,14 @@ def build():
            (1.0, 0.55, 0.3), 0.9, [op("Clean Signal", "The Ninth Ring, Neon Verge", "/Game/Maps/NeonVerge")])
     system("Epsilon Eridani", galactic(10.5, 195.8, -48.1), "Local Bubble", 10.5, CONTESTED,
            "Young system wrapped in a debris ring. Hollow Men insurgents hide in the belt and raid Accord convoys.",
-           (1.0, 0.7, 0.45), 1.1, [op("Dust Choir", "Eridani outer belt")])
+           (1.0, 0.7, 0.45), 1.1, [op("Dust Choir", "Rock 114, Epsilon Eridani ring", "/Game/Maps/Eridani")])
     system("Tau Ceti", galactic(11.9, 173.1, -73.4), "Local Bubble", 11.9, CONTESTED,
            "Agricultural worlds that feed half the Accord. CINDER's harvesters have turned on the fields. On the fourth world, "
            "Hollyhock Vale, a caretaker AI called Nana Bramble never stopped tending hers.", (1.0, 0.85, 0.55), 1.2,
            [op("Lantern Night", "Hollyhock Vale, Tau Ceti f", "/Game/Maps/Hollyhock")])
     system("TRAPPIST-1", galactic(40.7, 69.7, -56.6), "Local Bubble", 40.7, UNCHARTED,
            "Seven worlds and one silent research station. Dr. Liang Morrow's old lab sent its last message from here.",
-           (1.0, 0.35, 0.2), 1.0, [op("The Architect", "Morrow Station, TRAPPIST-1e")])
+           (1.0, 0.35, 0.2), 1.0, [op("The Architect", "Morrow Station, TRAPPIST-1e", "/Game/Maps/Trappist")])
 
     # --- The wider galaxy ----------------------------------------------------------------------
     system("Pleiades", galactic(444, 166.6, -23.5), "Orion Spur", 444, UNCHARTED,
@@ -209,7 +209,8 @@ def build():
            "The nearest great stellar nursery. Long-range scans show structured signals inside the gas: something is building.",
            (1.0, 0.45, 0.65), 4.0)
     system("Kepler-452", galactic(1800, 74.4, 14.1), "Orion Spur", 1800, UNCHARTED,
-           "Gaia's older cousin: a temperate super-Earth. The Accord's long-range colony ark was bound here when the war began.", (1.0, 0.9, 0.65), 1.8)
+           "Gaia's older cousin: a temperate super-Earth. The Accord's long-range colony ark came down here when the war began, "
+           "twenty thousand sleepers still aboard.", (1.0, 0.9, 0.65), 1.8, [op("Ark Fall", "The ark valley, Kepler-452b", "/Game/Maps/Kepler")])
     system("Crab Nebula", galactic(6500, 184.6, -5.8), "Perseus Arm", 6500, UNCHARTED,
            "Remnant of the supernova of 1054. Its pulsar beats like a clock; CINDER's transmissions sync to it.", (0.7, 0.8, 1.0), 3.2)
     system("Cygnus X-1", galactic(7200, 71.3, 3.1), "Orion Spur", 7200, UNCHARTED,

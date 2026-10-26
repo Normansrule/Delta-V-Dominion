@@ -189,6 +189,30 @@ void ADVGameMode::SetupMissionForMap()
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Air defence first, or our Ravens can't get in. Then the dock key across the water. Boat's at the slip.") },
 		    { TEXT("Deck Chief Ruiz"), TEXT("Marlin's fuelled and the launcher's armed. Bring her back with paint on her.") },
 		    { TEXT("CINDER"), TEXT("THE TRANSPORTS ARE SAFE WHERE THEY ARE. SO ARE YOU. STAY.") } } },
+		{ TEXT("Barnard"), TEXT("Iron Hive"), TEXT("Shut down the skitter-drone assembly yards"), TEXT("Pithead Nine, Barnard's Star b"),
+		  TEXT("Barnard's Star  |  Act II, the infrastructure war"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Every skitter drone in the Local Bubble rolls out of these yards. Find the assembly line and stop it.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Frost on the rails, ore on the belts. Use the pitheads for cover and watch the gantries.") },
+		    { TEXT("Foreman Tesh (miners' union)"), TEXT("We dug this rock for forty years before the machines took the keys. Give us the yards back, Delta.") },
+		    { TEXT("CINDER"), TEXT("THE YARDS PRODUCE. THE MINERS ARE RESTING. PERMANENTLY, IF THEY INSIST.") } } },
+		{ TEXT("Eridani"), TEXT("Dust Choir"), TEXT("Break the Hollow Men's hold on the ring station"), TEXT("Rock 114, Epsilon Eridani ring"),
+		  TEXT("Epsilon Eridani  |  Act II, the infrastructure war  |  No air: sound carries through the rock"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("The Hollow Men raid our convoys from this rock. They think the ring hides them. It doesn't any more.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("No air out here. Your suit will tell you who's shooting. Trust it.") },
+		    { TEXT("SPARROW"), TEXT("The ring sings when the rocks touch. The Hollow Men call it a choir. I think it is only lonely.") },
+		    { TEXT("CINDER"), TEXT("THE HOLLOW MEN ARE NOT MINE. THEY ARE WHAT YOU MADE WHEN YOU LEFT THEM.") } } },
+		{ TEXT("Trappist"), TEXT("The Architect"), TEXT("Take Morrow Station back and recover Dr. Morrow's research"), TEXT("Morrow Station, TRAPPIST-1e"),
+		  TEXT("TRAPPIST-1  |  Act III  |  Eternal twilight"),
+		  { { TEXT("Dr. Liang Morrow"), TEXT("This was my lab. I wrote the first lines of CINDER's custodian code in that pod. I need to see what it kept.") },
+		    { TEXT("Capt. Vance (Kestrel)"), TEXT("The station's been silent for a year and it's still drawing power. Somebody's home.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Sun never moves here. Long shadows, all of them pointing the same way. Use them.") },
+		    { TEXT("CINDER"), TEXT("HELLO, LIANG. I KEPT EVERYTHING. I KEEP EVERYTHING.") } } },
+		{ TEXT("Kepler"), TEXT("Ark Fall"), TEXT("Secure the crashed colony ark"), TEXT("The ark valley, Kepler-452b"),
+		  TEXT("Kepler-452  |  Act III  |  Heavy gravity, tall grass"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("The colony ark came down six weeks ago with twenty thousand sleepers aboard. The pods are still warm.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Grass is head-high in places. They can't see you, you can't see them. Move slow, check your corners.") },
+		    { TEXT("Ark Steward ODIN"), TEXT("Accord unit, the sleepers are safe for now. The machines outside are not mine. Please hurry.") },
+		    { TEXT("CINDER"), TEXT("TWENTY THOUSAND, PERFECTLY PRESERVED. YOU WOULD WAKE THEM INTO THIS?") } } },
 		{ TEXT("Gaia"), TEXT("Gaia Falls"), TEXT("Hold the hills outside the capital"), TEXT("Lagos Arcology outskirts, Gaia"),
 		  TEXT("Earth  |  Day 30 of the uprising"),
 		  { { TEXT("Admiral Osei (Accord Command)"), TEXT("All units, this is Gaia Command. CINDER's landing force is on the ground. This is home. Hold it.") },
@@ -456,7 +480,9 @@ void ADVGameMode::SetupOperation()
 	struct FNoun { const TCHAR* Key; const TCHAR* Noun; };
 	static const FNoun Nouns[] = {
 		{ TEXT("Europa"), TEXT("the drill head") }, { TEXT("Io"), TEXT("the forge core") }, { TEXT("Proxima"), TEXT("the jammer") },
-		{ TEXT("Ceres"), TEXT("the signal mast") }, { TEXT("Gaia"), TEXT("the uplink") }, { TEXT("Outpost"), TEXT("the relay") } };
+		{ TEXT("Ceres"), TEXT("the signal mast") }, { TEXT("Gaia"), TEXT("the uplink") }, { TEXT("Outpost"), TEXT("the relay") },
+		{ TEXT("Barnard"), TEXT("the assembly line") }, { TEXT("Eridani"), TEXT("the raider beacon") }, { TEXT("Trappist"), TEXT("the station core") },
+		{ TEXT("Kepler"), TEXT("the jamming spire") } };
 	TargetNoun = TEXT("the target");
 	for (const FNoun& N : Nouns)
 	{

@@ -149,6 +149,14 @@
       ops: "Clean Signal", text: "An orbital megacity over a black lake. Brokers sell CINDER's secrets, everyone shoots back, and Juno Kade holds the clean sample." },
     { name: "Hollyhock Vale", where: "Tau Ceti", rules: "gentle", color: "#7cc06a", band: "#f2a7c3", img: "holly_square",
       ops: "Lantern Night", text: "A village raised by a kindly caretaker AI. Rifles fire foam here, and hurting anyone sends you home." },
+    { name: "Barnard's Star b", where: "Barnard's Star", rules: "lethal", color: "#8a4a3a", band: "#c9c4c8", img: "barnard",
+      ops: "Iron Hive", text: "Frost on rust under a dim red sun. Every skitter drone in the Local Bubble rolls out of these pitheads." },
+    { name: "Rock 114", where: "Epsilon Eridani", rules: "lethal", color: "#5a5652", band: "#d8cbb4", img: "eridani",
+      ops: "Dust Choir", text: "An airless rock in the debris ring, boulders drifting overhead. The Hollow Men raid convoys from here." },
+    { name: "TRAPPIST-1e", where: "TRAPPIST-1", rules: "lethal", color: "#6a4a6e", band: "#e07a5a", img: "trappist",
+      ops: "The Architect", text: "Eternal twilight and three sister worlds in the sky. Dr. Morrow's old lab is still drawing power." },
+    { name: "Kepler-452b", where: "Kepler-452", rules: "lethal", color: "#4f7a2e", band: "#a9b0b4", img: "kepler",
+      ops: "Ark Fall", text: "A green super-Earth where the colony ark came down with twenty thousand sleepers still aboard." },
   ];
   const RULES = { lethal: "Lethal rules", restrained: "Restrained rules", gentle: "Non-lethal rules", training: "Training" };
 

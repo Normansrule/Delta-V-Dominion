@@ -7,6 +7,10 @@
   ceres    /Game/Maps/Ceres     Ghost Signal   Night mining town on Ceres, drowned in neon
   breakwater /Game/Maps/Breakwater Breakwater  Port Halden on Gaia at dawn: a harbour strait, docks, transports, a missile boat
   gaia     /Game/Maps/Gaia      Gaia Falls     Earth: green hills outside the capital, skyline on the horizon
+  barnard  /Game/Maps/Barnard   Iron Hive      Barnard's Star b: a frozen mining world under a dim red sun, the drone assembly yards
+  eridani  /Game/Maps/Eridani   Dust Choir     A mined-out rock in the Epsilon Eridani debris ring, the ring arching overhead
+  trappist /Game/Maps/Trappist  The Architect  TRAPPIST-1e's twilight band: Morrow Station, sister worlds hanging in the sky
+  kepler   /Game/Maps/Kepler    Ark Fall       Kepler-452b: tall grass, giant trees and the broken hull of the colony ark
 
 Everything is generated: Nanite terrain and rocks (GeometryScript), PBR materials, a fortified compound
 kit-bashed from engine meshes, the Accord landing zone with vehicles, the Kestrel overhead, biome extras,
@@ -105,6 +109,34 @@ BIOMES = {
                       sun=(-28, 300), sun_color=(120, 150, 255), sun_lux=0.8, atmosphere=False, mie=0.0, sky_light=0.35,
                       fog=0.01, fog_color=(0.04, 0.06, 0.16), clouds=False, saturation=1.15, contrast=1.12, exposure=-0.8,
                       extras=["verge"]),
+    # Iron Hive (Barnard's Star b): frost on rust under a dim red dwarf; CINDER's skitter-drone assembly yards.
+    "barnard": dict(map="/Game/Maps/Barnard", env="/Game/Environment/Planets/Barnard", seed=131, dunes=70.0, rim=1300.0, mesa=3400.0,
+                    sand_a=(0.36, 0.33, 0.33), sand_b=(0.12, 0.07, 0.05), slope_rock=(0.09, 0.05, 0.035),
+                    rock_dark=(0.03, 0.022, 0.02), rock_light=(0.2, 0.16, 0.15),
+                    sun=(-11, 70), sun_color=(255, 120, 70), sun_lux=4.5, atmosphere=True, mie=0.02, sky_light=0.7,
+                    fog=0.016, fog_color=(0.32, 0.14, 0.1), clouds=True, saturation=1.0, contrast=1.18, exposure=0.1,
+                    extras=["mine", "snow"]),
+    # Dust Choir (Epsilon Eridani): an airless mined-out rock inside the debris ring; Hollow Men insurgents.
+    "eridani": dict(map="/Game/Maps/Eridani", env="/Game/Environment/Planets/Eridani", seed=141, dunes=120.0, rim=1600.0, mesa=3800.0,
+                    sand_a=(0.11, 0.105, 0.1), sand_b=(0.045, 0.042, 0.04), slope_rock=(0.04, 0.038, 0.036),
+                    rock_dark=(0.02, 0.02, 0.02), rock_light=(0.16, 0.15, 0.14),
+                    sun=(-32, 250), sun_color=(255, 214, 170), sun_lux=6.0, atmosphere=False, mie=0.0, sky_light=0.5,
+                    fog=0.002, fog_color=(0.08, 0.07, 0.06), clouds=False, saturation=1.0, contrast=1.15, exposure=-1.3,
+                    extras=["mine", "debris", "ring_sky"]),
+    # The Architect (TRAPPIST-1e): the twilight band of a tidally locked world, the red sun forever on the horizon.
+    "trappist": dict(map="/Game/Maps/Trappist", env="/Game/Environment/Planets/Trappist", seed=151, dunes=50.0, rim=1100.0, mesa=2900.0,
+                     sand_a=(0.42, 0.45, 0.5), sand_b=(0.13, 0.12, 0.16), slope_rock=(0.07, 0.06, 0.08),
+                     rock_dark=(0.025, 0.022, 0.03), rock_light=(0.18, 0.16, 0.2),
+                     sun=(-4, 120), sun_color=(255, 100, 60), sun_lux=5.0, atmosphere=True, mie=0.012, sky_light=0.9,
+                     fog=0.012, fog_color=(0.3, 0.16, 0.26), clouds=True, saturation=1.08, contrast=1.15, exposure=0.2,
+                     extras=["lab", "sisters", "snow"]),
+    # Ark Fall (Kepler-452b): a heavy, green super-Earth; the colony ark came down across the valley.
+    "kepler": dict(map="/Game/Maps/Kepler", env="/Game/Environment/Planets/Kepler", seed=161, dunes=140.0, rim=1000.0, mesa=2400.0,
+                   sand_a=(0.1, 0.16, 0.045), sand_b=(0.07, 0.085, 0.03), slope_rock=(0.11, 0.1, 0.085),
+                   rock_dark=(0.045, 0.045, 0.04), rock_light=(0.24, 0.22, 0.19),
+                   sun=(-36, 210), sun_color=(255, 238, 205), sun_lux=10.5, atmosphere=True, mie=0.01, sky_light=1.25,
+                   fog=0.014, fog_color=(0.42, 0.5, 0.5), clouds=True, saturation=1.1, contrast=1.08, exposure=0.0,
+                   extras=["ark", "trees", "grass"]),
 }
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
@@ -214,6 +246,11 @@ def terrain_height(x, y):
     if "town" in B["extras"]:
         # The town sits on a levelled plaza; the land rises back into dunes and mesas past the last buildings.
         h *= smoothstep(4400.0, 6000.0, math.sqrt(x * x + y * y * 1.6))
+    if "ark" in B["extras"]:
+        # The ark ploughed a furrow from the north-east hills down into the valley.
+        d = abs((x - 600.0) * 0.6 - (y - 2600.0) * 0.8)
+        along = (x - 600.0) * 0.8 + (y - 2600.0) * 0.6
+        h -= 160.0 * (1.0 - smoothstep(300.0, 900.0, d)) * smoothstep(-6000.0, -1000.0, along)
     if "lava" in B["extras"]:
         # Two meandering channels cut across the arena flanks; the lava plane fills them.
         for offset in (-2600.0, 2900.0):
@@ -777,6 +814,204 @@ def build_extras(mats, rocks, rock_mat):
                 block("TowerWin_%02d_%d" % (i, k), (x, y, gz + 450 + k * 900), (w + 10, d + 10, 120), mats["windows_dim"] if "harbour" in extras else mats["windows"], yaw, folder="City")
             block("TowerBeacon_%02d" % i, (x, y, gz + h + 60), (80, 80, 80), mats["strip_red"], folder="City")
 
+    if "mine" in extras:
+        build_mine(mats, rocks, rock_mat)
+    if "snow" in extras:
+        # Frost drifts banked against the rocks: low pale mounds scattered over the arena and the slopes.
+        snow = tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Frost", (0.62, 0.64, 0.7), roughness=0.55)
+        n = 0
+        for i in range(260):
+            x, y = random.uniform(-6500, 6500), random.uniform(-5000, 5000)
+            if not clear_of_gameplay(x, y) or (x / 5600.0) ** 2 + (y / 4300.0) ** 2 > 1.1:
+                continue    # drifts settle on the flat floor of the basin, not on the steep rim
+            s = random.uniform(0.6, 2.2)
+            place(random.choice(rocks), "Frost_%03d" % n, (x, y, ground(x, y) - 25 * s), rot(yaw=random.uniform(0, 360)),
+                  (s * 1.6, s * 1.3, s * 0.25), snow, "Frost")
+            n += 1
+    if "debris" in extras:
+        # Boulders of the ring drifting overhead, some close enough to throw shadows across the field.
+        for i in range(70):
+            ang = random.uniform(0, 2 * math.pi)
+            dist = random.uniform(4000, 40000)
+            x, y, z = math.cos(ang) * dist, math.sin(ang) * dist, random.uniform(3500, 26000)
+            s = random.uniform(3.0, 22.0) * (dist / 20000.0 + 0.3)
+            place(random.choice(rocks), "Drifter_%02d" % i, (x, y, z), rot(random.uniform(0, 360), random.uniform(0, 360), random.uniform(0, 360)),
+                  (s, s * random.uniform(0.6, 1.2), s * random.uniform(0.6, 1.1)), rock_mat, "Sky")
+    if "ring_sky" in extras:
+        # The debris ring as a pale arch across the black sky, built from hundreds of chips in one band.
+        chip = lib.load_asset("/Engine/BasicShapes/Cube")
+        ring_mat = glow("MI_RingDust", (0.75, 0.7, 0.62), 0.9)
+        for i in range(420):
+            a = math.radians(-70 + 140 * i / 420.0 + random.uniform(-0.2, 0.2))
+            r = 1600000.0 + random.uniform(-60000, 60000)
+            x, z = math.cos(a) * r, math.sin(a) * r * 0.55 + 250000
+            if z < 20000:
+                continue
+            s = random.uniform(80, 340)
+            place(chip, "RingChip_%03d" % i, (x, random.uniform(-90000, 90000) + 900000, z), rot(random.uniform(0, 90), random.uniform(0, 90), 0),
+                  (s, s, s * 0.3), ring_mat, "Sky")
+    if "sisters" in extras:
+        # TRAPPIST-1's other worlds sit huge and close in the sky.
+        sphere = lib.load_asset("/Engine/BasicShapes/Sphere")
+        worlds = [((700000, 1100000, 520000), 260000, (0.55, 0.32, 0.28), "MI_Sister_F"),
+                  ((-500000, 1400000, 760000), 180000, (0.35, 0.45, 0.62), "MI_Sister_D"),
+                  ((1500000, 300000, 980000), 120000, (0.6, 0.55, 0.5), "MI_Sister_G")]
+        for i, (c, r, col, name) in enumerate(worlds):
+            place(sphere, "Sister_%d" % i, c, rot(roll=random.uniform(0, 30)), (r / 50.0, r / 50.0, r / 50.0), glow(name, col, 1.6), "Sky")
+    if "lab" in extras:
+        build_lab(mats)
+    if "ark" in extras:
+        build_ark(mats)
+    if "grass" in extras:
+        # Undergrowth: the hill tree at shrub scale, clumped, so the valley floor has thickets to hide in.
+        tree = lib.load_asset("/Game/ArchVis/SampleScene/Tree/HillTree_02")
+        n = 0
+        for i in range(1200):
+            x, y = random.uniform(-7500, 7500), random.uniform(-6000, 6000)
+            if not clear_of_gameplay(x, y) or random.random() < 0.35:
+                continue
+            for k in range(random.randint(2, 4)):
+                gx, gy = x + random.uniform(-250, 250), y + random.uniform(-250, 250)
+                sc = random.uniform(0.09, 0.2)
+                place(tree, "Shrub_%04d" % n, (gx, gy, ground(gx, gy) - 10), rot(yaw=random.uniform(0, 360)), (sc * 1.4, sc * 1.4, sc), None, "Undergrowth")
+                n += 1
+            if n > 520:
+                break
+        log("shrubs %d" % n)
+
+
+
+# --------------------------------------------------------------------------------------------
+# New worlds: mining yards, Morrow Station, the colony ark
+# --------------------------------------------------------------------------------------------
+
+def headframe(label, x, y, yaw, mats, h=2600.0):
+    """A pithead: four legs, cross braces, a sheave wheel and a winding house."""
+    gz = ground(x, y)
+    for k, (ox, oy) in enumerate([(-260, -260), (260, -260), (-260, 260), (260, 260)]):
+        block("%s_Leg%d" % (label, k), (x + ox * 0.7, y + oy * 0.7, gz + h / 2), (40, 40, h), mats["rust"], yaw, folder="Mine")
+    for z in range(400, int(h), 450):
+        block("%s_Brace%d" % (label, z), (x, y, gz + z), (420, 420, 18), mats["gunmetal"], yaw, folder="Mine")
+        block("%s_X%d" % (label, z), (x, y, gz + z + 220), (560, 14, 14), mats["rust"], yaw + 45, folder="Mine")
+    block(label + "_Wheel", (x, y, gz + h + 160), (40, 360, 360), mats["gunmetal"], yaw, folder="Mine")
+    block(label + "_Hub", (x, y, gz + h + 160), (70, 60, 60), mats["hazard"], yaw, folder="Mine")
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    block(label + "_House", (x - c * 900, y - s * 900, gz + 300), (700, 520, 600), mats["concrete_dark"], yaw, folder="Mine")
+    block(label + "_HouseRoof", (x - c * 900, y - s * 900, gz + 630), (760, 580, 50), mats["rust"], yaw, folder="Mine")
+    block(label + "_HouseWin", (x - c * 900 + c * 352, y - s * 900 + s * 352, gz + 380), (8, 380, 60), mats["windows_dim"], yaw, folder="Mine")
+    block(label + "_Beacon", (x, y, gz + h + 380), (40, 40, 40), mats["strip_red"], folder="Mine")
+
+
+def conveyor(label, a, b, z0, z1, mats):
+    """An inclined belt gantry from a to b, with a trestle under every segment."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    length = math.hypot(dx, dy)
+    yaw = math.degrees(math.atan2(dy, dx))
+    steps = max(2, int(length // 600))
+    seg = length / steps
+    pitch = math.degrees(math.atan2(z1 - z0, length))
+    for i in range(steps):
+        t = (i + 0.5) / steps
+        cx, cy = a[0] + dx * t, a[1] + dy * t
+        gz = ground(cx, cy)
+        z = gz + z0 + (z1 - z0) * t
+        place(CHAMFER, "%s_Belt%d" % (label, i), (cx, cy, z), rot(pitch=pitch, yaw=yaw), (seg / CHAMFER_SIZE.x, 140 / CHAMFER_SIZE.y, 30 / CHAMFER_SIZE.z), mats["gunmetal"], "Mine")
+        place(CHAMFER, "%s_Ore%d" % (label, i), (cx, cy, z + 26), rot(pitch=pitch, yaw=yaw), (seg * 0.95 / CHAMFER_SIZE.x, 90 / CHAMFER_SIZE.y, 18 / CHAMFER_SIZE.z), mats["rust"], "Mine")
+        block("%s_Trestle%d" % (label, i), (cx, cy, gz + (z - gz) / 2), (30, 160, max(z - gz, 40)), mats["rust"], yaw, folder="Mine")
+
+
+def build_mine(mats, rocks, rock_mat):
+    """Mining yards around the arena: pitheads, belt gantries, ore heaps, a rail spur and lit work lamps."""
+    for i, (x, y, yaw) in enumerate([(-1800, 3300, 200), (1800, -3400, 20), (6200, -1200, 250), (-5600, -3400, 60)]):
+        if i < 2 or clear_of_gameplay(x, y):
+            headframe("Pithead_%d" % i, x, y, yaw, mats)
+    conveyor("Belt_A", (-1800, 3000), (-200, 2100), 300, 900, mats)
+    conveyor("Belt_B", (1800, -3100), (300, -2000), 300, 900, mats)
+    ore = tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_OreHeap", (0.16, 0.08, 0.05), roughness=1.0)
+    for i, (x, y) in enumerate([(-100, 2000), (400, -1900), (-2600, 3600), (2600, -3600), (4300, 2900), (-4700, -3100)]):
+        s = random.uniform(2.2, 3.4)
+        place(random.choice(rocks), "OreHeap_%d" % i, (x, y, ground(x, y) - 60 * s), rot(yaw=random.uniform(0, 360)), (s * 1.6, s * 1.6, s * 0.55), ore, "Mine")
+    # A rail spur with ore carts across the north of the arena.
+    for i in range(36):
+        x = -5200 + i * 300
+        y = 3900 + math.sin(x / 2600.0) * 400
+        gz = ground(x, y)
+        block("Sleeper_%02d" % i, (x, y, gz + 8), (60, 300, 16), mats["wood"], folder="Rail")
+        if i % 9 == 4:
+            block("OreCart_%02d" % i, (x, y, gz + 120), (260, 180, 150), mats["rust"], folder="Rail")
+            block("OreCartLoad_%02d" % i, (x, y, gz + 205), (230, 150, 40), ore, folder="Rail")
+    for side in (-110, 110):
+        for i in range(12):
+            xm = -5200 + i * 900 + 450
+            y = 3900 + math.sin(xm / 2600.0) * 400 + side
+            block("Rail_%d_%02d" % (side, i), (xm, y, ground(xm, y) + 22), (900, 12, 14), mats["gunmetal"], folder="Rail")
+    # Work lamps on poles: pools of sodium-amber light.
+    for i, (x, y) in enumerate([(-900, 2600), (900, -2600), (-3000, 3500), (3000, -3500), (200, 3900), (-2000, -3000)]):
+        gz = ground(x, y)
+        block("WorkLamp_%d_Pole" % i, (x, y, gz + 450), (20, 20, 900), mats["gunmetal"], folder="Lights")
+        block("WorkLamp_%d_Head" % i, (x, y, gz + 900), (80, 80, 30), mats["lamp"], folder="Lights")
+        town_light("WorkLamp_%d" % i, (x, y, gz + 860), (255, 175, 90), 2200.0, 2600.0)
+
+
+def build_lab(mats):
+    """Morrow Station: linked research pods on stilts, a comms dish, lit bands."""
+    white = tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_LabWhite", (0.7, 0.72, 0.74), roughness=0.35)
+    pods = [(-500, 2600), (700, 3200), (1900, 2500), (-1500, -2900), (0, -3300)]
+    for i, (x, y) in enumerate(pods):
+        gz = ground(x, y)
+        for k, (ox, oy) in enumerate([(-350, -350), (350, -350), (-350, 350), (350, 350)]):
+            block("Pod_%d_Stilt%d" % (i, k), (x + ox, y + oy, gz + 150), (40, 40, 300), mats["gunmetal"], folder="Station")
+        block("Pod_%d" % i, (x, y, gz + 500), (1000, 1000, 400), white, 45 * (i % 2), folder="Station")
+        block("Pod_%d_Band" % i, (x, y, gz + 520), (1012, 1012, 40), mats["strip_cyan"], 45 * (i % 2), folder="Station")
+        block("Pod_%d_Roof" % i, (x, y, gz + 720), (800, 800, 60), mats["gunmetal"], 45 * (i % 2), folder="Station")
+        town_light("PodLight_%d" % i, (x, y, gz + 900), (140, 220, 255), 1500.0, 2200.0)
+    for i in range(len(pods) - 1):
+        (x0, y0), (x1, y1) = pods[i], pods[i + 1]
+        if math.hypot(x1 - x0, y1 - y0) > 2500:
+            continue
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        yaw = math.degrees(math.atan2(y1 - y0, x1 - x0))
+        block("Corridor_%d" % i, (cx, cy, ground(cx, cy) + 480), (math.hypot(x1 - x0, y1 - y0) - 900, 240, 220), white, yaw, folder="Station")
+    dx, dy = 2400, 3300
+    gz = ground(dx, dy)
+    block("Dish_Mast", (dx, dy, gz + 700), (80, 80, 1400), mats["gunmetal"], folder="Station")
+    block("Dish", (dx, dy, gz + 1500), (90, 900, 900), white, 30, folder="Station")
+    block("Dish_Feed", (dx - 260, dy - 150, gz + 1500), (300, 30, 30), mats["strip_red"], 30, folder="Station")
+
+
+def build_ark(mats):
+    """The colony ark: broken hull sections strewn down the furrow, ribs open to the sky, a lit bridge section."""
+    hull = tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_ArkHull", (0.34, 0.35, 0.36), metallic=0.8, roughness=0.45)
+    scorch = tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_ArkScorch", (0.03, 0.028, 0.025), metallic=0.3, roughness=0.8)
+    yaw = math.degrees(math.atan2(0.6, 0.8))
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for i, (along, h, w, length, tilt) in enumerate([(-5200, 2400, 1400, 1700, 14), (-3300, 1800, 1500, 1200, -9), (-1500, 1200, 1300, 900, 22)]):
+        x, y = 600.0 + c * along, 2600.0 + s * along
+        if not clear_of_gameplay(x, y):
+            continue
+        gz = ground(x, y)
+        place(CHAMFER, "ArkHull_%d" % i, (x, y, gz + h * 0.45), rot(roll=tilt, yaw=yaw), (length / CHAMFER_SIZE.x, w / CHAMFER_SIZE.y, h / CHAMFER_SIZE.z), hull, "Ark")
+        place(CHAMFER, "ArkScorch_%d" % i, (x - c * length * 0.48, y - s * length * 0.48, gz + h * 0.45), rot(roll=tilt, yaw=yaw), (60 / CHAMFER_SIZE.x, w * 1.02 / CHAMFER_SIZE.y, h * 1.02 / CHAMFER_SIZE.z), scorch, "Ark")
+        for k in range(5):
+            ox = (k - 2) * length * 0.18
+            block("ArkRib_%d_%d" % (i, k), (x + c * ox, y + s * ox, gz + h * 0.95), (60, w * 1.06, 80), mats["gunmetal"], yaw, folder="Ark")
+        for k in range(6):
+            ox = (k - 2.5) * length * 0.15
+            block("ArkPort_%d_%d" % (i, k), (x + c * ox - s * w * 0.51, y + s * ox + c * w * 0.51, gz + h * 0.55), (90, 10, 70), mats["windows_dim"], yaw, folder="Ark")
+    # The bridge broke off in the valley: a lit wedge the fight goes round.
+    bx, by = 600.0 + c * 600, 2600.0 + s * 600
+    gz = ground(bx, by)
+    place(CHAMFER, "ArkBridge", (bx, by, gz + 420), rot(pitch=-8, yaw=yaw + 12), (1600 / CHAMFER_SIZE.x, 1000 / CHAMFER_SIZE.y, 800 / CHAMFER_SIZE.z), hull, "Ark")
+    block("ArkBridge_Glass", (bx + c * 800, by + s * 800, gz + 560), (30, 800, 160), mats["strip_cyan"], yaw + 12, folder="Ark")
+    town_light("ArkBridge_Light", (bx + c * 950, by + s * 950, gz + 560), (120, 210, 255), 2500.0, 3000.0)
+    for i in range(14):
+        along = random.uniform(-6000, 1500)
+        side = random.uniform(-1600, 1600)
+        x, y = 600.0 + c * along - s * side, 2600.0 + s * along + c * side
+        if not clear_of_gameplay(x, y):
+            continue
+        sz = random.uniform(150, 600)
+        block("ArkDebris_%02d" % i, (x, y, ground(x, y) + sz * 0.3), (sz * 1.6, sz, sz * 0.6), random.choice([hull, scorch, mats["gunmetal"]]), random.uniform(0, 360), folder="Ark")
 
 
 # --------------------------------------------------------------------------------------------

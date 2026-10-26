@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.30-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.31-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -41,6 +41,10 @@ Every operation is playable. Download the game, open the war table on the Kestre
 | Steamheart | Brasshaven, Wolf 359 | Restrained | [![Play](https://img.shields.io/badge/Steamheart-Play-f2b01e?style=flat-square)](../../releases/latest) |
 | Clean Signal | Neon Verge, Luyten's Star | Lethal | [![Play](https://img.shields.io/badge/Clean%20Signal-Play-f2b01e?style=flat-square)](../../releases/latest) |
 | Lantern Night | Hollyhock Vale, Tau Ceti | Non-lethal | [![Play](https://img.shields.io/badge/Lantern%20Night-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Iron Hive | Pithead Nine, Barnard's Star b | Lethal | [![Play](https://img.shields.io/badge/Iron%20Hive-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Dust Choir | Rock 114, Epsilon Eridani | Lethal | [![Play](https://img.shields.io/badge/Dust%20Choir-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| The Architect | Morrow Station, TRAPPIST-1e | Lethal | [![Play](https://img.shields.io/badge/The%20Architect-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Ark Fall | The ark valley, Kepler-452b | Lethal | [![Play](https://img.shields.io/badge/Ark%20Fall-Play-f2b01e?style=flat-square)](../../releases/latest) |
 
 **Website:** [normansrule.github.io/delta-v-dominion](https://normansrule.github.io/delta-v-dominion/). You can plan an op there and
 watch who comes home.
@@ -106,7 +110,7 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 | Area | Progress | What's built | What's left |
 |---|---|---|---|
 | Combat and squad | <img src="docs/media/progress/combat.svg" width="260" alt="82%"> | GAS weapons, server-checked hits, 3 AI squadmates and orders, revive, stealth, movement kit | Lag-compensated rewind, command wheel |
-| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="66%"> | 11 operations on planet maps plus Boot Camp, including Ironstride, Brasshaven, Hollyhock Vale and Neon Verge; a valve puzzle, repairs, herding, hacks and a chase | The rest of the campaign's maps |
+| Missions and maps | <img src="docs/media/progress/missions.svg" width="260" alt="66%"> | 15 operations on planet maps plus Boot Camp, including Ironstride, Brasshaven, Hollyhock Vale, Neon Verge and four new worlds (Barnard's Star, Epsilon Eridani, TRAPPIST-1e, Kepler-452b); a valve puzzle, repairs, herding, hacks and a chase | The rest of the campaign's maps |
 | Vehicles | <img src="docs/media/progress/vehicles.svg" width="260" alt="75%"> | Tank, LTV, APC, hoverbike, Raven (hover/jet), Marlin boat, the Kestrel, the Ironstride walker | A space fighter; AI pilots and drivers |
 | Kestrel hub | <img src="docs/media/progress/kestrel.svg" width="260" alt="86%"> | Hangar, war table, armoury, lockers, memorial; fly home and launch out with no loading screen; the hangar remembers | Talking with the crew |
 | Towns and factions | <img src="docs/media/progress/towns.svg" width="260" alt="56%"> | Rook's Rest, Brasshaven's Valve Quarter, Hollyhock Vale, 6 factions with standing, 5 contracts, townsfolk who flee gunfire | Town hubs with contracts on the new worlds |
@@ -131,6 +135,8 @@ They're updated at each milestone with `python Scripts/make_progress_bars.py`.
 - [x] Brasshaven (steampunk): restrained rules, clockwork constables, the Steamheart valve puzzle
 - [x] Hollyhock Vale (non-lethal): foam, windpumps, puffbots to lead home, the lantern festival
 - [x] Neon Verge (cyberpunk): relay hacks under fire, the courier chase to the maglev
+- [x] Four more worlds: Iron Hive, Dust Choir, The Architect, Ark Fall
+- [x] Camera-relative vehicle controls: the mouse picks the direction, WASD moves relative to it
 - [ ] Story missions with cinematic briefings
 - [ ] Real art pass: characters, war-frames, vehicles, environments, music
 
@@ -389,6 +395,24 @@ Test report: **[docs/TEST_REPORT_NEONVERGE.md](docs/TEST_REPORT_NEONVERGE.md)**.
 | The Ninth Ring from over the lake | The broker street, skybridges overhead |
 | ![Caught](docs/media/neonverge/neon_caught.png) | ![The maglev](docs/media/neonverge/neon_maglev.png) |
 | Caught, sample intact | The maglev platform he was running for |
+
+### Four more worlds
+
+The galaxy's empty systems now each have an operation, with points of interest, challenges and the quartermaster's
+requisition like every other map.
+
+| | |
+|---|---|
+| <img src="docs/media/worlds_barnard.jpg" width="420" alt="Pitheads and a belt gantry under a red sun on Barnard's Star b"> | **Iron Hive**, Barnard's Star b. Frost on rust under a dim red dwarf: pitheads, belt gantries, an ore railway and the drone assembly yards. |
+| <img src="docs/media/worlds_eridani.jpg" width="420" alt="An airless rock lit by a hard white sun with boulders drifting overhead"> | **Dust Choir**, Epsilon Eridani. An airless rock in the debris ring; hard light, black sky, boulders drifting overhead and casting shadows across the fight. |
+| <img src="docs/media/worlds_trappist.jpg" width="420" alt="White research pods on stilts in a pink twilight"> | **The Architect**, TRAPPIST-1e. Eternal twilight on a tidally locked world. Morrow Station's pods on stilts, three sister worlds in the sky. |
+| <img src="docs/media/worlds_kepler.jpg" width="420" alt="Green hills, trees and the broken hull of the colony ark"> | **Ark Fall**, Kepler-452b. A green super-Earth, thickets and trees, and the colony ark broken across the valley with twenty thousand sleepers aboard. |
+
+### Driving
+
+Every vehicle steers the way the camera looks. **W** drives toward where you're aiming, **A** and **D** toward the
+left and right of your view, **S** backs up, and with no keys held the vehicle keeps its heading. The car and the tank
+turn their wheels toward that direction; the hoverbike, the boat and the Raven turn on the spot.
 
 ### Things to do on every map
 
