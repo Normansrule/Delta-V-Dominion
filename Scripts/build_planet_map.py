@@ -302,15 +302,36 @@ def new_material(name):
     return tools.create_asset(name, ENV + "/Materials", unreal.Material, unreal.MaterialFactoryNew()), True
 
 
+def noise(mat, scale, x, y, func=None, levels=3, lo=0.0, hi=1.0, turbulence=False):
+    """Procedural noise on world position: one octave set of detail the eye reads as natural variation."""
+    wp = expr(mat, unreal.MaterialExpressionWorldPosition, x - 300, y)
+    n = expr(mat, unreal.MaterialExpressionNoise, x, y, scale=scale, levels=levels, output_min=lo, output_max=hi,
+             noise_function=func or unreal.NoiseFunction.NOISEFUNCTION_GRADIENT_ALU, turbulence=turbulence)
+    mel.connect_material_expressions(wp, "", n, "Position")
+    return n
+
+
+def lerpc(mat, a, b, alpha, x, y):
+    """Lerp between two constants by alpha."""
+    l = expr(mat, unreal.MaterialExpressionLinearInterpolate, x, y, const_a=a, const_b=b)
+    mel.connect_material_expressions(alpha, "", l, "Alpha")
+    return l
+
+
+def mul(mat, a, b, x, y):
+    m = expr(mat, unreal.MaterialExpressionMultiply, x, y)
+    mel.connect_material_expressions(a, "", m, "A")
+    mel.connect_material_expressions(b, "", m, "B")
+    return m
+
+
 def make_terrain_material():
     mat, fresh = new_material("M_MoonGround")
     if not fresh:
         return mat
-    # Macro colour: two dusts blended by large-scale noise, then darkened rock on steep slopes.
-    wp_macro = expr(mat, unreal.MaterialExpressionWorldPosition, -1600, -300)
-    big = expr(mat, unreal.MaterialExpressionNoise, -1300, -300, scale=0.0009, levels=5, output_min=0.0, output_max=1.0,
-               noise_function=unreal.NoiseFunction.NOISEFUNCTION_GRADIENT_ALU, turbulence=False)
-    mel.connect_material_expressions(wp_macro, "", big, "Position")
+    # Layered like a scanned ground material: macro tone (kilometres), mid patches (tens of metres), stones and their
+    # crevices (Voronoi, about a metre), and grit; rock takes over on steep slopes with its own strata.
+    big = noise(mat, 0.0009, -1300, -300, levels=5)
     sand_a = const3(mat, B["sand_a"], -1200, -560)
     sand_b = const3(mat, B["sand_b"], -1200, -440)
     l1 = expr(mat, unreal.MaterialExpressionLinearInterpolate, -900, -480)
@@ -325,64 +346,144 @@ def make_terrain_material():
     mel.connect_material_expressions(normal_ws, "", up, "")
     slope = expr(mat, unreal.MaterialExpressionPower, -1300, 100, const_exponent=6.0)
     mel.connect_material_expressions(up, "", slope, "Base")
-    rock = const3(mat, B["slope_rock"], -1100, 0)
+    strata = noise(mat, 0.02, -1300, 0, levels=2, lo=0.65, hi=1.15)
+    rock = mul(mat, const3(mat, B["slope_rock"], -1100, -60), strata, -1000, 0)
     l2 = expr(mat, unreal.MaterialExpressionLinearInterpolate, -700, -300)
     mel.connect_material_expressions(rock, "", l2, "A")
     mel.connect_material_expressions(l1, "", l2, "B")
     mel.connect_material_expressions(slope, "", l2, "Alpha")
 
-    # Fine detail: concrete grain modulates albedo slightly.
+    patches = lerpc(mat, 0.72, 1.18, noise(mat, 0.004, -1300, 1200, levels=4), -1000, 1200)
+    stones = noise(mat, 0.011, -1300, 1400, func=unreal.NoiseFunction.NOISEFUNCTION_VORONOI_ALU, levels=2)
+    crack_p = expr(mat, unreal.MaterialExpressionPower, -1100, 1400, const_exponent=0.35)
+    mel.connect_material_expressions(stones, "", crack_p, "Base")
+    cracks = lerpc(mat, 0.74, 1.0, crack_p, -1000, 1400)
+    grit = lerpc(mat, 0.86, 1.1, noise(mat, 0.06, -1300, 1600, levels=2), -1000, 1600)
     fine_uv = world_uv(mat, 220.0, -1600, 400)
     fine = tex(mat, "/Game/Building/Textures/T_PolishedConcrete01_BC", fine_uv, -1200, 400)
-    detail = expr(mat, unreal.MaterialExpressionMultiply, -500, -200)
-    mel.connect_material_expressions(l2, "", detail, "A")
     lift = expr(mat, unreal.MaterialExpressionAdd, -800, 400, const_b=0.55)
     mel.connect_material_expressions(fine, "R", lift, "A")
-    mel.connect_material_expressions(lift, "", detail, "B")
-    mel.connect_material_property(detail, "", unreal.MaterialProperty.MP_BASE_COLOR)
 
-    # Normals: two world-aligned layers.
-    n_uv = world_uv(mat, 160.0, -1600, 700)
-    n1 = tex(mat, "/Game/Building/Textures/T_Noise01_N", n_uv, -1200, 700, normal=True)
-    n_uv2 = world_uv(mat, 45.0, -1600, 950)
-    n2 = tex(mat, "/Game/Building/Textures/T_FineConcrete01_N", n_uv2, -1200, 950, normal=True)
-    blend = expr(mat, unreal.MaterialExpressionAdd, -800, 800)
-    mel.connect_material_expressions(n1, "RGB", blend, "A")
-    mel.connect_material_expressions(n2, "RGB", blend, "B")
-    flat = expr(mat, unreal.MaterialExpressionMultiply, -600, 800)
-    mel.connect_material_expressions(blend, "", flat, "A")
-    flat.set_editor_property("const_b", 0.6)
-    mel.connect_material_property(flat, "", unreal.MaterialProperty.MP_NORMAL)
+    c = mul(mat, l2, patches, -500, -200)
+    c = mul(mat, c, cracks, -400, -100)
+    c = mul(mat, c, grit, -300, 0)
+    c = mul(mat, c, lift, -200, 100)
+    mel.connect_material_property(c, "", unreal.MaterialProperty.MP_BASE_COLOR)
 
-    rough = expr(mat, unreal.MaterialExpressionConstant, -500, 300, r=0.92)
+    # Normals: macro bumps, mid noise and fine grain, each world-aligned at its own scale.
+    blend = None
+    for i, (scale, path, k) in enumerate(((900.0, "/Game/Building/Textures/T_Noise01_N", 0.5), (160.0, "/Game/Building/Textures/T_Noise01_N", 0.8),
+                                          (45.0, "/Game/Building/Textures/T_FineConcrete01_N", 0.7))):
+        t = tex(mat, path, world_uv(mat, scale, -1600, 700 + i * 250), -1200, 700 + i * 250, normal=True)
+        w = expr(mat, unreal.MaterialExpressionMultiply, -1000, 700 + i * 250, const_b=k)
+        mel.connect_material_expressions(t, "RGB", w, "A")
+        if blend is None:
+            blend = w
+        else:
+            add = expr(mat, unreal.MaterialExpressionAdd, -900, 700 + i * 250)
+            mel.connect_material_expressions(blend, "", add, "A")
+            mel.connect_material_expressions(w, "", add, "B")
+            blend = add
+    norm = expr(mat, unreal.MaterialExpressionNormalize, -700, 900)
+    mel.connect_material_expressions(blend, "", norm, "")
+    mel.connect_material_property(norm, "", unreal.MaterialProperty.MP_NORMAL)
+
+    rough = lerpc(mat, 0.98, 0.78, stones, -500, 300)
     mel.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS)
+    ao = lerpc(mat, 0.72, 1.0, stones, -500, 500)
+    mel.connect_material_property(ao, "", unreal.MaterialProperty.MP_AMBIENT_OCCLUSION)
     mel.recompile_material(mat)
     lib.save_loaded_asset(mat)
     return mat
-
 
 def make_rock_material():
     mat, fresh = new_material("M_Rock")
     if not fresh:
         return mat
+    # Weathered stone: dark and light minerals by grain and mid noise, fractures from Voronoi, lighter lichen-dust on
+    # the tops (world-up faces), three normal scales.
     uv = world_uv(mat, 380.0, -1400, -200)
     grain = tex(mat, "/Game/Building/Textures/T_PolishedConcrete01_BC", uv, -1000, -200)
+    mid = noise(mat, 0.008, -1300, -500, levels=3)
+    mix = expr(mat, unreal.MaterialExpressionLinearInterpolate, -800, -300)
+    mel.connect_material_expressions(grain, "R", mix, "A")
+    mel.connect_material_expressions(mid, "", mix, "B")
+    mix.set_editor_property("const_alpha", 0.5)
     dark = const3(mat, B["rock_dark"], -1000, -450)
     light = const3(mat, B["rock_light"], -1000, -330)
     l = expr(mat, unreal.MaterialExpressionLinearInterpolate, -700, -350)
     mel.connect_material_expressions(dark, "", l, "A")
     mel.connect_material_expressions(light, "", l, "B")
-    mel.connect_material_expressions(grain, "R", l, "Alpha")
-    mel.connect_material_property(l, "", unreal.MaterialProperty.MP_BASE_COLOR)
-    n_uv = world_uv(mat, 45.0, -1400, 200)
-    n = tex(mat, "/Game/Building/Textures/T_Noise01_N", n_uv, -1000, 200, normal=True)
-    mel.connect_material_property(n, "RGB", unreal.MaterialProperty.MP_NORMAL)
-    rough = expr(mat, unreal.MaterialExpressionConstant, -700, 0, r=0.8)
-    mel.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS)
+    mel.connect_material_expressions(mix, "", l, "Alpha")
+    frac = noise(mat, 0.02, -1300, 0, func=unreal.NoiseFunction.NOISEFUNCTION_VORONOI_ALU, levels=1)
+    c = mul(mat, l, lerpc(mat, 0.5, 1.05, frac, -900, 0), -500, -200)
+    normal_ws = expr(mat, unreal.MaterialExpressionVertexNormalWS, -1300, 300)
+    up = expr(mat, unreal.MaterialExpressionComponentMask, -1150, 300, r=False, g=False, b=True, a=False)
+    mel.connect_material_expressions(normal_ws, "", up, "")
+    tops = expr(mat, unreal.MaterialExpressionPower, -1000, 300, const_exponent=4.0)
+    mel.connect_material_expressions(up, "", tops, "Base")
+    dust = expr(mat, unreal.MaterialExpressionLinearInterpolate, -400, -100)
+    mel.connect_material_expressions(c, "", dust, "A")
+    mel.connect_material_expressions(const3(mat, B["sand_a"], -600, 100), "", dust, "B")
+    mel.connect_material_expressions(tops, "", dust, "Alpha")
+    mel.connect_material_property(dust, "", unreal.MaterialProperty.MP_BASE_COLOR)
+    blend = None
+    for i, (scale, path, k) in enumerate(((600.0, "/Game/Building/Textures/T_Noise01_N", 0.6), (120.0, "/Game/Building/Textures/T_Noise01_N", 0.9),
+                                          (35.0, "/Game/Building/Textures/T_FineConcrete01_N", 0.7))):
+        t = tex(mat, path, world_uv(mat, scale, -1400, 500 + i * 250), -1000, 500 + i * 250, normal=True)
+        w = expr(mat, unreal.MaterialExpressionMultiply, -800, 500 + i * 250, const_b=k)
+        mel.connect_material_expressions(t, "RGB", w, "A")
+        if blend is None:
+            blend = w
+        else:
+            add = expr(mat, unreal.MaterialExpressionAdd, -700, 500 + i * 250)
+            mel.connect_material_expressions(blend, "", add, "A")
+            mel.connect_material_expressions(w, "", add, "B")
+            blend = add
+    norm = expr(mat, unreal.MaterialExpressionNormalize, -500, 700)
+    mel.connect_material_expressions(blend, "", norm, "")
+    mel.connect_material_property(norm, "", unreal.MaterialProperty.MP_NORMAL)
+    mel.connect_material_property(lerpc(mat, 0.95, 0.7, frac, -500, 300), "", unreal.MaterialProperty.MP_ROUGHNESS)
+    mel.connect_material_property(lerpc(mat, 0.45, 1.0, frac, -500, 400), "", unreal.MaterialProperty.MP_AMBIENT_OCCLUSION)
     mel.recompile_material(mat)
     lib.save_loaded_asset(mat)
     return mat
 
+
+def make_star_material():
+    """Night/space sky for airless and night worlds: deep blue-black, a field of stars, a faint galactic band."""
+    mat, fresh = new_material("M_StarSky")
+    if not fresh:
+        return mat
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    mat.set_editor_property("two_sided", True)
+    mat.set_editor_property("is_sky", True)    # drawn as the sky, behind everything, never occluding the world
+    wp = expr(mat, unreal.MaterialExpressionWorldPosition, -1400, 0)
+    cells = expr(mat, unreal.MaterialExpressionDivide, -1250, 0, const_b=2600.0)
+    mel.connect_material_expressions(wp, "", cells, "A")
+    vn = expr(mat, unreal.MaterialExpressionVectorNoise, -1100, 0, noise_function=unreal.VectorNoiseFunction.VNF_CELLNOISE_ALU)
+    mel.connect_material_expressions(cells, "", vn, "Position")
+    r = expr(mat, unreal.MaterialExpressionComponentMask, -950, 0, r=True, g=False, b=False, a=False)
+    mel.connect_material_expressions(vn, "", r, "")
+    stars = expr(mat, unreal.MaterialExpressionPower, -800, 0, const_exponent=600.0)
+    mel.connect_material_expressions(r, "", stars, "Base")
+    bright = expr(mat, unreal.MaterialExpressionMultiply, -650, 0, const_b=120.0)
+    mel.connect_material_expressions(stars, "", bright, "A")
+    tint = mul(mat, bright, const3(mat, (0.9, 0.92, 1.0), -800, 150), -500, 50)
+    band = noise(mat, 0.000005, -1100, 300, levels=5, lo=0.0, hi=1.0)
+    band_p = expr(mat, unreal.MaterialExpressionPower, -900, 300, const_exponent=3.0)
+    mel.connect_material_expressions(band, "", band_p, "Base")
+    glow_c = mul(mat, band_p, const3(mat, (0.016, 0.012, 0.02), -900, 450), -700, 350)
+    base = expr(mat, unreal.MaterialExpressionAdd, -400, 200, const_b=0.0)
+    mel.connect_material_expressions(tint, "", base, "A")
+    mel.connect_material_expressions(glow_c, "", base, "B")
+    sky = expr(mat, unreal.MaterialExpressionAdd, -250, 200)
+    mel.connect_material_expressions(base, "", sky, "A")
+    mel.connect_material_expressions(const3(mat, (0.0015, 0.002, 0.004), -400, 400), "", sky, "B")
+    mel.connect_material_property(sky, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    mel.recompile_material(mat)
+    lib.save_loaded_asset(mat)
+    return mat
 
 def tinted(parent_path, name, tint, metallic=None, roughness=None, uv_scale=None):
     path = SHARED + "/Materials/" + name
@@ -516,6 +617,9 @@ def place(mesh, label, location, rotation=None, scale=(1, 1, 1), material=None, 
         comp = a.static_mesh_component
         for i in range(comp.get_num_materials()):
             comp.set_material(i, material)
+    if folder == "Sky":
+        a.static_mesh_component.set_editor_property("cast_shadow", False)   # sky bodies shade nothing on the ground
+        a.static_mesh_component.set_collision_profile_name("NoCollision")
     return a
 
 
@@ -1012,6 +1116,72 @@ def build_ark(mats):
             continue
         sz = random.uniform(150, 600)
         block("ArkDebris_%02d" % i, (x, y, ground(x, y) + sz * 0.3), (sz * 1.6, sz, sz * 0.6), random.choice([hull, scorch, mats["gunmetal"]]), random.uniform(0, 360), folder="Ark")
+
+def build_horizon(rocks, rock_mat):
+    """Close every horizon: ranges of mountains kilometres out, and stars on worlds without an atmosphere or at night,
+    so no view ever ends in empty void."""
+    verge = "verge" in B["extras"]
+    harbour = "harbour" in B["extras"]
+    if not verge:
+        # Three rings of ranges: near foothills, a main range, and a far range that aerial perspective turns blue.
+        for ring, (r0, r1, h0, h1, count) in enumerate(((330000, 420000, 40000, 90000, 30), (480000, 620000, 80000, 170000, 28),
+                                                         (750000, 950000, 140000, 280000, 24))):
+            for i in range(count):
+                a = 2 * math.pi * (i + random.uniform(-0.35, 0.35)) / count
+                if harbour and (abs(math.cos(a)) < 0.25 and ring < 2):
+                    continue    # keep the strait's mouths open to the sea at both ends
+                r = random.uniform(r0, r1)
+                h = random.uniform(h0, h1)
+                w = h * random.uniform(1.4, 2.6)
+                x, y = math.cos(a) * r, math.sin(a) * r
+                place(random.choice(rocks), "Range_%d_%02d" % (ring, i), (x, y, -h * 0.25), rot(yaw=random.uniform(0, 360)),
+                      (w / 100.0, w * random.uniform(0.7, 1.0) / 100.0, h / 60.0), rock_mat, "Horizon")
+    else:
+        # The Verge: the megacity runs on past the lake in every direction, lit blocks fading into the haze.
+        windows = lib.load_asset(SHARED + "/Materials/MI_Windows_Dim")
+        tower = lib.load_asset(SHARED + "/Materials/MI_TowerDark")
+        for i in range(140):
+            a = random.uniform(0, 2 * math.pi)
+            r = random.uniform(30000, 160000)
+            x, y = math.cos(a) * r, math.sin(a) * r
+            w, d, h = random.uniform(1500, 5000), random.uniform(1500, 5000), random.uniform(6000, 42000)
+            block("FarTower_%03d" % i, (x, y, h / 2 - 1500), (w, d, h), tower, random.uniform(0, 90), folder="Horizon")
+            for k in range(int(h // 2500)):
+                block("FarTowerWin_%03d_%d" % (i, k), (x, y, k * 2500 - 300), (w + 20, d + 20, 260), windows, 0, folder="Horizon")
+    if not B["atmosphere"] or verge or B["sun_lux"] < 2.0:
+        sphere = lib.load_asset("/Engine/BasicShapes/Sphere")
+        stars = place(sphere, "StarSky", (0, 0, 0), rot(), (50000.0, 50000.0, 50000.0), make_star_material(), "Sky")
+        smc = stars.static_mesh_component
+        smc.set_editor_property("cast_shadow", False)
+        smc.set_collision_profile_name("NoCollision")    # a solid sky would push every spawn outside it
+        smc.set_editor_property("generate_overlap_events", False)
+
+def build_scatter(rocks, rock_mat):
+    """Ground clutter, placed by ADVScatter when the level starts: gravel, stones and (on green worlds) undergrowth."""
+    cls = unreal.load_class(None, "/Script/DeltaVDominion.DVScatter")
+    if not cls or "verge" in B["extras"]:
+        return
+    layers = [("Gravel", rocks[0], rock_mat, 9000, 0.03, 0.14, 0.55, 3.0, 0.55, True),
+              ("Stones", rocks[1], rock_mat, 1600, 0.14, 0.55, 0.7, 2.2, 0.65, True),
+              ("Scree", rocks[2], rock_mat, 2500, 0.05, 0.3, 0.5, 2.0, 0.85, True)]
+    if "trees" in B["extras"] or "vale" in B["extras"]:
+        tree = lib.load_asset("/Game/ArchVis/SampleScene/Tree/HillTree_02")
+        layers.append(("Undergrowth", tree, None, 700, 0.07, 0.16, 1.0, 1.5, 0.7, True))
+    for i, (name, mesh, mat, count, lo, hi, flat, bias, clump, shadow) in enumerate(layers):
+        a = spawn(cls, "Scatter_" + name, (0, 0, 0), folder="Scatter")
+        a.set_editor_property("mesh", mesh)
+        if mat:
+            a.set_editor_property("material", mat)
+        a.set_editor_property("count", count)
+        a.set_editor_property("extent", unreal.Vector2D(7000.0, 5600.0))
+        a.set_editor_property("min_scale", lo)
+        a.set_editor_property("max_scale", hi)
+        a.set_editor_property("flatten", flat)
+        a.set_editor_property("size_bias", bias)
+        a.set_editor_property("clump", clump)
+        a.set_editor_property("sink", 0.05 if mat is None else 0.3)
+        a.set_editor_property("cast_shadow", shadow)
+        a.set_editor_property("seed", B["seed"] * 10 + i)
 
 
 # --------------------------------------------------------------------------------------------
@@ -1846,7 +2016,7 @@ def build():
                        (bx - 300, by + 1250), (bx - 450, by), (1300, -500), (1400, 800)]
         if verge:
             # Halcyon's rented war-frames, spread through the streets between the blocks.
-            enemy_spots = [(-1800, 60), (600, -60), (1600, 500), (-1000, -500), (2600, -300), (-2600, -500), (300, 600), (1100, -600)]
+            enemy_spots = [(-700, 260), (600, -60), (1600, 500), (-1000, -700), (2600, -300), (200, -1200), (300, 600), (1100, -600)]   # none within 30 m of the start
         if vale:
             # Nana Bramble's helper bots, frightened by the storm and the Static, around the square and the cottages.
             enemy_spots = [(1200, -300), (1500, 900), (300, 1300), (-600, -1000), (2200, 500), (800, -1500)]
@@ -1966,6 +2136,7 @@ def build():
     setp(fc, "volumetric_fog_scattering_distribution", 0.75)
     setp(fc, "volumetric_fog_albedo", unreal.Color(r=255, g=220, b=190, a=255))
     setp(fc, "volumetric_fog_extinction_scale", 0.6)
+    setp(fc, "fog_cutoff_distance", 2000000.0)   # fog stops at 20 km, so the star sky beyond it stays clear
     if B["clouds"]:
         spawn(unreal.VolumetricCloud, "Clouds", (0, 0, 0), folder="Lighting")
 
@@ -1998,6 +2169,8 @@ def build():
     pp.settings = s
 
     build_extras(mats, rocks, rock_mat)
+    build_horizon(rocks, rock_mat)
+    build_scatter(rocks, rock_mat)
     if brass:
         build_brasshaven(mats)
     if vale:

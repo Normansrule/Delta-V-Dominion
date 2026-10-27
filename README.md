@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.31-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.32-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -407,6 +407,22 @@ requisition like every other map.
 | <img src="docs/media/worlds_eridani.jpg" width="420" alt="An airless rock lit by a hard white sun with boulders drifting overhead"> | **Dust Choir**, Epsilon Eridani. An airless rock in the debris ring; hard light, black sky, boulders drifting overhead and casting shadows across the fight. |
 | <img src="docs/media/worlds_trappist.jpg" width="420" alt="White research pods on stilts in a pink twilight"> | **The Architect**, TRAPPIST-1e. Eternal twilight on a tidally locked world. Morrow Station's pods on stilts, three sister worlds in the sky. |
 | <img src="docs/media/worlds_kepler.jpg" width="420" alt="Green hills, trees and the broken hull of the colony ark"> | **Ark Fall**, Kepler-452b. A green super-Earth, thickets and trees, and the colony ark broken across the valley with twenty thousand sleepers aboard. |
+
+### No edge to the world
+
+Past the playable ground, every map has three rings of mountain ranges kilometres out, fading into the haze, so the
+world reads as going on forever. Neon Verge's megacity keeps going past the lake in every direction. Worlds without
+air, and night worlds, have a real star sky with the galaxy's band across it, and so does the view out of the Kestrel's
+hangar. The ground itself is layered: tone that changes over kilometres, patches, stones and their cracks, grit, and
+thousands of pebbles, stones and scree scattered on top when a level starts.
+
+| | |
+|---|---|
+| <img src="docs/media/horizon_europa.jpg" width="420" alt="Europa's ice field with stones in the foreground, ranges behind and stars overhead"> | <img src="docs/media/horizon_verge.jpg" width="420" alt="Neon Verge's street with lit towers beyond it under a starry sky"> |
+| <img src="docs/media/horizon_kestrel.jpg" width="420" alt="The Kestrel's hangar looking out of its mouth at Mars and the stars"> | <img src="docs/media/ui_galaxy_panel.jpg" width="420" alt="The galaxy map's system panel with PLAY buttons and keycaps"> |
+
+Buttons and prompts follow the console shooters: glass panels with a hairline border and an accent rule, PLAY
+buttons that fill with amber on hover, and every key prompt drawn as a keycap.
 
 ### Driving
 

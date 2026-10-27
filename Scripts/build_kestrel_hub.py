@@ -237,6 +237,16 @@ def build():
     phobos.set_folder_path("Space")
     phobos.set_actor_scale3d(unreal.Vector(1100.0, 800.0, 700.0))
     phobos.static_mesh_component.set_material(0, mat("MI_Concrete_Dark"))
+    # The stars past the hangar mouth (the sky material build_planet_map.py makes for the airless worlds).
+    star_mat = lib.load_asset("/Game/Environment/Planets/Europa/Materials/M_StarSky")
+    if star_mat:
+        stars = actors.spawn_actor_from_object(sphere, unreal.Vector(0, 0, 0), rot())
+        stars.set_actor_label("StarSky")
+        stars.set_folder_path("Space")
+        stars.set_actor_scale3d(unreal.Vector(50000.0, 50000.0, 50000.0))
+        stars.static_mesh_component.set_material(0, star_mat)
+        stars.static_mesh_component.set_editor_property("cast_shadow", False)
+        stars.static_mesh_component.set_collision_profile_name("NoCollision")
     sun = spawn(unreal.DirectionalLight, "Sun", (0, 0, 4000), rot(pitch=-28, yaw=130), "Lighting")   # from behind and to one side: Mars shows a terminator
     setp(sun.light_component, "intensity", 4.0)
     setp(sun.light_component, "light_color", unreal.Color(r=255, g=240, b=220, a=255))

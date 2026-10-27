@@ -1,4 +1,5 @@
 #include "UI/DVHUD.h"
+#include "UI/DVUIStyle.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCommandComponent.h"
 #include "Combat/DVAttributeSet.h"
@@ -191,6 +192,12 @@ void ADVHUD::DrawHUD()
 void ADVHUD::Text(const FString& Str, float X, float Y, const FLinearColor& Color, UFont* Font, float Scale, bool bCentre, bool bRight, bool bShadow)
 {
 	Scale *= 1.3f;	// engine fonts are small at 1080p
+	if (Str.Contains(TEXT("[")))
+	{
+		// Key prompts ("[Z] Board") draw the key as a keycap.
+		DVUI::RichText(this, DVUI::FStyle{ UIScale, Scale * UIScale }, Str, X, Y, Color, Font, bCentre, bRight, bShadow);
+		return;
+	}
 	float W = 0.f, H = 0.f;
 	GetTextSize(Str, W, H, Font, Scale * UIScale);
 	const float DrawX = bCentre ? X - W * 0.5f : bRight ? X - W : X;

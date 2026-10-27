@@ -1,4 +1,5 @@
 #include "Strategy/DVGalaxy.h"
+#include "UI/DVUIStyle.h"
 #include "Strategy/DVStarSystem.h"
 #include "Core/DVProfileSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -295,6 +296,11 @@ void ADVGalaxyPlayerController::LaunchOperation(int32 Index)
 void ADVGalaxyHUD::Text(const FString& Str, float X, float Y, const FLinearColor& Color, UFont* Font, float Scale, bool bCentre, bool bRight)
 {
 	Scale *= 1.3f;
+	if (Str.Contains(TEXT("[")))
+	{
+		DVUI::RichText(this, DVUI::FStyle{ UIScale, Scale * UIScale }, Str, X, Y, Color, Font, bCentre, bRight);
+		return;
+	}
 	float W = 0.f, H = 0.f;
 	GetTextSize(Str, W, H, Font, Scale * UIScale);
 	const float DrawX = bCentre ? X - W * 0.5f : bRight ? X - W : X;
@@ -375,7 +381,7 @@ void ADVGalaxyHUD::DrawHUD()
 		const float PX = W - S(560.f);
 		float Y = S(40.f);
 		const int32 Lines = 5 + System->Operations.Num() * 2;
-		DrawRect(FLinearColor(0.01f, 0.02f, 0.04f, 0.7f), PX - S(20.f), Y - S(16.f), S(540.f), S(150.f) + Lines * S(26.f));
+		DVUI::Panel(this, DVUI::FStyle{ UIScale, 1.3f * UIScale }, PX - S(20.f), Y - S(16.f), S(540.f), S(150.f) + Lines * S(26.f), System->GetControlColor());
 		Text(System->SystemName.ToUpper(), PX, Y, FLinearColor::White, Large, 1.1f);
 		Y += S(50.f);
 		Text(FString::Printf(TEXT("%s  |  %s"), *System->GetControlName(), *System->Region), PX, Y, System->GetControlColor(), Small, 1.05f);
@@ -412,9 +418,11 @@ void ADVGalaxyHUD::DrawHUD()
 			if (bPlayable)
 			{
 				// A Play button for every operation you can fly to, and how many of its challenges you've met.
-				const FBox2D Box(FVector2D(PX + S(400.f), Y - S(2.f)), FVector2D(PX + S(500.f), Y + S(40.f)));
-				DrawRect(FLinearColor(0.95f, 0.69f, 0.12f, 1.f), Box.Min.X, Box.Min.Y, Box.GetSize().X, Box.GetSize().Y);
-				Text(TEXT("PLAY"), Box.GetCenter().X, Box.Min.Y + S(8.f), FLinearColor(0.08f, 0.07f, 0.05f, 1.f), Medium, 0.9f, true);
+				const FBox2D Box(FVector2D(PX + S(380.f), Y - S(2.f)), FVector2D(PX + S(505.f), Y + S(40.f)));
+				float MX = -1.f, MY = -1.f;
+				PC->GetMousePosition(MX, MY);
+				DVUI::Button(this, DVUI::FStyle{ UIScale, 1.3f * 0.9f * UIScale }, Box, TEXT("PLAY"), FLinearColor(0.95f, 0.69f, 0.12f, 1.f), Medium,
+					Box.IsInside(FVector2D(MX, MY)), FString::FromInt(i + 1));
 				PlayButtons.Emplace(Box, i);
 				FString Key;
 				Op.Map.Split(TEXT("/"), nullptr, &Key, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
@@ -424,14 +432,14 @@ void ADVGalaxyHUD::DrawHUD()
 					Text(FString::Printf(TEXT("%d challenge%s met"), Done, Done == 1 ? TEXT("") : TEXT("s")), PX + S(400.f), Y + S(44.f), FLinearColor(0.82f, 0.67f, 0.45f, 1.f), Small, 0.8f);
 				}
 			}
-			Text(FString::Printf(TEXT("[%d]  OPERATION %s"), i + 1, *Op.Name.ToUpper()), PX, Y, bPlayable ? FLinearColor(1.f, 0.6f, 0.2f, 1.f) : FLinearColor(0.5f, 0.5f, 0.55f, 1.f), Medium, 1.f);
+			Text(FString::Printf(TEXT("OPERATION %s"), *Op.Name.ToUpper()), PX, Y, bPlayable ? FLinearColor(1.f, 0.6f, 0.2f, 1.f) : FLinearColor(0.5f, 0.5f, 0.55f, 1.f), Medium, 1.f);
 			Y += S(26.f);
-			Text(bPlayable ? Op.Location : Op.Location + TEXT("  (coming soon)"), PX + S(44.f), Y, FLinearColor(0.75f, 0.75f, 0.8f, 1.f), Small, 1.f);
+			Text(bPlayable ? Op.Location : Op.Location + TEXT("  (coming soon)"), PX, Y, FLinearColor(0.75f, 0.75f, 0.8f, 1.f), Small, 1.f);
 			Y += S(30.f);
 		}
 	}
 
-	Text(TEXT("Left-drag orbit   Right-drag / WASD pan   Wheel / Q E zoom   Click select   PLAY or 1-8 launch operation   H home (Sol)   G whole galaxy"),
+	Text(TEXT("[LMB] orbit    [RMB] pan    [Q] [E] zoom    [1] play operation    [H] home    [G] whole galaxy"),
 		W * 0.5f, H - S(46.f), FLinearColor(0.7f, 0.75f, 0.85f, 0.85f), Small, 1.f, true);
 }
 
