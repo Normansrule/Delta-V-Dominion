@@ -1,5 +1,6 @@
 #include "UI/DVHUD.h"
 #include "UI/DVUIStyle.h"
+#include "Core/DVWeather.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Characters/DVCommandComponent.h"
 #include "Combat/DVAttributeSet.h"
@@ -305,10 +306,43 @@ void ADVHUD::DrawVitals(const ADVSoldierCharacter* Soldier)
 
 	const float Health = Attr->GetHealth();
 	const float MaxHealth = FMath::Max(1.f, Attr->GetMaxHealth());
-	const FLinearColor HealthColor = Health / MaxHealth < 0.3f ? DVHudColors::Hostile : DVHudColors::Health;
+	const double Now = GetWorld()->GetTimeSeconds();
+	const float Dt = GetWorld()->GetDeltaSeconds();
+	DownTime = -1.0;	// alive: the next time you go down fades in from the start
+	if (GhostHealth < 0.f)
+	{
+		GhostHealth = ShownHealth = Health;
+	}
+	if (Health < ShownHealth - 0.5f)
+	{
+		if ((ShownHealth - Health) / MaxHealth > 0.25f)
+		{
+			BigHitTime = Now;
+		}
+		LastDropTime = Now;
+		ShownHealth = Health;	// damage lands at once
+	}
+	else
+	{
+		ShownHealth = FMath::FInterpConstantTo(ShownHealth, Health, Dt, MaxHealth / 0.3f);	// heals ease in over ~300 ms
+	}
+	GhostHealth = Now - LastDropTime > 0.35 ? FMath::FInterpConstantTo(GhostHealth, ShownHealth, Dt, MaxHealth / 0.5f) : FMath::Max(GhostHealth, ShownHealth);
+	GhostHealth = FMath::Max(GhostHealth, ShownHealth);
+
+	const float Fraction = ShownHealth / MaxHealth;
+	const bool bCritical = Fraction < 0.25f;
+	// Caution (under half) pulses every 4 s, critical (under a quarter) at 1 Hz.
+	const float Pulse = bCritical ? 0.5f + 0.5f * FMath::Cos(float(Now) * 2.f * PI) : Fraction < 0.5f ? FMath::Max(0.f, FMath::Cos(float(Now) * PI * 0.5f) * 4.f - 3.f) : 0.f;
+	const FLinearColor HealthColor = bCritical ? FMath::Lerp(DVHudColors::Hostile, FLinearColor::White, 0.35f * Pulse)
+		: Fraction < 0.5f ? FMath::Lerp(DVHudColors::Warn, FLinearColor::White, 0.3f * Pulse) : DVHudColors::Health;
 	Text(FString::Printf(TEXT("%d"), FMath::CeilToInt(Health)), X, Y - S(4.f), HealthColor, GEngine->GetLargeFont(), DVType::Display);
 	Text(TEXT("Health"), X + S(70.f), Y + S(4.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body);
-	Bar(X + S(70.f), Y + S(26.f), S(250.f), S(8.f), Health / MaxHealth, HealthColor);
+	const float BX = X + S(70.f), BY = Y + S(26.f), BW = S(250.f), BH = S(8.f);
+	DrawRect(DVHudColors::Track, BX, BY, BW, BH);
+	DrawRect(FLinearColor(1.f, 0.85f, 0.8f, 0.55f), BX, BY, BW * FMath::Clamp(GhostHealth / MaxHealth, 0.f, 1.f), BH);	// the ghost of what you just lost
+	const bool bFlash = Now - LastDropTime < 0.12;
+	DrawRect(bFlash ? FLinearColor::White : HealthColor, BX, BY, BW * FMath::Clamp(Fraction, 0.f, 1.f), BH);
+	DrawLowHealth(Fraction);
 
 	Text(TEXT("Armour"), X + S(70.f), Y + S(40.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body);
 	Bar(X + S(70.f), Y + S(60.f), S(250.f), S(5.f), Attr->GetArmor() / 100.f, DVHudColors::Armor);
@@ -441,6 +475,13 @@ void ADVHUD::DrawObjective(const ADVGameState* GS)
 	Text(GS->ObjectiveText, CX, Y + S(26.f), DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph, true);
 	const int32 Down = GS->EnemiesTotal - GS->EnemiesRemaining;
 	DrawPoints(GS, Y + S(112.f));	// below the contract line
+	if (const ADVWeather* Weather = ADVWeather::Find(GetWorld()); Weather && Weather->GetStrength() > 0.05f)
+	{
+		// The front is the moment to move: say so, as plainly as the objective.
+		const float A = FMath::Clamp(Weather->GetStrength() * 1.5f, 0.f, 1.f);
+		Text(FString::Printf(TEXT("%s  -  sentries are blind past %d m"), *Weather->FrontName.ToUpper(), FMath::RoundToInt(60.f * Weather->SightFraction)),
+			CX, Y + S(140.f), DVHudColors::A(DVHudColors::Cyan, A), GEngine->GetSmallFont(), DVType::Body, true);
+	}
 	if (!GS->bMultiStage || GS->Stage == EDVMissionStage::Clear)
 	{
 		Bar(CX - S(200.f), Y + S(62.f), S(400.f), S(4.f), GS->EnemiesTotal > 0 ? static_cast<float>(Down) / GS->EnemiesTotal : 0.f, DVHudColors::Hostile);
@@ -588,9 +629,45 @@ void ADVHUD::DrawOrderToast()
 	Text(FString::Printf(TEXT("Squad: %s"), *OrderToast), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.68f + S(Rise), Color, GEngine->GetMediumFont(), DVType::Emph, true);
 }
 
+void ADVHUD::DrawLowHealth(float Fraction)
+{
+	const double Now = GetWorld()->GetTimeSeconds();
+	// A hit that takes more than a quarter of your health: one hard white flash.
+	if (Now - BigHitTime < 0.08)
+	{
+		DrawRect(FLinearColor(1.f, 1.f, 1.f, 0.22f), 0.f, 0.f, Canvas->ClipX, Canvas->ClipY);
+	}
+	if (Fraction >= 0.25f)
+	{
+		return;
+	}
+	// Critical: the edges close in, darkened red, beating at 1 Hz.
+	const float Beat = 0.75f + 0.25f * FMath::Cos(float(Now) * 2.f * PI);
+	const float Depth = (0.25f - FMath::Max(Fraction, 0.f)) / 0.25f;
+	const float W = Canvas->ClipX, H = Canvas->ClipY;
+	for (int32 i = 0; i < 10; ++i)
+	{
+		const float T = S(18.f) * (i + 1);
+		const float A = 0.07f * Beat * (0.5f + 0.5f * Depth) * (1.f - i / 10.f);
+		const FLinearColor C = DVHudColors::A(DVHudColors::Wound, A);
+		DrawRect(C, 0.f, 0.f, W, T);
+		DrawRect(C, 0.f, H - T, W, T);
+		DrawRect(C, 0.f, T, T, H - 2.f * T);
+		DrawRect(C, W - T, T, T, H - 2.f * T);
+	}
+}
+
 void ADVHUD::DrawDeathScreen()
 {
-	DrawRect(DVHudColors::A(DVHudColors::Wound, 0.35f), 0.f, 0.f, Canvas->ClipX, Canvas->ClipY);
+	// Going down darkens the world over 800 ms rather than cutting to a red card.
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (DownTime < 0.0)
+	{
+		DownTime = Now;
+	}
+	const float Fade = FMath::Clamp(float(Now - DownTime) / 0.8f, 0.f, 1.f);
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.45f * Fade), 0.f, 0.f, Canvas->ClipX, Canvas->ClipY);
+	DrawRect(DVHudColors::A(DVHudColors::Wound, 0.25f * Fade), 0.f, 0.f, Canvas->ClipX, Canvas->ClipY);
 	Text(TEXT("YOU ARE DOWN"), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.42f, DVHudColors::Hostile, GEngine->GetLargeFont(), DVType::Display, true);
 	Text(TEXT("Reinforcing on your squad..."), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.42f + S(64.f), DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph, true);
 }

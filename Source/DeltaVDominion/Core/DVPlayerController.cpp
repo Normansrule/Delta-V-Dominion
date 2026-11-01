@@ -7,6 +7,7 @@
 #include "Combat/DVAttributeSet.h"
 #include "Vehicles/DVKestrel.h"
 #include "Vehicles/DVVehicleKit.h"
+#include "Core/DVWeather.h"
 #include "Core/DVInteractable.h"
 #include "Core/DVCallIns.h"
 #include "Core/DVProfileSubsystem.h"
@@ -1152,6 +1153,14 @@ void ADVPlayerController::DVInteract(float Delay)
 {
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { OnInteractPressed(); }), FMath::Max(Delay, 0.001f), false);
+}
+
+void ADVPlayerController::DVStorm(float Delay)
+{
+	if (ADVWeather* Weather = ADVWeather::Find(GetWorld()))
+	{
+		Weather->ForceFront(Delay);
+	}
 }
 
 void ADVPlayerController::DVDriveTest(const FString& Keys, float CameraYaw, float Delay)

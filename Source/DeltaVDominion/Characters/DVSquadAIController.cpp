@@ -34,6 +34,16 @@ ADVSquadAIController::ADVSquadAIController(const FObjectInitializer& ObjectIniti
 	SetPerceptionComponent(*Perception);
 }
 
+void ADVSquadAIController::SetSightScale(float Scale)
+{
+	if (SightConfig && GetPerceptionComponent())
+	{
+		SightConfig->SightRadius = SightRadius * Scale;
+		SightConfig->LoseSightRadius = SightRadius * Scale * 1.1f;
+		GetPerceptionComponent()->ConfigureSense(*SightConfig);
+	}
+}
+
 ADVSoldierCharacter* ADVSquadAIController::GetSoldier() const
 {
 	return Cast<ADVSoldierCharacter>(GetPawn());

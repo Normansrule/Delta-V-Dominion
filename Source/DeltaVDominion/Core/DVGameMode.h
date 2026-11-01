@@ -23,6 +23,9 @@ class DELTAVDOMINION_API ADVGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 public:
+	/** Radio line from outside the mode (weather fronts). */
+	void SayOnRadio(const FString& Speaker, const FString& Text, float Delay = 0.f) { Radio(Speaker, Text, Delay); }
+
 	ADVGameMode();
 
 	virtual void StartPlay() override;

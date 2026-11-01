@@ -138,6 +138,16 @@ BIOMES = {
                    fog=0.014, fog_color=(0.42, 0.5, 0.5), clouds=True, saturation=1.1, contrast=1.08, exposure=0.0,
                    extras=["ark", "trees", "grass"]),
 }
+# Weather fronts that change the fight (ADVWeather): name, fog multiplier, tint.
+WEATHER = {
+    "mars": ("Dust storm", 27.0, (0.5, 0.28, 0.15)),
+    "ironstride": ("Dust storm", 24.0, (0.5, 0.3, 0.17)),
+    "io": ("Ash fall", 21.0, (0.25, 0.2, 0.16)),
+    "barnard": ("Ice storm", 24.0, (0.55, 0.55, 0.6)),
+    "proxima": ("Fog bank", 30.0, (0.35, 0.3, 0.3)),
+    "kepler": ("Rain squall", 21.0, (0.35, 0.4, 0.42)),
+    "gaia": ("Rain squall", 18.0, (0.4, 0.44, 0.5)),
+}
 B = BIOMES["mars"]
 MAP_PATH = B["map"]
 ENV = B["env"]
@@ -2023,6 +2033,16 @@ def build():
         if brass:
             # The Guild's clockwork constables, rewound to shoot uniforms: around the square and the Steamheart's yard.
             enemy_spots = [(2300, -650), (2400, 750), (1700, 1050), (1800, -1050), (900, -400), (1000, 600), (-200, 850), (0, -800)]
+        if not (town or brass or vale or verge or "walker" in B["extras"]):
+            # Encounter pacing: a light forward picket (2) about halfway out, dug in behind barriers, before the
+            # mid line (2) and the compound (6). Spike, rest, bigger spike.
+            for k, (px, py) in enumerate(((-1300, -450), (-1150, 520))):
+                enemy_spots.append((px, py))
+                jersey("Picket_Barrier_%d" % k, px - 160, py, 90, mats)
+            # A landmark you can steer by from anywhere: a red beacon column over the objective.
+            gz0 = ground(bx, by)
+            block("Objective_Beacon", (bx + 200, by, gz0 + 3600), (36, 36, 6000), mats["strip_red"], folder="Landmark")
+            block("Objective_BeaconCap", (bx + 200, by, gz0 + 6650), (140, 140, 140), mats["strip_red"], folder="Landmark")
         for i, (x, y) in enumerate(enemy_spots):
             e = spawn(soldier, ("Constable_%02d" if brass else "HelperBot_%02d" if vale else "Hearthbound_%02d") % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
             e.set_editor_property("team_id", 2)
@@ -2170,6 +2190,13 @@ def build():
 
     build_extras(mats, rocks, rock_mat)
     build_horizon(rocks, rock_mat)
+    biome_name = [k for k, v in BIOMES.items() if v is B][0]
+    if biome_name in WEATHER:
+        name, scale, tint = WEATHER[biome_name]
+        w = spawn(unreal.load_class(None, "/Script/DeltaVDominion.DVWeather"), "Weather", (0, 0, 500), folder="Gameplay")
+        w.set_editor_property("front_name", name)
+        w.set_editor_property("fog_scale", scale)
+        w.set_editor_property("front_color", unreal.LinearColor(tint[0], tint[1], tint[2], 1.0))
     build_scatter(rocks, rock_mat)
     if brass:
         build_brasshaven(mats)

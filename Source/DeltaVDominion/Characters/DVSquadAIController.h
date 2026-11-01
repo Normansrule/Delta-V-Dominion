@@ -37,6 +37,9 @@ class DELTAVDOMINION_API ADVSquadAIController : public AAIController
 	GENERATED_BODY()
 
 public:
+	/** Weather: shorten (or restore) how far this soldier can see, as a fraction of its normal sight. */
+	void SetSightScale(float Scale);
+
 	ADVSquadAIController(const FObjectInitializer& ObjectInitializer);
 
 	virtual void Tick(float DeltaSeconds) override;

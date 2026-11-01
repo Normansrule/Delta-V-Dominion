@@ -81,4 +81,13 @@ private:
 	TWeakObjectPtr<UDVCommandComponent> BoundCommand;
 	FString OrderToast;
 	double OrderToastTime = -100.0;
+
+	// Health feedback (after the game-studio HUD guide): the bar drops at once and a pale "ghost" of the lost health
+	// lingers, then drains over half a second; heals ease in; a big hit flashes; low health pulses and closes in.
+	float GhostHealth = -1.f;
+	float ShownHealth = -1.f;
+	double LastDropTime = -100.0;
+	double BigHitTime = -100.0;
+	double DownTime = -1.0;
+	void DrawLowHealth(float Fraction);
 };

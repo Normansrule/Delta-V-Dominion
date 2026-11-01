@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.32-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.33-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -423,6 +423,19 @@ thousands of pebbles, stones and scree scattered on top when a level starts.
 
 Buttons and prompts follow the console shooters: glass panels with a hairline border and an accent rule, PLAY
 buttons that fill with amber on hover, and every key prompt drawn as a keycap.
+
+### Weather that changes the fight
+
+On seven worlds a front rolls in every couple of minutes: a dust storm on Mars and Ironstride, ash fall on Io, an ice
+storm on Barnard's Star, fog banks on Proxima, rain squalls on Gaia and Kepler. The air thickens and every sentry's
+eyes shorten to about 20 m until it clears. Halloran calls it ten seconds out. Move in the storm, hold in the clear.
+
+<img src="docs/media/storm_mars.jpg" width="640" alt="A dust storm over the Red Tide compound, the HUD saying the sentries are blind past 20 m">
+
+Each assault map now paces its fight: a light forward picket halfway out, the mid line, then the compound, with a red
+beacon column over the objective you can steer by from anywhere. Health reads at a glance: damage drops the bar at
+once while a pale ghost of what you lost drains after it, heavy hits flash, and under a quarter the screen edges
+close in and beat.
 
 ### Driving
 
