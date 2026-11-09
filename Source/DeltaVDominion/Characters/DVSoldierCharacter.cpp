@@ -1,5 +1,6 @@
 #include "Characters/DVSoldierCharacter.h"
 #include "Core/DVControls.h"
+#include "Characters/DVArmourKit.h"
 #include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
 #include "Characters/DVSquadAIController.h"
@@ -86,6 +87,14 @@ ADVSoldierCharacter::ADVSoldierCharacter(const FObjectInitializer& ObjectInitial
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	// Created by Scripts/build_bootcamp_map.py; exposes Color / Emissive parameters.
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> GreyBoxMat(TEXT("/Game/Dev/M_GreyBox.M_GreyBox"));
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> KitBox(TEXT("/Game/LevelPrototyping/Meshes/SM_ChamferCube.SM_ChamferCube"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> KitCylinder(TEXT("/Game/LevelPrototyping/Meshes/SM_Cylinder.SM_Cylinder"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> KitSphere(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	ArmourBox = KitBox.Object;
+	ArmourCylinder = KitCylinder.Object;
+	ArmourSphere = KitSphere.Object;
+	ArmourMaterial = GreyBoxMat.Object;
 
 	PlaceholderBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlaceholderBody"));
 	PlaceholderBody->SetupAttachment(GetCapsuleComponent());
@@ -181,7 +190,7 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 		{
 			if (bFriendly && Look.bSet)
 			{
-				Mat->SetVectorParameterValue(TEXT("Paint Tint"), UDVProfileSubsystem::PaintColor(Look.Paint));
+				Mat->SetVectorParameterValue(TEXT("Paint Tint"), UDVProfileSubsystem::PaintColor(Look.Paint) * 0.35f);	// the undersuit; the paint goes on the plates
 				Mat->SetVectorParameterValue(TEXT("LogoTint"), UDVProfileSubsystem::OpticsColor(Look.Optics));
 				Mat->SetScalarParameterValue(TEXT("MetalPaintMetallic"), 0.35f);
 				Mat->SetScalarParameterValue(TEXT("MetalPaintRoughness"), 0.45f);
@@ -210,13 +219,14 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 			}
 			// Accord marines: matte olive armour, cyan unit markings.
 			// Hearthbound war-frames: black chrome chassis, hot red optics and seams.
-			Mat->SetVectorParameterValue(TEXT("Paint Tint"), bFriendly ? FriendlyPaint : HostilePaint);
+			Mat->SetVectorParameterValue(TEXT("Paint Tint"), bFriendly ? FriendlyPaint * 0.35f : HostilePaint);
 			Mat->SetVectorParameterValue(TEXT("LogoTint"), bFriendly ? FLinearColor(0.2f, 0.7f, 1.f) : FLinearColor(1.f, 0.08f, 0.02f));
 			Mat->SetScalarParameterValue(TEXT("MetalPaintMetallic"), bFriendly ? 0.2f : 1.f);
 			Mat->SetScalarParameterValue(TEXT("MetalPaintRoughness"), bFriendly ? 0.6f : 0.22f);
 			Mat->SetScalarParameterValue(TEXT("EmissivePower"), bFriendly ? 4.f : 40.f);
 		}
 	}
+	BuildArmour(bFriendly && Look.bSet ? UDVProfileSubsystem::PaintColor(Look.Paint) : FriendlyPaint);
 	if (!bFriendly && HasAuthority() && SoldierName.IsEmpty())
 	{
 		static const TCHAR* HelperNames[] = { TEXT("Pip"), TEXT("Dumpling"), TEXT("Clover"), TEXT("Biscuit"), TEXT("Moss"), TEXT("Thimble"), TEXT("Nutmeg"), TEXT("Pebble") };
@@ -224,6 +234,26 @@ void ADVSoldierCharacter::ApplyTeamAppearance()
 			: bClockwork ? FString::Printf(TEXT("Constable No. %d"), FMath::RandRange(100, 999))
 			: FString::Printf(TEXT("Warden-%03d"), FMath::RandRange(100, 999));
 	}
+}
+
+void ADVSoldierCharacter::BuildArmour(const FLinearColor& Paint)
+{
+	if (GetNetMode() == NM_DedicatedServer || !GetMesh()->GetSkeletalMeshAsset())
+	{
+		return;
+	}
+	const EDVArmourStyle Style = TeamId == 1 ? EDVArmourStyle::Marine : bHelperBot ? EDVArmourStyle::Helper : bClockwork ? EDVArmourStyle::Clockwork : EDVArmourStyle::WarFrame;
+	const FString Key = FString::Printf(TEXT("%d|%s|%s"), int32(Style), *Paint.ToString(), *GetNameSafe(GetMesh()->GetSkeletalMeshAsset()));
+	if (Key != ArmourKey)
+	{
+		ArmourKey = Key;
+		TArray<UStaticMeshComponent*> Parts(ArmourParts);
+		DVArmour::Build(this, GetMesh(), Style, Paint, FDVArmourMeshes{ ArmourBox, ArmourSphere, ArmourCylinder, ArmourMaterial }, Parts, false);
+		ArmourParts = Parts;
+		UpdateFirstPersonBody();
+	}
+	TArray<UStaticMeshComponent*> Parts(ArmourParts);
+	DVArmour::SetOptics(Parts, !bIsDead);
 }
 
 void ADVSoldierCharacter::UpdateFirstPersonBody()
@@ -235,6 +265,14 @@ void ADVSoldierCharacter::UpdateFirstPersonBody()
 	}
 	GetMesh()->SetOwnerNoSee(false);
 	FirstPersonMesh->SetVisibility(false);
+	// The helmet and pauldrons would fill your own first-person view: you don't see them, everyone else does.
+	for (UStaticMeshComponent* Part : ArmourParts)
+	{
+		if (Part && Part->ComponentHasTag(TEXT("DVHead")))
+		{
+			Part->SetOwnerNoSee(bFirstPerson && !bShowFullBody);
+		}
+	}
 	if (bFirstPerson && !bShowFullBody)
 	{
 		GetMesh()->HideBoneByName(TEXT("neck_01"), EPhysBodyOp::PBO_None);

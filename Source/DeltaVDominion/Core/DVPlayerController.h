@@ -119,6 +119,12 @@ public:
 	/** Console / capture: "DVViewBulwark [Distance]" frames the nearest Bulwark from a camera in front of it. */
 	UFUNCTION(Exec)
 	void DVViewBulwark(float Distance = 650.f);
+	/** Capture: "DVViewSoldier Team [Distance] [Angle] [Which]" frames a soldier of that team (1 squad, 2 hostile) for a portrait. */
+	UFUNCTION(Exec)
+	void DVViewSoldier(int32 Team, float Distance = 260.f, float Angle = 20.f, int32 Which = 0);
+	/** Capture: "DVViewTag Tag [Distance] [Height]" frames the actors tagged Tag (e.g. a story scene). */
+	UFUNCTION(Exec)
+	void DVViewTag(const FString& Tag, float Distance = 1400.f, float Height = 500.f);
 
 	/** Console (dev): "DVDebugPawns" logs every pawn's class, location and visibility. */
 	UFUNCTION(Exec)

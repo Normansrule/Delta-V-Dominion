@@ -12,6 +12,8 @@ class UCameraComponent;
 class USkeletalMeshComponent;
 class USkeletalMesh;
 class UStaticMeshComponent;
+class UStaticMesh;
+class UMaterialInterface;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class UDVAttributeSet;
@@ -195,6 +197,14 @@ protected:
 	/** Grey-box body shown until a skeletal Mesh is assigned, tinted by team (blue = friendly, red = Hearthbound). */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UStaticMeshComponent> PlaceholderBody;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UStaticMeshComponent> PlaceholderVisor;
+	/** Armour kit-bashed onto the skeleton (see DVArmourKit): helmet, plates, pack, pads. Built per faction. */
+	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> ArmourParts;
+	UPROPERTY() TObjectPtr<UStaticMesh> ArmourBox;
+	UPROPERTY() TObjectPtr<UStaticMesh> ArmourSphere;
+	UPROPERTY() TObjectPtr<UStaticMesh> ArmourCylinder;
+	UPROPERTY() TObjectPtr<UMaterialInterface> ArmourMaterial;
+	FString ArmourKey;	// style + paint + body the current kit was built for
+	void BuildArmour(const FLinearColor& Paint);
 	UPROPERTY() TObjectPtr<UDVAttributeSet> AttributeSet;
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeapon) TObjectPtr<ADVWeaponBase> CurrentWeapon;

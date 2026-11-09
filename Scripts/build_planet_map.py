@@ -645,6 +645,8 @@ def place(mesh, label, location, rotation=None, scale=(1, 1, 1), material=None, 
         comp = a.static_mesh_component
         for i in range(comp.get_num_materials()):
             comp.set_material(i, material)
+    if folder == "Story":
+        a.tags = [unreal.Name("_".join(label.split("_")[:2]))]   # "Story_camp": lets captures find the scene
     if folder == "Sky":
         a.static_mesh_component.set_editor_property("cast_shadow", False)   # sky bodies shade nothing on the ground
         a.static_mesh_component.set_collision_profile_name("NoCollision")
@@ -1200,6 +1202,104 @@ def build_crystals(mats):
         place(prism, "CrystalSpire_%d" % i, (x, y, ground(x, y) - 200), rot(random.uniform(-12, 12), random.uniform(0, 360), random.uniform(-12, 12)),
               (w / pw, w / pw, h / ph), palette[i % 3], "Crystals")
     log("crystals %d" % n)
+
+
+def build_vignettes(mats):
+    """Story in the set dressing: small scenes that say what happened here before the squad landed. A crashed Raven,
+    a line of dead war-frames, a refugee camp, a field memorial, a supply dump, a toppled relay mast."""
+    cone = lib.load_asset("/Engine/BasicShapes/Cone")
+    sphere = lib.load_asset("/Engine/BasicShapes/Sphere")
+    tent = tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_TentCanvas", (0.42, 0.38, 0.28), roughness=0.95)
+    scorch = tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_Scorch", (0.025, 0.022, 0.02), metallic=0.2, roughness=0.9)
+    spots = []
+    for i in range(400):
+        ang = random.uniform(0, 2 * math.pi)
+        q = random.uniform(0.45, 1.0)
+        x, y = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
+        if clear_of_gameplay(x, y) and all((x - a) ** 2 + (y - b) ** 2 > 1800 ** 2 for a, b in spots):
+            spots.append((x, y))
+        if len(spots) >= 6:
+            break
+    scenes = ["raven", "frames", "camp", "memorial", "dump", "mast"]
+    random.shuffle(scenes)
+    for (x, y), scene in zip(spots, scenes):
+        gz = ground(x, y)
+        yaw = random.uniform(0, 360)
+        c, sn = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        def at(fx, fy):
+            return x + c * fx - sn * fy, y + sn * fx + c * fy
+        tag = "Story_%s" % scene
+        if scene == "raven":
+            # A Raven came down hard: the hull nose-first in a furrow, a wing torn off, scorch and a guttering fire.
+            block(tag + "_Scorch", (x, y, gz + 2), (1300, 700, 6), scorch, yaw, folder="Story")
+            hull = place(CHAMFER, tag + "_Hull", (x, y, gz + 130), rot(pitch=-12, yaw=yaw, roll=18), (900 / CHAMFER_SIZE.x, 300 / CHAMFER_SIZE.y, 220 / CHAMFER_SIZE.z), mats["gunmetal"], "Story")
+            wx, wy = at(350, 520)
+            place(CHAMFER, tag + "_Wing", (wx, wy, ground(wx, wy) + 30), rot(pitch=5, yaw=yaw + 35, roll=-10), (500 / CHAMFER_SIZE.x, 160 / CHAMFER_SIZE.y, 25 / CHAMFER_SIZE.z), mats["gunmetal"], "Story")
+            tx, ty = at(-520, 0)
+            block(tag + "_Tail", (tx, ty, ground(tx, ty) + 260), (160, 30, 260), mats["gunmetal"], yaw, folder="Story")
+            block(tag + "_Stripe", (tx, ty, ground(tx, ty) + 300), (162, 32, 30), mats["strip_cyan"], yaw, folder="Story")
+            fx, fy = at(250, -60)
+            town_light(tag + "_Fire", (fx, fy, ground(fx, fy) + 120), (255, 120, 40), 1800.0, 900.0)
+            block(tag + "_Embers", (fx, fy, ground(fx, fy) + 15), (120, 120, 20), mats["ember"], yaw, folder="Story")
+        elif scene == "frames":
+            # Three war-frames where an Accord patrol stopped them: face-down, optics dark.
+            for k in range(3):
+                fx, fy = at(-300 + k * 300, random.uniform(-120, 120))
+                g = ground(fx, fy)
+                block(tag + "_Torso%d" % k, (fx, fy, g + 22), (70, 45, 40), mats["gunmetal"], yaw + random.uniform(-40, 40), folder="Story")
+                block(tag + "_Head%d" % k, (fx + 50 * c, fy + 50 * sn, g + 15), (28, 24, 24), mats["gunmetal"], yaw + random.uniform(-60, 60), folder="Story")
+                block(tag + "_Leg%d" % k, (fx - 60 * c, fy - 60 * sn, g + 10), (80, 16, 16), mats["gunmetal"], yaw + random.uniform(-30, 30), folder="Story")
+            jx, jy = at(0, -350)
+            jersey(tag + "_Barrier", jx, jy, yaw, mats)
+        elif scene == "camp":
+            # Colonists sheltered here: tents round a fire, crates of water, a washing line between two poles.
+            for k in range(3):
+                a = math.radians(yaw + k * 120)
+                tx, ty = x + math.cos(a) * 380, y + math.sin(a) * 380
+                place(cone, tag + "_Tent%d" % k, (tx, ty, ground(tx, ty)), rot(yaw=random.uniform(0, 360)), (2.6, 2.6, 1.9), tent, "Story")
+            town_light(tag + "_Campfire", (x, y, gz + 60), (255, 150, 70), 1200.0, 1000.0)
+            block(tag + "_Firepit", (x, y, gz + 8), (90, 90, 16), mats["ember"], 0, folder="Story")
+            for k in range(4):
+                cx, cy = at(-150 + k * 70, 240)
+                block(tag + "_Crate%d" % k, (cx, cy, ground(cx, cy) + 30), (60, 50, 60), mats["wood"], yaw + random.uniform(-10, 10), folder="Story")
+            for side in (-1, 1):
+                px, py = at(side * 300, -280)
+                block(tag + "_Pole%d" % side, (px, py, ground(px, py) + 110), (8, 8, 220), mats["wood"], 0, folder="Story")
+            lx, ly = at(0, -280)
+            block(tag + "_Line", (lx, ly, gz + 200), (600, 2, 2), mats["wood"], yaw, folder="Story")
+            for k in range(4):
+                cx, cy = at(-180 + k * 120, -280)
+                block(tag + "_Cloth%d" % k, (cx, cy, gz + 170), (60, 4, 60), random.choice([mats["canvas_red"], mats["canvas_teal"], mats["canvas_sand"]]), yaw, folder="Story")
+        elif scene == "memorial":
+            # The squad that held here before you: a cairn, rifles planted barrel-down, helmets on the stocks.
+            block(tag + "_Cairn", (x, y, gz + 40), (160, 160, 80), mats["concrete"], yaw, folder="Story")
+            for k in range(3):
+                rx, ry = at(-110 + k * 110, 140)
+                block(tag + "_Rifle%d" % k, (rx, ry, ground(rx, ry) + 55), (8, 6, 110), mats["gunmetal"], yaw, folder="Story")
+                place(sphere, tag + "_Helmet%d" % k, (rx, ry, ground(rx, ry) + 118), rot(), (0.27, 0.25, 0.22), mats["olive"], "Story")
+            town_light(tag + "_Candle", (x, y, gz + 100), (255, 190, 120), 300.0, 400.0)
+        elif scene == "dump":
+            # An Accord supply dump, half-looted: stacked crates under a tarp, hazard-striped fuel drums.
+            for k in range(6):
+                cx, cy = at(-200 + (k % 3) * 130, -60 + (k // 3) * 130)
+                stack = random.randint(1, 2)
+                for h in range(stack):
+                    block(tag + "_Crate%d_%d" % (k, h), (cx, cy, ground(cx, cy) + 50 + h * 100), (110, 110, 100), mats["olive"], yaw + random.uniform(-6, 6), folder="Story")
+            block(tag + "_Tarp", (x - 70 * c, y - 70 * sn, gz + 230), (480, 340, 8), mats["canvas_sand"], yaw, folder="Story")
+            for k in range(4):
+                dx, dy = at(260, -120 + k * 80)
+                place(lib.load_asset("/Game/LevelPrototyping/Meshes/SM_Cylinder"), tag + "_Drum%d" % k, (dx, dy, ground(dx, dy)), rot(), (0.6, 0.6, 0.9), mats["hazard"], "Story")
+        elif scene == "mast":
+            # CINDER's relay mast, cut down: the lattice lying across the ground, its red beacon still blinking.
+            for k in range(8):
+                mx, my = at(-700 + k * 200, 0)
+                block(tag + "_Seg%d" % k, (mx, my, ground(mx, my) + 30), (200, 60, 60), mats["gunmetal"], yaw, folder="Story")
+            bx, by = at(-700, 0)
+            block(tag + "_Base", (bx, by, ground(bx, by) + 60), (160, 160, 120), mats["concrete_dark"], yaw, folder="Story")
+            ex, ey = at(900, 0)
+            block(tag + "_Beacon", (ex, ey, ground(ex, ey) + 30), (40, 40, 40), mats["strip_red"], yaw, folder="Story")
+            town_light(tag + "_BeaconLight", (ex, ey, ground(ex, ey) + 60), (255, 40, 30), 600.0, 700.0)
+    log("story vignettes %d" % min(len(spots), len(scenes)))
 
 
 def build_horizon(rocks, rock_mat):
@@ -2271,6 +2371,8 @@ def build():
 
     build_extras(mats, rocks, rock_mat)
     build_horizon(rocks, rock_mat)
+    if not (town or brass or vale or verge):
+        build_vignettes(mats)
     biome_name = [k for k, v in BIOMES.items() if v is B][0]
     if biome_name in WEATHER:
         name, scale, tint = WEATHER[biome_name]

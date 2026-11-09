@@ -9,6 +9,7 @@
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVWeather.h"
 #include "Core/DVControls.h"
+#include "Camera/CameraComponent.h"
 #include "InputKeyEventArgs.h"
 #include "Core/DVInteractable.h"
 #include "Core/DVCallIns.h"
@@ -572,6 +573,63 @@ void ADVPlayerController::DVViewBulwark(float Distance)
 	FActorSpawnParameters Params;
 	if (ACameraActor* Cam = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), Eye, (Focus - Eye).Rotation(), Params))
 	{
+		SetViewTarget(Cam);
+	}
+}
+
+void ADVPlayerController::DVViewTag(const FString& Tag, float Distance, float Height)
+{
+	FBox Box(ForceInit);
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		if (It->ActorHasTag(FName(*Tag)))
+		{
+			Box += It->GetComponentsBoundingBox();
+		}
+	}
+	if (!Box.IsValid)
+	{
+		return;
+	}
+	const FVector Focus = Box.GetCenter();
+	FVector Dir = Focus - FVector(-4300.f, 0.f, Focus.Z);	// look from the landing-zone side, like a player arriving
+	Dir = Dir.GetSafeNormal2D();
+	const FVector Eye = Focus - Dir.RotateAngleAxis(25.f, FVector::UpVector) * Distance + FVector(0.f, 0.f, Height);
+	FActorSpawnParameters Params;
+	if (ACameraActor* Cam = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), Eye, (Focus - Eye).Rotation(), Params))
+	{
+		Cam->GetCameraComponent()->SetFieldOfView(55.f);
+		SetViewTarget(Cam);
+	}
+}
+
+void ADVPlayerController::DVViewSoldier(int32 Team, float Distance, float Angle, int32 Which)
+{
+	TArray<ADVSoldierCharacter*> Found;
+	for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)
+	{
+		if (It->TeamId == Team && *It != GetPawn() && !It->IsDead())
+		{
+			Found.Add(*It);
+		}
+	}
+	if (Found.Num() == 0)
+	{
+		return;
+	}
+	ADVSoldierCharacter* Subject = Found[FMath::Clamp(Which, 0, Found.Num() - 1)];
+	// Freeze the subject so the portrait isn't a blur: AI off, standing still.
+	if (AController* C = Subject->GetController())
+	{
+		C->UnPossess();
+	}
+	const FVector Focus = Subject->GetActorLocation() + FVector(0.f, 0.f, 30.f);
+	const FVector Forward = Subject->GetActorForwardVector().GetSafeNormal2D();
+	const FVector Eye = Focus + Forward.RotateAngleAxis(Angle, FVector::UpVector) * Distance + FVector(0.f, 0.f, 25.f);
+	FActorSpawnParameters Params;
+	if (ACameraActor* Cam = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), Eye, (Focus - Eye).Rotation(), Params))
+	{
+		Cam->GetCameraComponent()->SetFieldOfView(40.f);
 		SetViewTarget(Cam);
 	}
 }

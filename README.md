@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.35-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.36-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -425,6 +425,30 @@ thousands of pebbles, stones and scree scattered on top when a level starts.
 
 Buttons and prompts follow the console shooters: glass panels with a hairline border and an accent rule, PLAY
 buttons that fill with amber on hover, and every key prompt drawn as a keycap.
+
+### Who you fight beside, and who you fight
+
+Every soldier now wears a kit-bashed armour set bolted to the skeleton, so it moves with every animation and each side
+has its own silhouette, not just its own paint. **Accord marines**: a rounded helmet with a cyan visor and comms boom,
+a plate carrier with pouches and a unit light, a pack with a whip antenna, shoulder, thigh and shin plates over a dark
+undersuit (your locker paint goes on the plates). **CINDER war-frames**: an angular helm with a red optic slit and
+sensor spikes, a heavy chest with a glowing core, ribbed abdomen, back exhausts and big pauldrons with red seams.
+Brasshaven's **constables** wear brass bell helmets with twin amber lenses and a boiler on the back; Nana's
+**helper-bots** have round dome heads and rosy eyes. Optics go dark when a wearer goes down. Your own helmet stays out
+of your first-person view.
+
+<img src="docs/media/characters_before_after.jpg" width="720" alt="Before and after: marines and war-frames">
+
+<img src="docs/media/characters_factions.jpg" width="720" alt="A Brasshaven constable and a Hollyhock helper-bot">
+
+### Story in the scenery
+
+Every combat world now carries six small scenes that say what happened before you landed: a Raven that came down
+hard, still burning; three war-frames where a patrol stopped them; a refugee camp with tents round a fire and washing
+on a line; a field memorial of rifles planted with helmets on the stocks; a half-looted supply dump; and CINDER's
+relay mast cut down with its beacon still blinking.
+
+<img src="docs/media/story_scenes.jpg" width="720" alt="A refugee camp, a field memorial, a felled relay mast and a crashed Raven">
 
 ### The campaign: 170 missions, in order
 
