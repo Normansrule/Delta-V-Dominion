@@ -1,4 +1,5 @@
 #include "Vehicles/DVBoat.h"
+#include "Core/DVControls.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Core/DVFx.h"
@@ -137,12 +138,12 @@ void ADVBoat::Tick(float DeltaSeconds)
 		FHitResult Hit;
 		FCollisionQueryParams Q(SCENE_QUERY_STAT(DVBoatAim), false, this);
 		const FVector Aim = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, DV_TRACE_WEAPON, Q) ? FVector(Hit.ImpactPoint) : End;
-		if ((PC->IsInputKeyDown(EKeys::LeftMouseButton) || bAutoFire) && Now - LastGun >= GunInterval)
+		if ((PC->IsInputKeyDown(DVControls::Key(EDVControl::Fire)) || bAutoFire) && Now - LastGun >= GunInterval)
 		{
 			LastGun = Now;
 			ServerFire(false, Aim);
 		}
-		if (PC->IsInputKeyDown(EKeys::RightMouseButton) && Now - LastMissile >= MissileInterval)
+		if (PC->IsInputKeyDown(DVControls::Key(EDVControl::Aim)) && Now - LastMissile >= MissileInterval)
 		{
 			LastMissile = Now;
 			ServerFire(true, Aim);

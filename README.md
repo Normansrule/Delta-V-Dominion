@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.34-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.35-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -206,7 +206,7 @@ system, then launch its operation.
 
 ### Vehicles and the Kestrel
 
-Every vehicle is real and boardable (Z). They have hull armour, enemies target crewed vehicles, and a destroyed
+Every vehicle is real and boardable (E). They have hull armour, enemies target crewed vehicles, and a destroyed
 vehicle burns out and throws its crew clear.
 
 | | |
@@ -274,7 +274,7 @@ station overhead, and lands through the starboard bay. The hangar streams into t
 |---|---|
 | ![Lift-off](docs/media/fly_home_liftoff.png) | ![Into the bay](docs/media/fly_home_bay.png) |
 
-**And back out.** In the hangar, the war table (**Z**) now puts you in a Raven. It lifts off the pad, slides out of the
+**And back out.** In the hangar, the war table (**E**) now puts you in a Raven. It lifts off the pad, slides out of the
 hangar mouth over the launch lip, and burns away from the Kestrel toward Mars. As the burn peaks, the screen washes
 white for the Lattice jump, and the galaxy map opens out of the white, pulling back from Sol.
 
@@ -514,23 +514,29 @@ On Linux, try Steam Proton. On a Mac, use a Windows virtual machine or a cloud P
 
 The game opens on the galaxy map:
 1. Click Sol, then press **1** to go aboard the Kestrel.
-2. Walk to the war table and press **Z** to pick an operation. Boot Camp on Luna teaches the squad orders and
+2. Walk to the war table and press **E** to pick an operation. Boot Camp on Luna teaches the squad orders and
    call-ins.
 3. When an operation ends, press **K** to fly home in a Raven, or **Enter** to redeploy.
 
 ### Controls
 
+The standard PC shooter layout. Press **Esc** at any time for the controls screen: click any control, press the key
+you want, and it is saved and shown on every prompt.
+
+<img src="docs/media/controls_screen.jpg" width="640" alt="The controls screen: every binding grouped into movement, combat, squad, fire support, vehicles and general">
+
 | Key | Action | Key | Action |
 |---|---|---|---|
-| WASD / Mouse | Move / look | F | Squad: move to crosshair (behind an unaware sentry: **silent takedown**) |
-| LMB / RMB | Fire / aim down sights | G / V | Squad: hold / regroup on me |
-| R | Reload | T / X | Squad: suppress / flank target |
-| Shift | Sprint | Space | Jump; in the air, **thruster boost**; in water, swim up |
-| C / Ctrl | Crouch; **slide** while sprinting | Left Alt | **Thruster dash** |
-| Q / E | Lean left / right | Z | Use or board; hold to revive a squadmate |
-| B / N / H | Orbital strike / supply drop / strafing run | Enter / K / M | After a mission: redeploy / **fly home** / galaxy map |
-| **Galaxy map** | Drag to orbit, wheel to zoom, click a system, 1-3 to launch | **Locker** | 1-4 customise your commander |
-| **Driving** | W/S throttle, A/D steer, LMB fire | **Flying** | WASD move, Space up, C down, F jet mode, V cockpit, X flares |
+| WASD / Mouse | Move / look | E | Use, board, pick up; hold to revive a squadmate |
+| Space | Jump; in the air, **thruster boost** | F | Melee: **silent takedown** behind an unaware sentry |
+| Shift | Sprint | Ctrl / C | Crouch; **slide** while sprinting |
+| LMB / RMB | Fire / aim down sights | R | Reload |
+| Q | Lean left (E leans right while aiming) | Left Alt | **Thruster dash** |
+| Middle mouse | Squad: move or attack where you aim | Z / V | Squad: hold / regroup on me |
+| T / X | Squad: suppress / flank target | B / N / H | Orbital strike / supply drop / strafing run |
+| Tab | Galaxy map (after a mission) | K / Enter | Fly home / redeploy (Enter also buys at the quartermaster) |
+| Esc | Pause and controls | 1-4 | Customise your commander at the locker |
+| **Driving** | Mouse aims where you go, W toward it, A/D toward the left/right of your view, S back up, Space handbrake, LMB fire | **Flying** | WASD move relative to the camera, Space climb, Ctrl descend, G jet mode, C camera, X flares |
 
 LMB and RMB are the left and right mouse buttons.
 

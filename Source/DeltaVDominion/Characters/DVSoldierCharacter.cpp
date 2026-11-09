@@ -1,4 +1,5 @@
 #include "Characters/DVSoldierCharacter.h"
+#include "Core/DVControls.h"
 #include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
 #include "Characters/DVSquadAIController.h"
@@ -1063,6 +1064,7 @@ void ADVSoldierCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	Input->BindAction(OrderRegroupAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_OrderRegroup);
 	Input->BindAction(OrderSuppressAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_OrderSuppress);
 	Input->BindAction(OrderFlankAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_OrderFlank);
+	Input->BindAction(MeleeAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_Melee);
 }
 
 void ADVSoldierCharacter::Input_Move(const FInputActionValue& Value)
@@ -1168,16 +1170,6 @@ void ADVSoldierCharacter::Input_Crouch()
 
 void ADVSoldierCharacter::Input_OrderMove()
 {
-	// Context-sensitive: an unaware frame right in front of you gets a silent takedown instead of an order.
-	if (ADVSoldierCharacter* Victim = FindTakedownTarget())
-	{
-		if (ADVPlayerController* PC = Cast<ADVPlayerController>(GetController()))
-		{
-			PC->LastTakedownRequest = GetWorld()->GetTimeSeconds();
-		}
-		ServerTakedown(Victim);
-		return;
-	}
 	CommandComponent->IssueOrderFromView(EDVSquadOrder::MoveTo);
 }
 void ADVSoldierCharacter::Input_OrderHold() { CommandComponent->IssueOrderFromView(EDVSquadOrder::Hold); }
@@ -1213,34 +1205,69 @@ void ADVSoldierCharacter::CreateFallbackInput()
 	OrderRegroupAction = MakeAction(TEXT("IA_OrderRegroup"), EInputActionValueType::Boolean);
 	OrderSuppressAction = MakeAction(TEXT("IA_OrderSuppress"), EInputActionValueType::Boolean);
 	OrderFlankAction = MakeAction(TEXT("IA_OrderFlank"), EInputActionValueType::Boolean);
-
-	// WASD -> Axis2D (X = right, Y = forward)
-	{
-		FEnhancedActionKeyMapping& W = Ctx->MapKey(MoveAction, EKeys::W);
-		W.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(Ctx));
-		FEnhancedActionKeyMapping& S = Ctx->MapKey(MoveAction, EKeys::S);
-		S.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(Ctx));
-		S.Modifiers.Add(NewObject<UInputModifierNegate>(Ctx));
-		FEnhancedActionKeyMapping& A = Ctx->MapKey(MoveAction, EKeys::A);
-		A.Modifiers.Add(NewObject<UInputModifierNegate>(Ctx));
-		Ctx->MapKey(MoveAction, EKeys::D);
-	}
-	Ctx->MapKey(LookAction, EKeys::Mouse2D);
-	Ctx->MapKey(JumpAction, EKeys::SpaceBar);
-	Ctx->MapKey(FireAction, EKeys::LeftMouseButton);
-	Ctx->MapKey(AimAction, EKeys::RightMouseButton);
-	Ctx->MapKey(ReloadAction, EKeys::R);
-	Ctx->MapKey(SprintAction, EKeys::LeftShift);
-	Ctx->MapKey(CrouchAction, EKeys::C);
-	Ctx->MapKey(CrouchAction, EKeys::LeftControl);
-	Ctx->MapKey(DashAction, EKeys::LeftAlt);
-	Ctx->MapKey(LeanLeftAction, EKeys::Q);
-	Ctx->MapKey(LeanRightAction, EKeys::E);
-	Ctx->MapKey(OrderMoveAction, EKeys::F);
-	Ctx->MapKey(OrderHoldAction, EKeys::G);
-	Ctx->MapKey(OrderRegroupAction, EKeys::V);
-	Ctx->MapKey(OrderSuppressAction, EKeys::T);
-	Ctx->MapKey(OrderFlankAction, EKeys::X);
+	MeleeAction = MakeAction(TEXT("IA_Melee"), EInputActionValueType::Boolean);
 
 	DefaultMappingContext = Ctx;
+	ApplyControlBindings();
+}
+
+void ADVSoldierCharacter::ApplyControlBindings()
+{
+	UInputMappingContext* Ctx = DefaultMappingContext;
+	if (!Ctx || !MoveAction)
+	{
+		return;
+	}
+	Ctx->UnmapAll();
+	// Movement: the four direction keys feed one Axis2D (X = right, Y = forward).
+	{
+		FEnhancedActionKeyMapping& Fwd = Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveForward));
+		Fwd.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(Ctx));
+		FEnhancedActionKeyMapping& Back = Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveBack));
+		Back.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(Ctx));
+		Back.Modifiers.Add(NewObject<UInputModifierNegate>(Ctx));
+		FEnhancedActionKeyMapping& Left = Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveLeft));
+		Left.Modifiers.Add(NewObject<UInputModifierNegate>(Ctx));
+		Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveRight));
+	}
+	Ctx->MapKey(LookAction, EKeys::Mouse2D);
+	Ctx->MapKey(JumpAction, DVControls::Key(EDVControl::Jump));
+	Ctx->MapKey(FireAction, DVControls::Key(EDVControl::Fire));
+	Ctx->MapKey(AimAction, DVControls::Key(EDVControl::Aim));
+	Ctx->MapKey(ReloadAction, DVControls::Key(EDVControl::Reload));
+	Ctx->MapKey(SprintAction, DVControls::Key(EDVControl::Sprint));
+	Ctx->MapKey(CrouchAction, DVControls::Key(EDVControl::Crouch));
+	if (DVControls::Key(EDVControl::Crouch) == EKeys::LeftControl)
+	{
+		Ctx->MapKey(CrouchAction, EKeys::C);	// the usual second crouch key
+	}
+	Ctx->MapKey(DashAction, DVControls::Key(EDVControl::Dash));
+	Ctx->MapKey(LeanLeftAction, DVControls::Key(EDVControl::LeanLeft));
+	Ctx->MapKey(LeanRightAction, DVControls::Key(EDVControl::LeanRight));
+	Ctx->MapKey(MeleeAction, DVControls::Key(EDVControl::Melee));
+	Ctx->MapKey(OrderMoveAction, DVControls::Key(EDVControl::OrderMove));
+	Ctx->MapKey(OrderHoldAction, DVControls::Key(EDVControl::OrderHold));
+	Ctx->MapKey(OrderRegroupAction, DVControls::Key(EDVControl::OrderRegroup));
+	Ctx->MapKey(OrderSuppressAction, DVControls::Key(EDVControl::OrderSuppress));
+	Ctx->MapKey(OrderFlankAction, DVControls::Key(EDVControl::OrderFlank));
+	if (const APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->RequestRebuildControlMappings();
+		}
+	}
+}
+
+void ADVSoldierCharacter::Input_Melee()
+{
+	// An unaware frame right in front of you: a silent takedown.
+	if (ADVSoldierCharacter* Victim = FindTakedownTarget())
+	{
+		if (ADVPlayerController* PC = Cast<ADVPlayerController>(GetController()))
+		{
+			PC->LastTakedownRequest = GetWorld()->GetTimeSeconds();
+		}
+		ServerTakedown(Victim);
+	}
 }

@@ -8,6 +8,8 @@
 #include "Vehicles/DVKestrel.h"
 #include "Vehicles/DVVehicleKit.h"
 #include "Core/DVWeather.h"
+#include "Core/DVControls.h"
+#include "InputKeyEventArgs.h"
 #include "Core/DVInteractable.h"
 #include "Core/DVCallIns.h"
 #include "Core/DVProfileSubsystem.h"
@@ -47,6 +49,7 @@
 ADVPlayerController::ADVPlayerController()
 {
 	bShowMouseCursor = false;
+	bShouldPerformFullTickWhenPaused = true;	// the controls screen pauses the game and still has to work
 }
 
 void ADVPlayerController::DVShowcase(int32 CameraIndex)
@@ -193,10 +196,16 @@ void ADVPlayerController::CaptureTick()
 void ADVPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
-	// Plain key binding so it works with no pawn (dead, or on the after-action screen).
+	RebindAll();
+}
+
+void ADVPlayerController::RebindAll()
+{
+	// Plain key bindings so they work with no pawn (dead, or on the after-action screen). Keys come from DVControls.
+	InputComponent->KeyBindings.Reset();
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
-	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
-	InputComponent->BindKey(EKeys::N, IE_Pressed, this, &ADVPlayerController::OnSupplyPressed);
+	InputComponent->BindKey(DVControls::Key(EDVControl::Orbital), IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
+	InputComponent->BindKey(DVControls::Key(EDVControl::Supply), IE_Pressed, this, &ADVPlayerController::OnSupplyPressed);
 	const FKey LockerKeys[4] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four };
 	for (int32 Field = 0; Field < 4; ++Field)
 	{
@@ -204,16 +213,101 @@ void ADVPlayerController::SetupInputComponent()
 		Binding.KeyDelegate.GetDelegateForManualSet().BindWeakLambda(this, [this, Field]() { OnLockerKey(Field); });
 		InputComponent->KeyBindings.Add(Binding);
 	}
-	InputComponent->BindKey(EKeys::H, IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
+	InputComponent->BindKey(DVControls::Key(EDVControl::Strafe), IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
+	InputComponent->BindKey(DVControls::Key(EDVControl::Map), IE_Pressed, this, &ADVPlayerController::OnMapPressed);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
-	InputComponent->BindKey(EKeys::K, IE_Pressed, this, &ADVPlayerController::OnFlyHomePressed);
-	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
-	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ADVPlayerController::OnBuyPressed);
-	InputComponent->BindKey(EKeys::Z, IE_Released, this, &ADVPlayerController::OnInteractReleased);
+	InputComponent->BindKey(DVControls::Key(EDVControl::FlyHome), IE_Pressed, this, &ADVPlayerController::OnFlyHomePressed);
+	InputComponent->BindKey(DVControls::Key(EDVControl::Interact), IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
+	InputComponent->BindKey(DVControls::Key(EDVControl::Interact), IE_Released, this, &ADVPlayerController::OnInteractReleased);
+	if (DVControls::Key(EDVControl::Buy) != EKeys::Enter)
+	{
+		InputComponent->BindKey(DVControls::Key(EDVControl::Buy), IE_Pressed, this, &ADVPlayerController::OnBuyPressed);
+	}
+	FInputKeyBinding& Esc = InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ADVPlayerController::ToggleControls);
+	Esc.bExecuteWhenPaused = true;
+	if (ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn()))
+	{
+		Soldier->ApplyControlBindings();
+	}
+}
+
+void ADVPlayerController::ToggleControls()
+{
+	if (ListeningFor >= 0)
+	{
+		ListeningFor = -1;	// Esc cancels a rebind first
+		return;
+	}
+	bControlsOpen = !bControlsOpen;
+	bShowMouseCursor = bControlsOpen;
+	if (bControlsOpen)
+	{
+		SetInputMode(FInputModeGameAndUI().SetHideCursorDuringCapture(false));
+	}
+	else
+	{
+		SetInputMode(FInputModeGameOnly());
+	}
+	if (GetNetMode() == NM_Standalone && !FParse::Param(FCommandLine::Get(), TEXT("DVQuitAfterCapture")))	// captures run on timers, which a pause would stop
+	{
+		SetPause(bControlsOpen);
+	}
+}
+
+bool ADVPlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+	if (bControlsOpen && Params.Event == IE_Pressed && !Params.Key.IsAxis1D() && !Params.Key.IsAxis2D())
+	{
+		if (ListeningFor >= 0)
+		{
+			if (Params.Key != EKeys::Escape)
+			{
+				DVControls::SetKey(EDVControl(ListeningFor), Params.Key);
+				RebindAll();
+			}
+			ListeningFor = -1;
+			return true;
+		}
+		if (Params.Key == EKeys::LeftMouseButton)
+		{
+			float MX = 0.f, MY = 0.f;
+			GetMousePosition(MX, MY);
+			for (const TPair<FBox2D, int32>& Row : ControlRows)
+			{
+				if (Row.Key.IsInside(FVector2D(MX, MY)))
+				{
+					if (Row.Value == -2)
+					{
+						DVControls::ResetAll();
+						RebindAll();
+					}
+					else if (Row.Value == -3)
+					{
+						ToggleControls();
+					}
+					else
+					{
+						ListeningFor = Row.Value;
+					}
+					return true;
+				}
+			}
+			return true;
+		}
+		if (Params.Key != EKeys::Escape)
+		{
+			return true;	// the menu swallows game keys while it's open
+		}
+	}
+	return Super::InputKey(Params);
 }
 
 void ADVPlayerController::OnRedeployPressed()
 {
+	if (DVControls::Key(EDVControl::Buy) == EKeys::Enter)
+	{
+		OnBuyPressed();	// Enter is also the quartermaster's buy key (it does nothing away from the counter)
+	}
 	const ADVGameState* GS = GetWorld()->GetGameState<ADVGameState>();
 	if (GS && GS->Phase != EDVMissionPhase::InProgress)
 	{
@@ -542,7 +636,11 @@ void ADVPlayerController::OnInteractPressed()
 	{
 		return;
 	}
-	// A downed squadmate in reach takes priority over everything else Z does.
+	if (const ADVSoldierCharacter* Aimer = Cast<ADVSoldierCharacter>(MyPawn); Aimer && Aimer->IsAiming() && DVControls::Key(EDVControl::Interact) == DVControls::Key(EDVControl::LeanRight))
+	{
+		return;	// aiming: the same key leans right instead
+	}
+	// A downed squadmate in reach takes priority over everything else the use key does.
 	if (const ADVSoldierCharacter* Me = Cast<ADVSoldierCharacter>(MyPawn))
 	{
 		for (TActorIterator<ADVSoldierCharacter> It(GetWorld()); It; ++It)

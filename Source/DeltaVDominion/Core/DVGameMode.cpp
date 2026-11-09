@@ -130,13 +130,13 @@ void ADVGameMode::SetupMissionForMap()
 		{ TEXT("BootCamp"), TEXT("Boot Camp"), TEXT("Clear the training range"), TEXT("Copernicus Range, Luna"),
 		  TEXT("Terran Accord 7th Orbital Rifles  |  Six weeks before the uprising"),
 		  { { TEXT("Gny. Sgt. Halloran"), TEXT("Live rounds, live targets, Delta. The frames out there won't pull their punches, so neither will I.") },
-		    { TEXT("Gny. Sgt. Halloran"), TEXT("Use your squad. F to move them, X to flank, T to pin a target. B paints an orbital strike.") } } },
-		{ TEXT("Kestrel"), TEXT("TAS Kestrel"), TEXT("Walk to the war table (Z) to choose your next operation"), TEXT("Hangar Deck, TAS Kestrel"),
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Use your squad. Middle mouse sends them, X to flank, T to pin a target. B paints an orbital strike.") } } },
+		{ TEXT("Kestrel"), TEXT("TAS Kestrel"), TEXT("Walk to the war table (E) to choose your next operation"), TEXT("Hangar Deck, TAS Kestrel"),
 		  TEXT("High Mars orbit  |  Home base of Delta Squadron"),
 		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("Welcome aboard, Commander. The war table is live. Pick our next fight.") },
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Memorial wall's by the starboard bulkhead. Pay your respects before you pick the next drop.") },
 		    { TEXT("Deck Chief Ruiz"), TEXT("Raven's fuelled and the Sabre's patched. Don't scratch my paint this time.") } } },
-		{ TEXT("RooksRest"), TEXT("Rook's Rest"), TEXT("Shore leave. Take a job from the board (Z), then ride the shuttle home"), TEXT("Rook's Rest, Tharsis Rim, Mars"),
+		{ TEXT("RooksRest"), TEXT("Rook's Rest"), TEXT("Shore leave. Take a job from the board (E), then ride the shuttle home"), TEXT("Rook's Rest, Tharsis Rim, Mars"),
 		  TEXT("Free Ports market town  |  No Accord flag flies here"),
 		  { { TEXT("Mags Okafor (Free Ports)"), TEXT("Delta Squadron, in my town. Keep your weapons slung and your credit good, and we'll get along.") },
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Board's by the cantina. The Ports pay in favours, and favours open doors Command keeps shut.") },
@@ -980,7 +980,7 @@ void ADVGameMode::OnAscentLanded(APlayerController* PC, ADVGunship* Raven)
 	GS->Ascent = 2;
 	GS->bMultiStage = false;
 	GS->MissionName = TEXT("TAS Kestrel");
-	GS->ObjectiveText = TEXT("Welcome home. The war table (Z) picks the next operation");
+	GS->ObjectiveText = TEXT("Welcome home. The war table (E) picks the next operation");
 	if (Raven && PC)
 	{
 		Raven->GetSeat()->Exit(PC);

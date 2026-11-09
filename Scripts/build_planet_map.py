@@ -2108,16 +2108,22 @@ def build():
         if brass:
             # The Guild's clockwork constables, rewound to shoot uniforms: around the square and the Steamheart's yard.
             enemy_spots = [(2300, -650), (2400, 750), (1700, 1050), (1800, -1050), (900, -400), (1000, 600), (-200, 850), (0, -800)]
+        pickets = []
         if not (town or brass or vale or verge or "walker" in B["extras"]):
             # Encounter pacing: a light forward picket (2) about halfway out, dug in behind barriers, before the
             # mid line (2) and the compound (6). Spike, rest, bigger spike.
-            for k, (px, py) in enumerate(((-1300, -450), (-1150, 520))):
-                enemy_spots.append((px, py))
-                jersey("Picket_Barrier_%d" % k, px - 160, py, 90, mats)
+            # The picket watches the flanks, not the landing zone: you can close in quietly and take it with a
+            # takedown, or open fire and start the fight on your terms.
+            for k, (px, py) in enumerate(((-400, -650), (-300, 700))):
+                pickets.append((px, py, -90 if py < 0 else 90))
+                jersey("Picket_Barrier_%d" % k, px, py + (-160 if py < 0 else 160), 0, mats)
             # A landmark you can steer by from anywhere: a red beacon column over the objective.
             gz0 = ground(bx, by)
             block("Objective_Beacon", (bx + 200, by, gz0 + 3600), (36, 36, 6000), mats["strip_red"], folder="Landmark")
             block("Objective_BeaconCap", (bx + 200, by, gz0 + 6650), (140, 140, 140), mats["strip_red"], folder="Landmark")
+        for i, (x, y, yaw) in enumerate(pickets):
+            e = spawn(soldier, "Picket_%02d" % i, (x, y, ground(x, y) + 105), rot(yaw=yaw), "Enemies")
+            e.set_editor_property("team_id", 2)
         for i, (x, y) in enumerate(enemy_spots):
             e = spawn(soldier, ("Constable_%02d" if brass else "HelperBot_%02d" if vale else "Hearthbound_%02d") % i, (x, y, ground(x, y) + 105), rot(yaw=180), "Enemies")
             e.set_editor_property("team_id", 2)

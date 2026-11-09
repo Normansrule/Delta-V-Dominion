@@ -65,6 +65,8 @@ private:
 	void DrawManifold(const class ADVPressureManifold* Manifold, int32 NearValve);
 	/** Points of interest nearby, and the operation's challenges in a line under the objective. */
 	void DrawPoints(const ADVGameState* GS, float BelowY);
+	void DrawGameHUD();
+	void DrawControlsMenu();
 	void DrawQuartermaster();
 	void BindOrders(ADVSoldierCharacter* Soldier);
 

@@ -1,4 +1,5 @@
 #include "Vehicles/DVVehicleKit.h"
+#include "Core/DVControls.h"
 #include "Characters/DVSoldierCharacter.h"
 #include "Core/DVFx.h"
 #include "Vehicles/DVGunship.h"
@@ -297,8 +298,8 @@ DVKit::FDriveInput DVKit::ReadCameraDrive(const APlayerController* PC, float Veh
 		return Out;
 	}
 	auto Held = [PC](const FKey& Key, TCHAR Test) { return KeyHeld(PC, Key, Test); };
-	const float F = (Held(EKeys::W, 'W') ? 1.f : 0.f) - (Held(EKeys::S, 'S') ? 1.f : 0.f);
-	const float R = (Held(EKeys::D, 'D') ? 1.f : 0.f) - (Held(EKeys::A, 'A') ? 1.f : 0.f);
+	const float F = (Held(DVControls::Key(EDVControl::MoveForward), 'W') ? 1.f : 0.f) - (Held(DVControls::Key(EDVControl::MoveBack), 'S') ? 1.f : 0.f);
+	const float R = (Held(DVControls::Key(EDVControl::MoveRight), 'D') ? 1.f : 0.f) - (Held(DVControls::Key(EDVControl::MoveLeft), 'A') ? 1.f : 0.f);
 	const float CamYaw = PC->GetControlRotation().Yaw;
 	if (F == 0.f && R == 0.f)
 	{

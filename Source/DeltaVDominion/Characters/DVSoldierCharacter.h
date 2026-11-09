@@ -42,6 +42,9 @@ class DELTAVDOMINION_API ADVSoldierCharacter : public ACharacter, public IAbilit
 	GENERATED_BODY()
 
 public:
+	/** Re-reads DVControls into the mapping context (after a rebind on the controls screen). */
+	void ApplyControlBindings();
+
 	ADVSoldierCharacter(const FObjectInitializer& ObjectInitializer);
 
 	// AActor / APawn
@@ -182,6 +185,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> OrderRegroupAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> OrderSuppressAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> OrderFlankAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> MeleeAction;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UCameraComponent> FirstPersonCamera;
@@ -255,7 +259,8 @@ private:
 	void Input_Crouch();
 	void Input_Reload() { TryReload(); }
 	void Input_LeanLeft() { SetLean(LeanAmount < -0.5f ? 0.f : -1.f); }
-	void Input_LeanRight() { SetLean(LeanAmount > 0.5f ? 0.f : 1.f); }
+	void Input_LeanRight() { if (bIsAiming || LeanAmount > 0.5f) { SetLean(LeanAmount > 0.5f ? 0.f : 1.f); } }	// shares E with "use": leans only while aiming
+	void Input_Melee();
 	void Input_OrderMove();
 	void Input_OrderHold();
 	void Input_OrderRegroup();
