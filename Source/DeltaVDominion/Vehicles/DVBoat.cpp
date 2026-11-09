@@ -138,12 +138,12 @@ void ADVBoat::Tick(float DeltaSeconds)
 		FHitResult Hit;
 		FCollisionQueryParams Q(SCENE_QUERY_STAT(DVBoatAim), false, this);
 		const FVector Aim = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, DV_TRACE_WEAPON, Q) ? FVector(Hit.ImpactPoint) : End;
-		if ((PC->IsInputKeyDown(DVControls::Key(EDVControl::Fire)) || bAutoFire) && Now - LastGun >= GunInterval)
+		if ((PC->IsInputKeyDown(DVControls::Key(EDVInput::Fire)) || bAutoFire) && Now - LastGun >= GunInterval)
 		{
 			LastGun = Now;
 			ServerFire(false, Aim);
 		}
-		if (PC->IsInputKeyDown(DVControls::Key(EDVControl::Aim)) && Now - LastMissile >= MissileInterval)
+		if (PC->IsInputKeyDown(DVControls::Key(EDVInput::Aim)) && Now - LastMissile >= MissileInterval)
 		{
 			LastMissile = Now;
 			ServerFire(true, Aim);

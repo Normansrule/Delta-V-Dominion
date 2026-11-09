@@ -96,7 +96,7 @@ void ADVHoverbike::Tick(float DeltaSeconds)
 		const DVKit::FDriveInput Drive = DVKit::ReadCameraDrive(PC, GetActorRotation().Yaw, -0.6f);	// mouse picks the direction, WASD relative to it
 		float Throttle = Drive.Throttle;
 		float WantYaw = Drive.Yaw;
-		const bool bSpace = PC->IsInputKeyDown(DVControls::Key(EDVControl::VehicleUp));
+		const bool bSpace = PC->IsInputKeyDown(DVControls::Key(EDVInput::VehicleUp));
 		if (FMath::IsNearlyZero(Throttle) && !FMath::IsNearlyZero(AutoThrottle))
 		{
 			Throttle = AutoThrottle;
@@ -105,9 +105,9 @@ void ADVHoverbike::Tick(float DeltaSeconds)
 			PC->SetControlRotation(Steer);
 			WantYaw = Steer.Yaw;
 		}
-		ServerInput(Throttle, WantYaw, PC->IsInputKeyDown(DVControls::Key(EDVControl::Boost)), bSpace && !bWasSpace);
+		ServerInput(Throttle, WantYaw, PC->IsInputKeyDown(DVControls::Key(EDVInput::Boost)), bSpace && !bWasSpace);
 		bWasSpace = bSpace;
-		if ((PC->IsInputKeyDown(DVControls::Key(EDVControl::Fire)) || bAutoFire) && GetWorld()->GetTimeSeconds() - LastShot >= ShotInterval)
+		if ((PC->IsInputKeyDown(DVControls::Key(EDVInput::Fire)) || bAutoFire) && GetWorld()->GetTimeSeconds() - LastShot >= ShotInterval)
 		{
 			LastShot = GetWorld()->GetTimeSeconds();
 			const FVector Start = PC->PlayerCameraManager->GetCameraLocation();

@@ -849,17 +849,17 @@ void ADVHUD::DrawVehiclePrompt(const ADVSoldierCharacter* Soldier)
 {
 	if (const UDVSeatComponent* Seat = UDVSeatComponent::FindNear(Soldier))
 	{
-		Text(FString::Printf(TEXT("%s  Board %s"), *DVControls::Cap(EDVControl::Interact), *Seat->VehicleName), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Friendly, GEngine->GetMediumFont(), DVType::Emph, true);
+		Text(FString::Printf(TEXT("%s  Board %s"), *DVControls::Cap(EDVInput::Interact), *Seat->VehicleName), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Friendly, GEngine->GetMediumFont(), DVType::Emph, true);
 	}
 	else if (const ADVPressureManifold* Manifold = ADVPressureManifold::Find(GetWorld()); Manifold && Manifold->FindValveNear(Soldier) >= 0)
 	{
 		const int32 Valve = Manifold->FindValveNear(Soldier);
-		Text(FString::Printf(TEXT("%s  Turn valve %s"), *DVControls::Cap(EDVControl::Interact), *ADVPressureManifold::ValveName(Valve)), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
+		Text(FString::Printf(TEXT("%s  Turn valve %s"), *DVControls::Cap(EDVInput::Interact), *ADVPressureManifold::ValveName(Valve)), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
 		DrawManifold(Manifold, Valve);
 	}
 	else if (const ADVInteractable* Thing = ADVInteractable::FindNear(Soldier))
 	{
-		Text(FString::Printf(TEXT("%s  %s"), *DVControls::Cap(EDVControl::Interact), *Thing->Prompt), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
+		Text(FString::Printf(TEXT("%s  %s"), *DVControls::Cap(EDVInput::Interact), *Thing->Prompt), Canvas->ClipX * 0.5f, Canvas->ClipY * 0.6f, DVHudColors::Warn, GEngine->GetMediumFont(), DVType::Emph, true);
 		if (Thing->Interaction == EDVInteraction::ContractBoard)
 		{
 			DrawContractBoard();
@@ -1011,7 +1011,7 @@ void ADVHUD::DrawMemorial()
 			R + S(20.f), RY + S(24.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Caption);
 		RY += S(54.f);
 	}
-	Text(DVControls::Cap(EDVControl::Interact) + TEXT(" close"), W * 0.5f, H * 0.84f, DVHudColors::Dim, GEngine->GetMediumFont(), DVType::Emph, true);
+	Text(DVControls::Cap(EDVInput::Interact) + TEXT(" close"), W * 0.5f, H * 0.84f, DVHudColors::Dim, GEngine->GetMediumFont(), DVType::Emph, true);
 }
 
 void ADVHUD::DrawCallIns(const ADVGameState* GS)
@@ -1162,7 +1162,7 @@ void ADVHUD::DrawLocker()
 		}
 		Y += S(48.f);
 	}
-	Text(TEXT("Saved automatically.   ") + DVControls::Cap(EDVControl::Interact) + TEXT(" close"), X, Y + S(10.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Caption);
+	Text(TEXT("Saved automatically.   ") + DVControls::Cap(EDVInput::Interact) + TEXT(" close"), X, Y + S(10.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Caption);
 
 	// Service record: level, XP to next, perks.
 	const float RX = X + S(600.f);
@@ -1332,7 +1332,7 @@ void ADVHUD::DrawAwareness(const ADVSoldierCharacter* Viewer)
 		const FVector Screen = Project(Victim->GetActorLocation() + FVector(0.f, 0.f, 60.f));
 		if (Screen.Z > 0.f)
 		{
-			Text(DVControls::Cap(EDVControl::Melee) + TEXT("  Silent takedown"), Screen.X, Screen.Y, DVHudColors::Cyan, GEngine->GetMediumFont(), DVType::Emph, true);
+			Text(DVControls::Cap(EDVInput::Melee) + TEXT("  Silent takedown"), Screen.X, Screen.Y, DVHudColors::Cyan, GEngine->GetMediumFont(), DVType::Emph, true);
 		}
 		if (ADVPlayerController* PC = Cast<ADVPlayerController>(PlayerOwner))
 		{
@@ -1378,7 +1378,7 @@ void ADVHUD::DrawContractBoard()
 		Text(FString::Printf(TEXT("%s  -  %d %s"), C.Giver, C.Goal, C.Unit), X, Y + S(68.f), DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Caption);
 		Y += S(98.f);
 	}
-	Text(DVControls::Cap(EDVControl::Interact) + TEXT(" take the next job"), X, Y + S(4.f), Amber, GEngine->GetSmallFont(), DVType::Caption);
+	Text(DVControls::Cap(EDVInput::Interact) + TEXT(" take the next job"), X, Y + S(4.f), Amber, GEngine->GetSmallFont(), DVType::Caption);
 }
 
 void ADVHUD::DrawContract()
@@ -1561,17 +1561,17 @@ void ADVHUD::DrawQuartermaster()
 	Y += S(44.f);
 	if (PC->ShopPaint < 0)
 	{
-		Text(DVControls::Cap(EDVControl::Interact) + TEXT("  See what's on the shelf"), X + S(24.f), Y, DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph);
+		Text(DVControls::Cap(EDVInput::Interact) + TEXT("  See what's on the shelf"), X + S(24.f), Y, DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph);
 	}
 	else
 	{
 		const int32 Price = UDVProfileSubsystem::PaintPrice(PC->ShopPaint);
 		DrawRect(UDVProfileSubsystem::PaintColor(PC->ShopPaint), X + S(24.f), Y, S(56.f), S(56.f));
 		Text(UDVProfileSubsystem::PaintName(PC->ShopPaint), X + S(100.f), Y, DVHudColors::Text, GEngine->GetMediumFont(), DVType::Emph);
-		Text(FString::Printf(TEXT("%d requisition   %s"), Price, Profile->GetRequisition() >= Price ? *(DVControls::Cap(EDVControl::Buy) + TEXT(" buy and wear it")) : TEXT("not enough yet")),
+		Text(FString::Printf(TEXT("%d requisition   %s"), Price, Profile->GetRequisition() >= Price ? *(DVControls::Cap(EDVInput::Buy) + TEXT(" buy and wear it")) : TEXT("not enough yet")),
 			X + S(100.f), Y + S(32.f), Profile->GetRequisition() >= Price ? DVHudColors::Health : DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body);
 		Y += S(70.f);
-		Text(DVControls::Cap(EDVControl::Interact) + TEXT("  next scheme"), X + S(24.f), Y, DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body);
+		Text(DVControls::Cap(EDVInput::Interact) + TEXT("  next scheme"), X + S(24.f), Y, DVHudColors::Dim, GEngine->GetSmallFont(), DVType::Body);
 	}
 	if (!PC->ShopNote.IsEmpty() && GetWorld()->GetRealTimeSeconds() - PC->ShopTime < 5.0)
 	{
@@ -1613,9 +1613,9 @@ void ADVHUD::DrawControlsMenu()
 		for (const TCHAR* Group : Columns[Col])
 		{
 			TArray<int32> Rows;
-			for (int32 i = 0; i < int32(EDVControl::Num); ++i)
+			for (int32 i = 0; i < int32(EDVInput::Num); ++i)
 			{
-				if (DVControls::Group(EDVControl(i)) == Group)
+				if (DVControls::Group(EDVInput(i)) == Group)
 				{
 					Rows.Add(i);
 				}
@@ -1628,9 +1628,9 @@ void ADVHUD::DrawControlsMenu()
 				const FBox2D Box(FVector2D(X + ColW - S(170.f), Y + S(2.f)), FVector2D(X + ColW - S(16.f), Y + RowH - S(4.f)));
 				const bool bListening = PC->ListeningFor == i;
 				const bool bHover = Box.IsInside(FVector2D(MX, MY)) || bListening;
-				const bool bChanged = DVControls::Key(EDVControl(i)) != DVControls::DefaultKey(EDVControl(i));
-				Text(DVControls::Name(EDVControl(i)), X + S(20.f), Y + S(6.f), bChanged ? DVHudColors::Gold : DVHudColors::Text, GEngine->GetSmallFont(), DVType::Body);
-				DVUI::Button(this, Style, Box, bListening ? TEXT("PRESS A KEY") : DVControls::Label(EDVControl(i)).ToUpper(),
+				const bool bChanged = DVControls::Key(EDVInput(i)) != DVControls::DefaultKey(EDVInput(i));
+				Text(DVControls::Name(EDVInput(i)), X + S(20.f), Y + S(6.f), bChanged ? DVHudColors::Gold : DVHudColors::Text, GEngine->GetSmallFont(), DVType::Body);
+				DVUI::Button(this, Style, Box, bListening ? TEXT("PRESS A KEY") : DVControls::Label(EDVInput(i)).ToUpper(),
 					bListening ? DVHudColors::Cyan : FLinearColor(0.95f, 0.69f, 0.12f, 1.f), GEngine->GetSmallFont(), bHover);
 				PC->ControlRows.Emplace(Box, i);
 				Y += RowH;

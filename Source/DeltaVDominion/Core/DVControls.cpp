@@ -11,7 +11,7 @@ namespace DVControlsData	// named: unity builds merge anonymous namespaces
 		FKey Default;
 	};
 
-	const FEntry& Entry(EDVControl C)
+	const FEntry& Entry(EDVInput C)
 	{
 		static const FEntry Table[] = {
 			{ TEXT("MoveForward"), TEXT("Move forward"), TEXT("Movement"), EKeys::W },
@@ -47,7 +47,7 @@ namespace DVControlsData	// named: unity builds merge anonymous namespaces
 			{ TEXT("Flares"), TEXT("Countermeasures"), TEXT("Vehicles"), EKeys::X },
 			{ TEXT("Boost"), TEXT("Boost"), TEXT("Vehicles"), EKeys::LeftShift },
 		};
-		static_assert(UE_ARRAY_COUNT(Table) == int32(EDVControl::Num), "one entry per control");
+		static_assert(UE_ARRAY_COUNT(Table) == int32(EDVInput::Num), "one entry per control");
 		return Table[int32(C)];
 	}
 
@@ -58,10 +58,10 @@ namespace DVControlsData	// named: unity builds merge anonymous namespaces
 		static TArray<FKey> Keys;
 		if (Keys.Num() == 0)
 		{
-			for (int32 i = 0; i < int32(EDVControl::Num); ++i)
+			for (int32 i = 0; i < int32(EDVInput::Num); ++i)
 			{
 				FString Saved;
-				const FEntry& E = Entry(EDVControl(i));
+				const FEntry& E = Entry(EDVInput(i));
 				FKey K = E.Default;
 				if (GConfig && GConfig->GetString(Section, E.Id, Saved, GGameUserSettingsIni) && FKey(*Saved).IsValid())
 				{
@@ -76,17 +76,17 @@ namespace DVControlsData	// named: unity builds merge anonymous namespaces
 	int32 GRevision = 0;
 }
 
-FKey DVControls::Key(EDVControl Control)
+FKey DVControls::Key(EDVInput Control)
 {
 	return DVControlsData::Bound()[int32(Control)];
 }
 
-FKey DVControls::DefaultKey(EDVControl Control)
+FKey DVControls::DefaultKey(EDVInput Control)
 {
 	return DVControlsData::Entry(Control).Default;
 }
 
-void DVControls::SetKey(EDVControl Control, const FKey& NewKey)
+void DVControls::SetKey(EDVInput Control, const FKey& NewKey)
 {
 	DVControlsData::Bound()[int32(Control)] = NewKey;
 	if (GConfig)
@@ -99,9 +99,9 @@ void DVControls::SetKey(EDVControl Control, const FKey& NewKey)
 
 void DVControls::ResetAll()
 {
-	for (int32 i = 0; i < int32(EDVControl::Num); ++i)
+	for (int32 i = 0; i < int32(EDVInput::Num); ++i)
 	{
-		SetKey(EDVControl(i), DVControlsData::Entry(EDVControl(i)).Default);
+		SetKey(EDVInput(i), DVControlsData::Entry(EDVInput(i)).Default);
 	}
 }
 
@@ -121,22 +121,22 @@ FString DVControls::KeyLabel(const FKey& K)
 	return S.Len() <= 5 ? S : S.Left(5);
 }
 
-FString DVControls::Label(EDVControl Control)
+FString DVControls::Label(EDVInput Control)
 {
 	return KeyLabel(Key(Control));
 }
 
-FString DVControls::Cap(EDVControl Control)
+FString DVControls::Cap(EDVInput Control)
 {
 	return FString::Printf(TEXT("[%s]"), *Label(Control));
 }
 
-FString DVControls::Name(EDVControl Control)
+FString DVControls::Name(EDVInput Control)
 {
 	return DVControlsData::Entry(Control).Name;
 }
 
-FString DVControls::Group(EDVControl Control)
+FString DVControls::Group(EDVInput Control)
 {
 	return DVControlsData::Entry(Control).Group;
 }

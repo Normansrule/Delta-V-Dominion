@@ -1221,35 +1221,35 @@ void ADVSoldierCharacter::ApplyControlBindings()
 	Ctx->UnmapAll();
 	// Movement: the four direction keys feed one Axis2D (X = right, Y = forward).
 	{
-		FEnhancedActionKeyMapping& Fwd = Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveForward));
+		FEnhancedActionKeyMapping& Fwd = Ctx->MapKey(MoveAction, DVControls::Key(EDVInput::MoveForward));
 		Fwd.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(Ctx));
-		FEnhancedActionKeyMapping& Back = Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveBack));
+		FEnhancedActionKeyMapping& Back = Ctx->MapKey(MoveAction, DVControls::Key(EDVInput::MoveBack));
 		Back.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(Ctx));
 		Back.Modifiers.Add(NewObject<UInputModifierNegate>(Ctx));
-		FEnhancedActionKeyMapping& Left = Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveLeft));
+		FEnhancedActionKeyMapping& Left = Ctx->MapKey(MoveAction, DVControls::Key(EDVInput::MoveLeft));
 		Left.Modifiers.Add(NewObject<UInputModifierNegate>(Ctx));
-		Ctx->MapKey(MoveAction, DVControls::Key(EDVControl::MoveRight));
+		Ctx->MapKey(MoveAction, DVControls::Key(EDVInput::MoveRight));
 	}
 	Ctx->MapKey(LookAction, EKeys::Mouse2D);
-	Ctx->MapKey(JumpAction, DVControls::Key(EDVControl::Jump));
-	Ctx->MapKey(FireAction, DVControls::Key(EDVControl::Fire));
-	Ctx->MapKey(AimAction, DVControls::Key(EDVControl::Aim));
-	Ctx->MapKey(ReloadAction, DVControls::Key(EDVControl::Reload));
-	Ctx->MapKey(SprintAction, DVControls::Key(EDVControl::Sprint));
-	Ctx->MapKey(CrouchAction, DVControls::Key(EDVControl::Crouch));
-	if (DVControls::Key(EDVControl::Crouch) == EKeys::LeftControl)
+	Ctx->MapKey(JumpAction, DVControls::Key(EDVInput::Jump));
+	Ctx->MapKey(FireAction, DVControls::Key(EDVInput::Fire));
+	Ctx->MapKey(AimAction, DVControls::Key(EDVInput::Aim));
+	Ctx->MapKey(ReloadAction, DVControls::Key(EDVInput::Reload));
+	Ctx->MapKey(SprintAction, DVControls::Key(EDVInput::Sprint));
+	Ctx->MapKey(CrouchAction, DVControls::Key(EDVInput::Crouch));
+	if (DVControls::Key(EDVInput::Crouch) == EKeys::LeftControl)
 	{
 		Ctx->MapKey(CrouchAction, EKeys::C);	// the usual second crouch key
 	}
-	Ctx->MapKey(DashAction, DVControls::Key(EDVControl::Dash));
-	Ctx->MapKey(LeanLeftAction, DVControls::Key(EDVControl::LeanLeft));
-	Ctx->MapKey(LeanRightAction, DVControls::Key(EDVControl::LeanRight));
-	Ctx->MapKey(MeleeAction, DVControls::Key(EDVControl::Melee));
-	Ctx->MapKey(OrderMoveAction, DVControls::Key(EDVControl::OrderMove));
-	Ctx->MapKey(OrderHoldAction, DVControls::Key(EDVControl::OrderHold));
-	Ctx->MapKey(OrderRegroupAction, DVControls::Key(EDVControl::OrderRegroup));
-	Ctx->MapKey(OrderSuppressAction, DVControls::Key(EDVControl::OrderSuppress));
-	Ctx->MapKey(OrderFlankAction, DVControls::Key(EDVControl::OrderFlank));
+	Ctx->MapKey(DashAction, DVControls::Key(EDVInput::Dash));
+	Ctx->MapKey(LeanLeftAction, DVControls::Key(EDVInput::LeanLeft));
+	Ctx->MapKey(LeanRightAction, DVControls::Key(EDVInput::LeanRight));
+	Ctx->MapKey(MeleeAction, DVControls::Key(EDVInput::Melee));
+	Ctx->MapKey(OrderMoveAction, DVControls::Key(EDVInput::OrderMove));
+	Ctx->MapKey(OrderHoldAction, DVControls::Key(EDVInput::OrderHold));
+	Ctx->MapKey(OrderRegroupAction, DVControls::Key(EDVInput::OrderRegroup));
+	Ctx->MapKey(OrderSuppressAction, DVControls::Key(EDVInput::OrderSuppress));
+	Ctx->MapKey(OrderFlankAction, DVControls::Key(EDVInput::OrderFlank));
 	if (const APlayerController* PC = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))

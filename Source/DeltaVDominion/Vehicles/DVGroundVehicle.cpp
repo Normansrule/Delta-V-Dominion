@@ -274,8 +274,8 @@ void ADVGroundVehicle::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 void ADVGroundVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	PlayerInputComponent->BindKey(DVControls::Key(EDVControl::Fire), IE_Pressed, this, &ADVGroundVehicle::FirePressed);
-	PlayerInputComponent->BindKey(DVControls::Key(EDVControl::Fire), IE_Released, this, &ADVGroundVehicle::FireReleased);
+	PlayerInputComponent->BindKey(DVControls::Key(EDVInput::Fire), IE_Pressed, this, &ADVGroundVehicle::FirePressed);
+	PlayerInputComponent->BindKey(DVControls::Key(EDVInput::Fire), IE_Released, this, &ADVGroundVehicle::FireReleased);
 }
 
 float ADVGroundVehicle::GetReloadFraction() const
@@ -339,7 +339,7 @@ void ADVGroundVehicle::Tick(float DeltaSeconds)
 		Move->SetThrottleInput(FMath::Max(Forward, 0.f));
 		Move->SetBrakeInput(FMath::Max(-Forward, 0.f));	// held at a standstill, the brake backs up (Chaos auto-reverse)
 		Move->SetSteeringInput(Steer);
-		Move->SetHandbrakeInput(PC->IsInputKeyDown(DVControls::Key(EDVControl::VehicleUp)));
+		Move->SetHandbrakeInput(PC->IsInputKeyDown(DVControls::Key(EDVInput::VehicleUp)));
 
 		// Weapon follows the camera.
 		FRotator Rel = (GetControlRotation() - GetActorRotation()).GetNormalized();

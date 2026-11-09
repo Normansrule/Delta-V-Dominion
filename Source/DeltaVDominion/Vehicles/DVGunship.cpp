@@ -209,9 +209,9 @@ void ADVGunship::Tick(float DeltaSeconds)
 	if (PC && IsLocallyControlled())
 	{
 		const FVector Input(
-			(DVKit::KeyHeld(PC, DVControls::Key(EDVControl::MoveForward), 'W') ? 1.f : 0.f) - (DVKit::KeyHeld(PC, DVControls::Key(EDVControl::MoveBack), 'S') ? 1.f : 0.f),
-			(DVKit::KeyHeld(PC, DVControls::Key(EDVControl::MoveRight), 'D') ? 1.f : 0.f) - (DVKit::KeyHeld(PC, DVControls::Key(EDVControl::MoveLeft), 'A') ? 1.f : 0.f),
-			(DVKit::KeyHeld(PC, DVControls::Key(EDVControl::VehicleUp), 'U') ? 1.f : 0.f) - (PC->IsInputKeyDown(DVControls::Key(EDVControl::VehicleDown)) ? 1.f : 0.f));
+			(DVKit::KeyHeld(PC, DVControls::Key(EDVInput::MoveForward), 'W') ? 1.f : 0.f) - (DVKit::KeyHeld(PC, DVControls::Key(EDVInput::MoveBack), 'S') ? 1.f : 0.f),
+			(DVKit::KeyHeld(PC, DVControls::Key(EDVInput::MoveRight), 'D') ? 1.f : 0.f) - (DVKit::KeyHeld(PC, DVControls::Key(EDVInput::MoveLeft), 'A') ? 1.f : 0.f),
+			(DVKit::KeyHeld(PC, DVControls::Key(EDVInput::VehicleUp), 'U') ? 1.f : 0.f) - (PC->IsInputKeyDown(DVControls::Key(EDVInput::VehicleDown)) ? 1.f : 0.f));
 		FVector Move = Input;
 		if (Input.IsNearlyZero() && !AutoMove.IsNearlyZero())
 		{
@@ -229,8 +229,8 @@ void ADVGunship::Tick(float DeltaSeconds)
 		}
 
 		// Toggles: F flight mode, V cockpit view, X flares.
-		const bool bF = PC->IsInputKeyDown(DVControls::Key(EDVControl::VehicleMode)), bV = PC->IsInputKeyDown(DVControls::Key(EDVControl::VehicleCamera)),
-			bX = PC->IsInputKeyDown(DVControls::Key(EDVControl::Flares));
+		const bool bF = PC->IsInputKeyDown(DVControls::Key(EDVInput::VehicleMode)), bV = PC->IsInputKeyDown(DVControls::Key(EDVInput::VehicleCamera)),
+			bX = PC->IsInputKeyDown(DVControls::Key(EDVInput::Flares));
 		if (bF && !bWasF)
 		{
 			ServerSetJetMode(!bJetMode);
@@ -249,12 +249,12 @@ void ADVGunship::Tick(float DeltaSeconds)
 		bWasX = bX;
 
 		const double Now = GetWorld()->GetTimeSeconds();
-		if ((PC->IsInputKeyDown(DVControls::Key(EDVControl::Fire)) || bAutoCannon) && Now - LastCannon >= CannonInterval)
+		if ((PC->IsInputKeyDown(DVControls::Key(EDVInput::Fire)) || bAutoCannon) && Now - LastCannon >= CannonInterval)
 		{
 			LastCannon = Now;
 			ServerFire(false, GetAimPoint());
 		}
-		if ((PC->IsInputKeyDown(DVControls::Key(EDVControl::Aim)) || bAutoRockets) && Now - LastRocket >= RocketInterval)
+		if ((PC->IsInputKeyDown(DVControls::Key(EDVInput::Aim)) || bAutoRockets) && Now - LastRocket >= RocketInterval)
 		{
 			LastRocket = Now;
 			ServerFire(true, GetAimPoint());

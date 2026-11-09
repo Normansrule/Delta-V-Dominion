@@ -204,8 +204,8 @@ void ADVPlayerController::RebindAll()
 	// Plain key bindings so they work with no pawn (dead, or on the after-action screen). Keys come from DVControls.
 	InputComponent->KeyBindings.Reset();
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ADVPlayerController::OnRedeployPressed);
-	InputComponent->BindKey(DVControls::Key(EDVControl::Orbital), IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
-	InputComponent->BindKey(DVControls::Key(EDVControl::Supply), IE_Pressed, this, &ADVPlayerController::OnSupplyPressed);
+	InputComponent->BindKey(DVControls::Key(EDVInput::Orbital), IE_Pressed, this, &ADVPlayerController::OnOrbitalPressed);
+	InputComponent->BindKey(DVControls::Key(EDVInput::Supply), IE_Pressed, this, &ADVPlayerController::OnSupplyPressed);
 	const FKey LockerKeys[4] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four };
 	for (int32 Field = 0; Field < 4; ++Field)
 	{
@@ -213,15 +213,15 @@ void ADVPlayerController::RebindAll()
 		Binding.KeyDelegate.GetDelegateForManualSet().BindWeakLambda(this, [this, Field]() { OnLockerKey(Field); });
 		InputComponent->KeyBindings.Add(Binding);
 	}
-	InputComponent->BindKey(DVControls::Key(EDVControl::Strafe), IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
-	InputComponent->BindKey(DVControls::Key(EDVControl::Map), IE_Pressed, this, &ADVPlayerController::OnMapPressed);
+	InputComponent->BindKey(DVControls::Key(EDVInput::Strafe), IE_Pressed, this, &ADVPlayerController::OnStrafePressed);
+	InputComponent->BindKey(DVControls::Key(EDVInput::Map), IE_Pressed, this, &ADVPlayerController::OnMapPressed);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ADVPlayerController::OnMapPressed);
-	InputComponent->BindKey(DVControls::Key(EDVControl::FlyHome), IE_Pressed, this, &ADVPlayerController::OnFlyHomePressed);
-	InputComponent->BindKey(DVControls::Key(EDVControl::Interact), IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
-	InputComponent->BindKey(DVControls::Key(EDVControl::Interact), IE_Released, this, &ADVPlayerController::OnInteractReleased);
-	if (DVControls::Key(EDVControl::Buy) != EKeys::Enter)
+	InputComponent->BindKey(DVControls::Key(EDVInput::FlyHome), IE_Pressed, this, &ADVPlayerController::OnFlyHomePressed);
+	InputComponent->BindKey(DVControls::Key(EDVInput::Interact), IE_Pressed, this, &ADVPlayerController::OnInteractPressed);
+	InputComponent->BindKey(DVControls::Key(EDVInput::Interact), IE_Released, this, &ADVPlayerController::OnInteractReleased);
+	if (DVControls::Key(EDVInput::Buy) != EKeys::Enter)
 	{
-		InputComponent->BindKey(DVControls::Key(EDVControl::Buy), IE_Pressed, this, &ADVPlayerController::OnBuyPressed);
+		InputComponent->BindKey(DVControls::Key(EDVInput::Buy), IE_Pressed, this, &ADVPlayerController::OnBuyPressed);
 	}
 	FInputKeyBinding& Esc = InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ADVPlayerController::ToggleControls);
 	Esc.bExecuteWhenPaused = true;
@@ -262,7 +262,7 @@ bool ADVPlayerController::InputKey(const FInputKeyEventArgs& Params)
 		{
 			if (Params.Key != EKeys::Escape)
 			{
-				DVControls::SetKey(EDVControl(ListeningFor), Params.Key);
+				DVControls::SetKey(EDVInput(ListeningFor), Params.Key);
 				RebindAll();
 			}
 			ListeningFor = -1;
@@ -304,7 +304,7 @@ bool ADVPlayerController::InputKey(const FInputKeyEventArgs& Params)
 
 void ADVPlayerController::OnRedeployPressed()
 {
-	if (DVControls::Key(EDVControl::Buy) == EKeys::Enter)
+	if (DVControls::Key(EDVInput::Buy) == EKeys::Enter)
 	{
 		OnBuyPressed();	// Enter is also the quartermaster's buy key (it does nothing away from the counter)
 	}
@@ -636,7 +636,7 @@ void ADVPlayerController::OnInteractPressed()
 	{
 		return;
 	}
-	if (const ADVSoldierCharacter* Aimer = Cast<ADVSoldierCharacter>(MyPawn); Aimer && Aimer->IsAiming() && DVControls::Key(EDVControl::Interact) == DVControls::Key(EDVControl::LeanRight))
+	if (const ADVSoldierCharacter* Aimer = Cast<ADVSoldierCharacter>(MyPawn); Aimer && Aimer->IsAiming() && DVControls::Key(EDVInput::Interact) == DVControls::Key(EDVInput::LeanRight))
 	{
 		return;	// aiming: the same key leans right instead
 	}

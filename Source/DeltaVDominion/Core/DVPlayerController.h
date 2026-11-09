@@ -13,8 +13,8 @@ class DELTAVDOMINION_API ADVPlayerController : public APlayerController
 public:
 	// The controls screen (Esc): every binding, click one and press a key to rebind it.
 	bool bControlsOpen = false;
-	int32 ListeningFor = -1;	// EDVControl being rebound, or -1
-	TArray<TPair<FBox2D, int32>> ControlRows;	// filled by the HUD each frame: row box -> EDVControl (-2 = reset all, -3 = close)
+	int32 ListeningFor = -1;	// EDVInput being rebound, or -1
+	TArray<TPair<FBox2D, int32>> ControlRows;	// filled by the HUD each frame: row box -> EDVInput (-2 = reset all, -3 = close)
 	void ToggleControls();
 	/** Tests / capture: "DVControlsMenu" opens the controls screen. */
 	UFUNCTION(Exec)
