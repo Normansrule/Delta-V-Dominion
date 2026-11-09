@@ -49,6 +49,9 @@ public:
 	virtual void PlayerTick(float DeltaTime) override;
 
 	/** Console / capture: "DVGalaxyView N" 0 = whole galaxy, 1 = Sol and Gaia, 2 = galactic core, 3 = Orion arm. */
+	/** Tests: "DVUnlockAll" opens every mission in the campaign for this session. */
+	UFUNCTION(Exec)
+	void DVUnlockAll();
 	UFUNCTION(Exec)
 	void DVGalaxyView(int32 Preset);
 
@@ -100,6 +103,8 @@ public:
 	double JumpArrival = -100.0;
 	/** Real time an operation launch began its jump (white-out), or 0. */
 	double JumpOut = 0.0;
+	/** When PLAY was pressed on a locked operation (the HUD explains the campaign order). */
+	double LockedTime = -100.0;
 protected:
 };
 

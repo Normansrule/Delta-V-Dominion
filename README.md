@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.33-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.34-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
 </p>
 
@@ -45,6 +45,8 @@ Every operation is playable. Download the game, open the war table on the Kestre
 | Dust Choir | Rock 114, Epsilon Eridani | Lethal | [![Play](https://img.shields.io/badge/Dust%20Choir-Play-f2b01e?style=flat-square)](../../releases/latest) |
 | The Architect | Morrow Station, TRAPPIST-1e | Lethal | [![Play](https://img.shields.io/badge/The%20Architect-Play-f2b01e?style=flat-square)](../../releases/latest) |
 | Ark Fall | The ark valley, Kepler-452b | Lethal | [![Play](https://img.shields.io/badge/Ark%20Fall-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Prism Fall | The Singing Fields, Gliese 667 Cc | Lethal | [![Play](https://img.shields.io/badge/Prism%20Fall-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| White Silence | Vault Field, Kapteyn b | Lethal | [![Play](https://img.shields.io/badge/White%20Silence-Play-f2b01e?style=flat-square)](../../releases/latest) |
 
 **Website:** [normansrule.github.io/delta-v-dominion](https://normansrule.github.io/delta-v-dominion/). You can plan an op there and
 watch who comes home.
@@ -423,6 +425,26 @@ thousands of pebbles, stones and scree scattered on top when a level starts.
 
 Buttons and prompts follow the console shooters: glass panels with a hairline border and an accent rule, PLAY
 buttons that fill with amber on hover, and every key prompt drawn as a keycap.
+
+### The campaign: 170 missions, in order
+
+Every operation world now carries a run of ten missions: its story operation, then nine generated from templates and
+twists, the same for everyone who plays that world. Templates: **Assault** (clear the garrison), **Sabotage** (clear,
+plant, hold, extract), **Recon** (recover five intel caches; the garrison is optional), **Rescue** (bring three
+survivors home) and **Purge** (clear it while reinforcements keep landing). Twists stack as you go deeper: a reinforced
+garrison, no fire support, weather fronts every minute, or an eight-minute clock. The campaign runs in order: a world's
+story operation opens when the one before it is won, and its missions open one after another. The galaxy panel shows
+how far through each world you are and what PLAY will launch next. (`-DVUnlockAll` on the command line opens
+everything.) Adding a world adds ten missions; that is how this grows toward hundreds.
+
+| | |
+|---|---|
+| <img src="docs/media/campaign_galaxy.jpg" width="420" alt="The galaxy panel with missions done per world and locked operations"> | <img src="docs/media/mission_recon.jpg" width="420" alt="Red Tide 4: Deep Recon, recover all five intel caches"> |
+| <img src="docs/media/worlds_glacier.jpg" width="420" alt="White Silence on Kapteyn b: snowfields and blue ice spires"> | <img src="docs/media/worlds_crystal.jpg" width="420" alt="Prism Fall on Gliese 667 Cc: glowing crystal fields at dusk"> |
+
+Two new biomes: **White Silence** on Kapteyn b, a glacier world of snowfields and blue ice spires where blizzards blind
+everyone, and **Prism Fall** on Gliese 667 Cc, fields of glowing crystal growing out of violet rock, with giant spires
+on the rim.
 
 ### Weather that changes the fight
 

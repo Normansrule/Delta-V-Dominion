@@ -194,6 +194,12 @@ def build():
     system("Epsilon Eridani", galactic(10.5, 195.8, -48.1), "Local Bubble", 10.5, CONTESTED,
            "Young system wrapped in a debris ring. Hollow Men insurgents hide in the belt and raid Accord convoys.",
            (1.0, 0.7, 0.45), 1.1, [op("Dust Choir", "Rock 114, Epsilon Eridani ring", "/Game/Maps/Eridani")])
+    system("Kapteyn's Star", galactic(12.8, 250.5, -36.0), "Local Bubble", 12.8, CINDER,
+           "An old red subdwarf from the galactic halo and its frozen world, Kapteyn b. CINDER has been carving vaults into the ice.",
+           (1.0, 0.6, 0.4), 0.9, [op("White Silence", "Vault Field, Kapteyn b", "/Game/Maps/Glacier")])
+    system("Gliese 667", galactic(23.6, 351.8, 1.3), "Local Bubble", 23.6, CONTESTED,
+           "A triple star. Its world Cc grows crystal that hums at the frequency of the core signal.",
+           (1.0, 0.55, 0.35), 1.0, [op("Prism Fall", "The Singing Fields, Gliese 667 Cc", "/Game/Maps/Crystal")])
     system("Tau Ceti", galactic(11.9, 173.1, -73.4), "Local Bubble", 11.9, CONTESTED,
            "Agricultural worlds that feed half the Accord. CINDER's harvesters have turned on the fields. On the fourth world, "
            "Hollyhock Vale, a caretaker AI called Nana Bramble never stopped tending hers.", (1.0, 0.85, 0.55), 1.2,

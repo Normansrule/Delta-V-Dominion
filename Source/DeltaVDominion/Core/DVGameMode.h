@@ -132,6 +132,17 @@ private:
 	FString MapKey;
 	void SetupChallenges();
 	FTimerHandle WorldGenTimer;
+	/** Which mission of the campaign this is (from the "mission=" travel option; 0 = the map's story operation). */
+	int32 MissionIndex = 0;
+	int32 MissionKind = 0;	// EDVMissionKind
+	int32 MissionMods = 0;	// DVMissionMods
+	FString MissionTitle;
+	/** Recon and Rescue are won by what you find, not who you kill. */
+	bool bPointsMission = false;
+	int32 WantIntel = 3;
+	int32 WantSurvivors = 1;
+	int32 PurgeWaves = 0;
+	void ApplyGeneratedMission();
 	void PayChallenges();
 	FVector SecondObjective = FVector::ZeroVector;
 	void StartExtract();

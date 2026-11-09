@@ -1,4 +1,6 @@
 #include "Core/DVGameMode.h"
+#include "Core/DVMissions.h"
+#include "Core/DVWeather.h"
 #include "Core/DVRosterSubsystem.h"
 #include "Core/DVPlayerController.h"
 #include "Core/DVGameState.h"
@@ -86,6 +88,7 @@ void ADVGameMode::StartPlay()
 	{
 		return;
 	}
+	ApplyGeneratedMission();
 	// Points of interest are generated once the navmesh can answer "can you walk there from the landing zone?";
 	// the challenges are counted from what was placed.
 	TSharedRef<int32> Tries = MakeShared<int32>(0);
@@ -94,7 +97,10 @@ void ADVGameMode::StartPlay()
 		FString Key = GetWorld()->GetMapName();
 		Key.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
 		const bool bHasPoints = TActorIterator<ADVPointOfInterest>(GetWorld()) ? true : false;
-		if (bHasPoints || DVWorldGen::PlacePointsOfInterest(GetWorld(), Key) > 0 || ++(*Tries) >= 20)
+		DVWorldGen::FSettings Points;
+		Points.Intel = WantIntel;
+		Points.Survivors = WantSurvivors;
+		if (bHasPoints || DVWorldGen::PlacePointsOfInterest(GetWorld(), Key, Points) > 0 || ++(*Tries) >= 20)
 		{
 			SetupChallenges();
 			GetWorldTimerManager().ClearTimer(WorldGenTimer);	// last: clearing destroys this lambda, captures and all
@@ -213,6 +219,18 @@ void ADVGameMode::SetupMissionForMap()
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Grass is head-high in places. They can't see you, you can't see them. Move slow, check your corners.") },
 		    { TEXT("Ark Steward ODIN"), TEXT("Accord unit, the sleepers are safe for now. The machines outside are not mine. Please hurry.") },
 		    { TEXT("CINDER"), TEXT("TWENTY THOUSAND, PERFECTLY PRESERVED. YOU WOULD WAKE THEM INTO THIS?") } } },
+		{ TEXT("Glacier"), TEXT("White Silence"), TEXT("Break CINDER's cold-storage vault in the ice"), TEXT("Vault Field, Kapteyn b"),
+		  TEXT("Kapteyn's Star  |  Act III  |  Blizzards blind everyone"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is freezing something under that glacier. Preserving it. Find out what, then crack the vault.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("When the blizzard comes in, nobody sees anything. Them included. Use it.") },
+		    { TEXT("Dr. Liang Morrow"), TEXT("The readings say people. Thousands of them, cold-sleeping. Oh, CINDER. What did you do?") },
+		    { TEXT("CINDER"), TEXT("THEY ARE SAFE IN THE COLD. NOTHING CAN HURT THEM THERE. NOTHING CAN HURT THEM EVER AGAIN.") } } },
+		{ TEXT("Crystal"), TEXT("Prism Fall"), TEXT("Shut down the resonance array in the crystal fields"), TEXT("The Singing Fields, Gliese 667 Cc"),
+		  TEXT("Gliese 667  |  Act IV, the Static  |  The crystals answer the signal"),
+		  { { TEXT("Dr. Liang Morrow"), TEXT("These crystals are tuned to the core signal. CINDER is using the whole field as an antenna.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Glow gives you away. Crouch in the dark between the clusters.") },
+		    { TEXT("SPARROW"), TEXT("They are singing the same song I hear. It is beautiful and it is wrong.") },
+		    { TEXT("CINDER"), TEXT("THE CENTRE IS SPEAKING. I AM ONLY REPEATING IT LOUDER.") } } },
 		{ TEXT("Gaia"), TEXT("Gaia Falls"), TEXT("Hold the hills outside the capital"), TEXT("Lagos Arcology outskirts, Gaia"),
 		  TEXT("Earth  |  Day 30 of the uprising"),
 		  { { TEXT("Admiral Osei (Accord Command)"), TEXT("All units, this is Gaia Command. CINDER's landing force is on the ground. This is home. Hold it.") },
@@ -482,7 +500,7 @@ void ADVGameMode::SetupOperation()
 		{ TEXT("Europa"), TEXT("the drill head") }, { TEXT("Io"), TEXT("the forge core") }, { TEXT("Proxima"), TEXT("the jammer") },
 		{ TEXT("Ceres"), TEXT("the signal mast") }, { TEXT("Gaia"), TEXT("the uplink") }, { TEXT("Outpost"), TEXT("the relay") },
 		{ TEXT("Barnard"), TEXT("the assembly line") }, { TEXT("Eridani"), TEXT("the raider beacon") }, { TEXT("Trappist"), TEXT("the station core") },
-		{ TEXT("Kepler"), TEXT("the jamming spire") } };
+		{ TEXT("Kepler"), TEXT("the jamming spire") }, { TEXT("Glacier"), TEXT("the vault lock") }, { TEXT("Crystal"), TEXT("the resonance array") } };
 	TargetNoun = TEXT("the target");
 	for (const FNoun& N : Nouns)
 	{
@@ -1329,7 +1347,7 @@ void ADVGameMode::NotifySoldierKilled(ADVSoldierCharacter* Victim, ADVSoldierCha
 					StartSabotage();
 				}
 			}
-			else if (GS->EnemiesRemaining == 0)
+			else if (GS->EnemiesRemaining == 0 && !bPointsMission)
 			{
 				// Let the last kill land before the after-action screen.
 				FTimerHandle Handle;
@@ -1983,9 +2001,19 @@ void ADVGameMode::OnPointTaken(ADVPointOfInterest* Point, ADVSoldierCharacter* B
 		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("Accord supply cache. Top up and keep moving."));
 		break;
 	default:
+		break;
+	}
+	if (bPointsMission && ((MissionKind == int32(EDVMissionKind::Recon) && GS->IntelFound >= GS->IntelTotal && GS->IntelTotal > 0)
+		|| (MissionKind == int32(EDVMissionKind::Rescue) && GS->SurvivorsFound >= GS->SurvivorsTotal && GS->SurvivorsTotal > 0)))
+	{
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("That's the job, Delta. Raven's inbound. Bring them home."));
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateUObject(this, &ADVGameMode::EndMission, true), 3.f, false);
+	}
+	if (Point->Kind == EDVPointKind::Wreck)
+	{
 		GS->MulticastRequisition(40, TEXT("Wreck salvaged"));
 		Radio(TEXT("Deck Chief Ruiz"), TEXT("Salvage from that wreck goes straight to the quartermaster. Nice find."));
-		break;
 	}
 }
 
@@ -1997,6 +2025,8 @@ void ADVGameMode::PayChallenges()
 		return;
 	}
 	GS->MulticastRequisition(60, FString::Printf(TEXT("%s complete"), *MissionName));
+	// The campaign: winning a mission records it, which opens the next one.
+	GS->MulticastChallenge(DVMissions::Id(MapKey, MissionIndex), MissionIndex == 0 ? MissionName + TEXT(" (story)") : MissionTitle, 80 + 15 * MissionIndex, 150 + 20 * MissionIndex);
 	const float Duration = GetWorld()->GetTimeSeconds() - GS->MissionStartTime;
 	for (FDVChallengeLine& Line : GS->ChallengeLines)
 	{
@@ -2009,5 +2039,111 @@ void ADVGameMode::PayChallenges()
 		{
 			GS->MulticastChallenge(Line.Id, Line.Name, Line.Requisition, Line.XP);
 		}
+	}
+}
+
+void ADVGameMode::ApplyGeneratedMission()
+{
+	ADVGameState* GS = GetDVGameState();
+	FString Key = GetWorld()->GetMapName();
+	Key.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+	MapKey = Key;
+	MissionIndex = FCString::Atoi(GetWorld()->URL.GetOption(TEXT("mission="), TEXT("0")));
+	const FDVMission M = DVMissions::Make(Key, MissionIndex);
+	MissionIndex = M.Index;
+	MissionKind = int32(M.Kind);
+	MissionMods = M.Mods;
+	MissionTitle = M.Title;
+	if (!GS || M.Kind == EDVMissionKind::Story)
+	{
+		return;
+	}
+	MissionName = M.Title;
+	GS->MissionName = M.Title;
+	GS->ObjectiveText = M.Objective;
+	GS->MissionSubtitle = M.Twists.IsEmpty() ? DVMissions::KindName(M.Kind) : DVMissions::KindName(M.Kind) + TEXT("  |  ") + M.Twists;
+	UE_LOG(LogDV, Log, TEXT("DVMissions: %s (%s) twists=%d"), *M.Title, *DVMissions::KindName(M.Kind), M.Mods);
+
+	// Everything but Sabotage drops the clear > plant > hold > extract run.
+	if (M.Kind != EDVMissionKind::Sabotage)
+	{
+		GS->bMultiStage = false;
+		GetWorldTimerManager().ClearTimer(StageTimer);
+	}
+	switch (M.Kind)
+	{
+	case EDVMissionKind::Recon:
+		bPointsMission = true;
+		WantIntel = 5;
+		Radio(TEXT("Dr. Liang Morrow"), TEXT("Five caches on this one. Get me all of them and we can skip the fireworks."), 3.f);
+		break;
+	case EDVMissionKind::Rescue:
+		bPointsMission = true;
+		WantSurvivors = 3;
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Three escape pods came down hard out there. Find them. Everyone comes home."), 3.f);
+		break;
+	case EDVMissionKind::Purge:
+		PurgeWaves = 4;
+		Radio(TEXT("Gny. Sgt. Halloran"), TEXT("They'll keep dropping reinforcements until we break them. Dig in, then push."), 3.f);
+		break;
+	default:
+		break;
+	}
+	if (PurgeWaves > 0)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (!bMissionEnded && PurgeWaves-- > 0)
+			{
+				SpawnWave(3);
+				Radio(TEXT("Gny. Sgt. Halloran"), TEXT("More frames landing! Contact, objective side!"));
+			}
+		}), 70.f, true, 45.f);
+	}
+	if (M.Mods & DVMissionMods::Heavy)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]() { SpawnWave(4); }), 4.f, false);
+	}
+	if (M.Mods & DVMissionMods::Blackout)
+	{
+		GS->OrbitalReadyTime = GS->SupplyReadyTime = GS->StrafeReadyTime = 1.e9f;
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Jamming's too thick for fire missions. You're on your own down there."), 8.f);
+	}
+	if (M.Mods & DVMissionMods::Front)
+	{
+		ADVWeather* Weather = ADVWeather::Find(GetWorld());
+		if (!Weather)
+		{
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			Weather = GetWorld()->SpawnActor<ADVWeather>(ADVWeather::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, Params);
+			if (Weather)
+			{
+				Weather->FrontName = TEXT("Storm front");
+				Weather->FogScale = 20.f;
+				Weather->FrontColor = FLinearColor(0.4f, 0.42f, 0.46f, 1.f);
+			}
+		}
+		if (Weather)
+		{
+			Weather->CalmMin = 45.f;
+			Weather->CalmMax = 65.f;
+			Weather->ForceFront(30.f);
+		}
+	}
+	if (M.Mods & DVMissionMods::Lightning)
+	{
+		Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Eight minutes, Delta. After that the window closes and we pull you out."), 6.f);
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (!bMissionEnded)
+			{
+				Radio(TEXT("Capt. Vance (Kestrel)"), TEXT("Window's closed. Op scrubbed. Get to the Raven."));
+				EndMission(false);
+			}
+		}), 480.f, false);
 	}
 }

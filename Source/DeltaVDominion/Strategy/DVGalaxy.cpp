@@ -1,5 +1,6 @@
 #include "Strategy/DVGalaxy.h"
 #include "UI/DVUIStyle.h"
+#include "Core/DVMissions.h"
 #include "Strategy/DVStarSystem.h"
 #include "Core/DVProfileSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -270,6 +271,11 @@ void ADVGalaxyPlayerController::DVGalaxyView(int32 Preset)
 	Focus = TargetFocus;	// snap focus; distance still eases
 }
 
+void ADVGalaxyPlayerController::DVUnlockAll()
+{
+	DVMissions::bUnlockAll = true;
+}
+
 void ADVGalaxyPlayerController::LaunchOperation(int32 Index)
 {
 	const ADVStarSystem* System = Selected.Get();
@@ -282,12 +288,22 @@ void ADVGalaxyPlayerController::LaunchOperation(int32 Index)
 		return;	// already jumping
 	}
 	// The Lattice jump: the screen washes white, then the operation opens with the Raven already on its way down.
-	JumpOut = GetWorld()->GetRealTimeSeconds();
 	const FString Map = System->Operations[Index].Map;
-	FTimerHandle Handle;
-	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Map]()
+	FString Key;
+	Map.Split(TEXT("/"), nullptr, &Key, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	const UDVProfileSubsystem* Profile = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDVProfileSubsystem>() : nullptr;
+	const int32 Mission = DVMissions::NextFor(Profile, Key);
+	if (Mission < 0)
 	{
-		UGameplayStatics::OpenLevel(this, FName(*Map), true, TEXT("descent"));
+		LockedTime = GetWorld()->GetRealTimeSeconds();	// the campaign runs in order: the HUD says what comes first
+		return;
+	}
+	JumpOut = GetWorld()->GetRealTimeSeconds();
+	const FString Options = FString::Printf(TEXT("descent?mission=%d"), Mission);
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Map, Options]()
+	{
+		UGameplayStatics::OpenLevel(this, FName(*Map), true, Options);
 	}), 1.1f, false);
 }
 
@@ -376,6 +392,7 @@ void ADVGalaxyHUD::DrawHUD()
 
 	// Selected system panel.
 	PlayButtons.Reset();
+	TMap<int32, FString> OpLine;
 	if (const ADVStarSystem* System = PC->GetSelected())
 	{
 		const float PX = W - S(560.f);
@@ -421,24 +438,41 @@ void ADVGalaxyHUD::DrawHUD()
 				const FBox2D Box(FVector2D(PX + S(380.f), Y - S(2.f)), FVector2D(PX + S(505.f), Y + S(40.f)));
 				float MX = -1.f, MY = -1.f;
 				PC->GetMousePosition(MX, MY);
-				DVUI::Button(this, DVUI::FStyle{ UIScale, 1.3f * 0.9f * UIScale }, Box, TEXT("PLAY"), FLinearColor(0.95f, 0.69f, 0.12f, 1.f), Medium,
-					Box.IsInside(FVector2D(MX, MY)), FString::FromInt(i + 1));
-				PlayButtons.Emplace(Box, i);
 				FString Key;
 				Op.Map.Split(TEXT("/"), nullptr, &Key, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-				const int32 Done = Profile ? Profile->CountChallenges(Key) : 0;
-				if (Done > 0)
+				const int32 Next = DVMissions::NextFor(Profile, Key);
+				const bool bCampaign = DVMissions::CampaignMaps().Contains(Key);
+				DVUI::Button(this, DVUI::FStyle{ UIScale, 1.3f * 0.9f * UIScale }, Box, Next < 0 ? TEXT("LOCKED") : TEXT("PLAY"),
+					Next < 0 ? FLinearColor(0.35f, 0.37f, 0.4f, 1.f) : FLinearColor(0.95f, 0.69f, 0.12f, 1.f), Medium, Next >= 0 && Box.IsInside(FVector2D(MX, MY)), FString::FromInt(i + 1));
+				PlayButtons.Emplace(Box, i);
+				if (bCampaign)
 				{
-					Text(FString::Printf(TEXT("%d challenge%s met"), Done, Done == 1 ? TEXT("") : TEXT("s")), PX + S(400.f), Y + S(44.f), FLinearColor(0.82f, 0.67f, 0.45f, 1.f), Small, 0.8f);
+					const int32 Done = DVMissions::CountDone(Profile, Key);
+					Text(FString::Printf(TEXT("%d/%d"), Done, DVMissions::MissionsPerMap), PX + S(370.f), Y + S(10.f), FLinearColor(0.82f, 0.67f, 0.45f, 1.f), Small, 0.85f, false, true);
+				}
+				if (bCampaign && Next > 0)
+				{
+					// What PLAY will launch: the next mission in this world's run, and its twists.
+					const FDVMission M = DVMissions::Make(Key, Next);
+					OpLine.Add(i, FString::Printf(TEXT("Next: %s  -  %s"), *M.Title, M.Twists.IsEmpty() ? *DVMissions::KindName(M.Kind) : *M.Twists));
+				}
+				else if (Next < 0)
+				{
+					const int32 At = DVMissions::CampaignMaps().IndexOfByKey(Key);
+					OpLine.Add(i, At > 0 ? FString::Printf(TEXT("Opens after the %s story operation"), *DVMissions::Make(DVMissions::CampaignMaps()[At - 1], 0).Title) : FString());
 				}
 			}
 			Text(FString::Printf(TEXT("OPERATION %s"), *Op.Name.ToUpper()), PX, Y, bPlayable ? FLinearColor(1.f, 0.6f, 0.2f, 1.f) : FLinearColor(0.5f, 0.5f, 0.55f, 1.f), Medium, 1.f);
 			Y += S(26.f);
-			Text(bPlayable ? Op.Location : Op.Location + TEXT("  (coming soon)"), PX, Y, FLinearColor(0.75f, 0.75f, 0.8f, 1.f), Small, 1.f);
+			Text(OpLine.Contains(i) ? OpLine[i] : bPlayable ? Op.Location : Op.Location + TEXT("  (coming soon)"), PX, Y, FLinearColor(0.75f, 0.75f, 0.8f, 1.f), Small, 1.f);
 			Y += S(30.f);
 		}
 	}
 
+	if (GetWorld()->GetRealTimeSeconds() - PC->LockedTime < 3.0)
+	{
+		Text(TEXT("The campaign runs in order: finish the operation before this one to open it."), W * 0.5f, H - S(90.f), FLinearColor(1.f, 0.6f, 0.2f, 1.f), Medium, 1.f, true);
+	}
 	Text(TEXT("[LMB] orbit    [RMB] pan    [Q] [E] zoom    [1] play operation    [H] home    [G] whole galaxy"),
 		W * 0.5f, H - S(46.f), FLinearColor(0.7f, 0.75f, 0.85f, 0.85f), Small, 1.f, true);
 }

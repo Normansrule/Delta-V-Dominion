@@ -11,6 +11,8 @@
   eridani  /Game/Maps/Eridani   Dust Choir     A mined-out rock in the Epsilon Eridani debris ring, the ring arching overhead
   trappist /Game/Maps/Trappist  The Architect  TRAPPIST-1e's twilight band: Morrow Station, sister worlds hanging in the sky
   kepler   /Game/Maps/Kepler    Ark Fall       Kepler-452b: tall grass, giant trees and the broken hull of the colony ark
+  glacier  /Game/Maps/Glacier   White Silence  Kapteyn b: a glacier world, blue ice spires, blizzards that blind everyone
+  crystal  /Game/Maps/Crystal   Prism Fall     Gliese 667 Cc: fields of glowing crystal growing out of violet rock
 
 Everything is generated: Nanite terrain and rocks (GeometryScript), PBR materials, a fortified compound
 kit-bashed from engine meshes, the Accord landing zone with vehicles, the Kestrel overhead, biome extras,
@@ -137,6 +139,20 @@ BIOMES = {
                    sun=(-36, 210), sun_color=(255, 238, 205), sun_lux=10.5, atmosphere=True, mie=0.01, sky_light=1.25,
                    fog=0.014, fog_color=(0.42, 0.5, 0.5), clouds=True, saturation=1.1, contrast=1.08, exposure=0.0,
                    extras=["ark", "trees", "grass"]),
+    # White Silence (Kapteyn b): an ancient glacier world under a pale orange sun; blue ice spires, endless snow.
+    "glacier": dict(map="/Game/Maps/Glacier", env="/Game/Environment/Planets/Glacier", seed=171, dunes=110.0, rim=1500.0, mesa=3600.0,
+                    sand_a=(0.78, 0.8, 0.84), sand_b=(0.55, 0.6, 0.68), slope_rock=(0.2, 0.3, 0.42),
+                    rock_dark=(0.12, 0.2, 0.3), rock_light=(0.6, 0.72, 0.85),
+                    sun=(-34, 60), sun_color=(255, 224, 196), sun_lux=7.0, atmosphere=True, mie=0.01, sky_light=1.2,
+                    fog=0.012, fog_color=(0.55, 0.62, 0.75), clouds=True, saturation=0.95, contrast=1.12, exposure=-0.2,
+                    extras=["ice_spires", "snow"]),
+    # Prism Fall (Gliese 667 Cc): violet basalt and crystal that grows like coral and glows after dark. Dusk.
+    "crystal": dict(map="/Game/Maps/Crystal", env="/Game/Environment/Planets/Crystal", seed=181, dunes=80.0, rim=1200.0, mesa=3200.0,
+                    sand_a=(0.09, 0.06, 0.12), sand_b=(0.04, 0.03, 0.06), slope_rock=(0.06, 0.04, 0.09),
+                    rock_dark=(0.025, 0.02, 0.04), rock_light=(0.16, 0.12, 0.22),
+                    sun=(-9, 230), sun_color=(255, 150, 120), sun_lux=4.0, atmosphere=True, mie=0.015, sky_light=0.8,
+                    fog=0.014, fog_color=(0.2, 0.12, 0.3), clouds=True, saturation=1.15, contrast=1.15, exposure=0.1,
+                    extras=["crystals"]),
 }
 # Weather fronts that change the fight (ADVWeather): name, fog multiplier, tint.
 WEATHER = {
@@ -146,6 +162,8 @@ WEATHER = {
     "barnard": ("Ice storm", 24.0, (0.55, 0.55, 0.6)),
     "proxima": ("Fog bank", 30.0, (0.35, 0.3, 0.3)),
     "kepler": ("Rain squall", 21.0, (0.35, 0.4, 0.42)),
+    "glacier": ("Blizzard", 30.0, (0.75, 0.8, 0.88)),
+    "crystal": ("Prism storm", 18.0, (0.35, 0.2, 0.5)),
     "gaia": ("Rain squall", 18.0, (0.4, 0.44, 0.5)),
 }
 B = BIOMES["mars"]
@@ -928,6 +946,26 @@ def build_extras(mats, rocks, rock_mat):
                 block("TowerWin_%02d_%d" % (i, k), (x, y, gz + 450 + k * 900), (w + 10, d + 10, 120), mats["windows_dim"] if "harbour" in extras else mats["windows"], yaw, folder="City")
             block("TowerBeacon_%02d" % i, (x, y, gz + h + 60), (80, 80, 80), mats["strip_red"], folder="City")
 
+    if "ice_spires" in extras:
+        # Blue ice: spires and seracs leaning out of the snow, glassy and pale, taller toward the rim.
+        ice = tinted("/Game/Building/Materials/MI_StdOpaque_Brushed", "MI_GlacierIce", (0.42, 0.62, 0.8), metallic=0.0, roughness=0.12)
+        n = 0
+        for i in range(400):
+            ang = random.uniform(0, 2 * math.pi)
+            q = random.uniform(0.35, 1.9)
+            x, y = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
+            if not clear_of_gameplay(x, y):
+                continue
+            h = random.uniform(2.0, 6.0) * (0.6 + q)
+            w = random.uniform(0.8, 1.8)
+            place(random.choice(rocks), "IceSpire_%03d" % n, (x, y, ground(x, y) - 40 * h), rot(random.uniform(-14, 14), random.uniform(0, 360), random.uniform(-14, 14)),
+                  (w, w * random.uniform(0.6, 1.0), h), ice, "Ice")
+            n += 1
+            if n >= 140:
+                break
+        log("ice spires %d" % n)
+    if "crystals" in extras:
+        build_crystals(mats)
     if "mine" in extras:
         build_mine(mats, rocks, rock_mat)
     if "snow" in extras:
@@ -1126,6 +1164,43 @@ def build_ark(mats):
             continue
         sz = random.uniform(150, 600)
         block("ArkDebris_%02d" % i, (x, y, ground(x, y) + sz * 0.3), (sz * 1.6, sz, sz * 0.6), random.choice([hull, scorch, mats["gunmetal"]]), random.uniform(0, 360), folder="Ark")
+
+def build_crystals(mats):
+    """Crystal fields: clusters of glowing prisms growing out of the rock, a few giant spires, pools of coloured light."""
+    prism = lib.load_asset("/Game/LevelPrototyping/Meshes/SM_Cylinder")
+    b = prism.get_bounds()
+    pw, ph = b.box_extent.x * 2, b.box_extent.z * 2
+    palette = [glow("MI_Crystal_Teal_V3", (0.1, 0.9, 0.8), 0.18), glow("MI_Crystal_Violet_V3", (0.6, 0.2, 1.0), 0.22),
+               glow("MI_Crystal_Rose_V3", (1.0, 0.35, 0.7), 0.16)]
+    colors = [(40, 230, 210), (150, 60, 255), (255, 90, 180)]
+    n = 0
+    for c in range(70):
+        ang = random.uniform(0, 2 * math.pi)
+        q = random.uniform(0.3, 1.8)
+        cx, cy = math.cos(ang) * 5600 * q, math.sin(ang) * 4300 * q
+        if not clear_of_gameplay(cx, cy):
+            continue
+        k = random.randrange(3)
+        scale = random.uniform(0.6, 1.6) * (0.7 + q * 0.6)
+        for j in range(random.randint(4, 9)):
+            x, y = cx + random.uniform(-260, 260) * scale, cy + random.uniform(-260, 260) * scale
+            h = random.uniform(150, 700) * scale
+            w = h * random.uniform(0.12, 0.22)
+            place(prism, "Crystal_%03d_%d" % (c, j), (x, y, ground(x, y) - h * 0.1),
+                  rot(random.uniform(-35, 35), random.uniform(0, 360), random.uniform(-35, 35)), (w / pw, w / pw, h / ph), palette[k], "Crystals")
+            n += 1
+        if c % 2 == 0:
+            town_light("CrystalGlow_%02d" % c, (cx, cy, ground(cx, cy) + 250 * scale), colors[k], 350.0, 1400.0 * scale)
+    # Giant spires on the rim, visible from anywhere: the landmarks of the world.
+    for i in range(9):
+        ang = 2 * math.pi * i / 9 + random.uniform(-0.2, 0.2)
+        x, y = math.cos(ang) * 5600 * random.uniform(1.4, 2.2), math.sin(ang) * 4300 * random.uniform(1.4, 2.2)
+        h = random.uniform(4000, 9000)
+        w = h * 0.12
+        place(prism, "CrystalSpire_%d" % i, (x, y, ground(x, y) - 200), rot(random.uniform(-12, 12), random.uniform(0, 360), random.uniform(-12, 12)),
+              (w / pw, w / pw, h / ph), palette[i % 3], "Crystals")
+    log("crystals %d" % n)
+
 
 def build_horizon(rocks, rock_mat):
     """Close every horizon: ranges of mountains kilometres out, and stars on worlds without an atmosphere or at night,
