@@ -200,6 +200,12 @@ def build():
     system("Gliese 667", galactic(23.6, 351.8, 1.3), "Local Bubble", 23.6, CONTESTED,
            "A triple star. Its world Cc grows crystal that hums at the frequency of the core signal.",
            (1.0, 0.55, 0.35), 1.0, [op("Prism Fall", "The Singing Fields, Gliese 667 Cc", "/Game/Maps/Crystal")])
+    system("Wolf 1061", galactic(14.0, 3.4, 23.7), "Local Bubble", 14.0, CONTESTED,
+           "A red dwarf with a jungle world, c, where something built temples long before anyone came. CINDER grows frames there.",
+           (1.0, 0.5, 0.3), 0.9, [op("Emerald Wake", "The drowned temples, Wolf 1061 c", "/Game/Maps/Jungle")])
+    system("Teegarden's Star", galactic(12.5, 160.3, -37.0), "Local Bubble", 12.5, CINDER,
+           "A faint red dwarf and b, a world of one ocean and a single chain of islands. CINDER's sea-relay sits on the last of them.",
+           (1.0, 0.4, 0.25), 0.8, [op("Tidefall", "The Chain, Teegarden b", "/Game/Maps/Ocean")])
     system("Tau Ceti", galactic(11.9, 173.1, -73.4), "Local Bubble", 11.9, CONTESTED,
            "Agricultural worlds that feed half the Accord. CINDER's harvesters have turned on the fields. On the fourth world, "
            "Hollyhock Vale, a caretaker AI called Nana Bramble never stopped tending hers.", (1.0, 0.85, 0.55), 1.2,

@@ -200,6 +200,10 @@ bool ADVWeaponBase::ServerResupply()
 	{
 		return false;
 	}
+	if (ADVSoldierCharacter* Holder = Cast<ADVSoldierCharacter>(GetOwner()))
+	{
+		Holder->Grenades = ADVSoldierCharacter::MaxGrenades;
+	}
 	const int32 Full = GetData()->StartingReserve;
 	const bool bNeeded = ReserveAmmo < Full || Heat > 0.f || AmmoInMag < GetData()->MagazineSize;
 	ReserveAmmo = FMath::Max(ReserveAmmo, Full);

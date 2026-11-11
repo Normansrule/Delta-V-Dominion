@@ -13,6 +13,8 @@
   kepler   /Game/Maps/Kepler    Ark Fall       Kepler-452b: tall grass, giant trees and the broken hull of the colony ark
   glacier  /Game/Maps/Glacier   White Silence  Kapteyn b: a glacier world, blue ice spires, blizzards that blind everyone
   crystal  /Game/Maps/Crystal   Prism Fall     Gliese 667 Cc: fields of glowing crystal growing out of violet rock
+  jungle   /Game/Maps/Jungle    Emerald Wake   Wolf 1061 c: a steaming jungle, giant trees, vines, a drowned temple city
+  ocean    /Game/Maps/Ocean     Tidefall       Teegarden b: an ocean world, a chain of islands, piers, a wrecked tanker offshore
 
 Everything is generated: Nanite terrain and rocks (GeometryScript), PBR materials, a fortified compound
 kit-bashed from engine meshes, the Accord landing zone with vehicles, the Kestrel overhead, biome extras,
@@ -153,6 +155,20 @@ BIOMES = {
                     sun=(-9, 230), sun_color=(255, 150, 120), sun_lux=4.0, atmosphere=True, mie=0.015, sky_light=0.8,
                     fog=0.014, fog_color=(0.2, 0.12, 0.3), clouds=True, saturation=1.15, contrast=1.15, exposure=0.1,
                     extras=["crystals"]),
+    # Emerald Wake (Wolf 1061 c): a hot, wet world under a canopy so thick the light comes down green.
+    "jungle": dict(map="/Game/Maps/Jungle", env="/Game/Environment/Planets/Jungle", seed=191, dunes=170.0, rim=1100.0, mesa=2600.0,
+                   sand_a=(0.06, 0.1, 0.03), sand_b=(0.08, 0.06, 0.035), slope_rock=(0.09, 0.1, 0.07),
+                   rock_dark=(0.04, 0.05, 0.035), rock_light=(0.18, 0.2, 0.15),
+                   sun=(-48, 160), sun_color=(240, 255, 210), sun_lux=8.0, atmosphere=True, mie=0.03, sky_light=1.1,
+                   fog=0.03, fog_color=(0.3, 0.42, 0.3), clouds=True, saturation=1.15, contrast=1.08, exposure=0.1,
+                   extras=["jungle", "trees", "grass"]),
+    # Tidefall (Teegarden b): nearly all ocean; the fight runs along a chain of islands joined by sand bars.
+    "ocean": dict(map="/Game/Maps/Ocean", env="/Game/Environment/Planets/Ocean", seed=201, dunes=60.0, rim=0.0, mesa=0.0,
+                  sand_a=(0.48, 0.42, 0.3), sand_b=(0.2, 0.22, 0.12), slope_rock=(0.16, 0.15, 0.13),
+                  rock_dark=(0.06, 0.06, 0.06), rock_light=(0.28, 0.26, 0.23),
+                  sun=(-30, 120), sun_color=(255, 238, 215), sun_lux=10.0, atmosphere=True, mie=0.008, sky_light=1.2,
+                  fog=0.008, fog_color=(0.45, 0.55, 0.65), clouds=True, saturation=1.1, contrast=1.08, exposure=-0.2,
+                  extras=["ocean", "trees"]),
 }
 # Weather fronts that change the fight (ADVWeather): name, fog multiplier, tint.
 WEATHER = {
@@ -164,6 +180,8 @@ WEATHER = {
     "kepler": ("Rain squall", 21.0, (0.35, 0.4, 0.42)),
     "glacier": ("Blizzard", 30.0, (0.75, 0.8, 0.88)),
     "crystal": ("Prism storm", 18.0, (0.35, 0.2, 0.5)),
+    "jungle": ("Monsoon", 24.0, (0.28, 0.36, 0.3)),
+    "ocean": ("Sea squall", 18.0, (0.4, 0.46, 0.52)),
     "gaia": ("Rain squall", 18.0, (0.4, 0.44, 0.5)),
 }
 B = BIOMES["mars"]
@@ -274,6 +292,14 @@ def terrain_height(x, y):
     if "town" in B["extras"]:
         # The town sits on a levelled plaza; the land rises back into dunes and mesas past the last buildings.
         h *= smoothstep(4400.0, 6000.0, math.sqrt(x * x + y * y * 1.6))
+    if "ocean" in B["extras"]:
+        # A chain of islands from the landing zone to the compound, a few islets off it, and the sea floor everywhere else.
+        land = 0.0
+        for cx, cy, r in ((-4300, 0, 2100), (-2300, 300, 1500), (-700, -200, 1500), (1000, 200, 1500), (3000, 0, 2400),
+                          (-1500, 2600, 900), (1800, -2700, 1000), (-3600, -2900, 800), (-5000, 2300, 1400)):
+            d = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+            land = max(land, 1.0 - smoothstep(r * 0.75, r, d))
+        return land * (h * 0.25 + 80.0) + (1.0 - land) * -1300.0
     if "ark" in B["extras"]:
         # The ark ploughed a furrow from the north-east hills down into the valley.
         d = abs((x - 600.0) * 0.6 - (y - 2600.0) * 0.8)
@@ -894,6 +920,8 @@ def build_extras(mats, rocks, rock_mat):
                 q = math.sqrt((x / 5600.0) ** 2 + (y / 4300.0) ** 2)
                 if q < 0.55 or not clear_of_gameplay(x, y) or (q < 1.0 and random.random() < 0.75):
                     continue
+                if "ocean" in extras and ground(x, y) < WATER_Z + 50:
+                    continue    # no trees growing out of the sea
                 s = random.uniform(0.8, 1.5)
                 place(tree, "Tree_%03d" % count, (x, y, ground(x, y) - 20), rot(yaw=random.uniform(0, 360)), (s, s, s * random.uniform(0.9, 1.2)), None, "Trees")
                 count += 1
@@ -968,6 +996,10 @@ def build_extras(mats, rocks, rock_mat):
         log("ice spires %d" % n)
     if "crystals" in extras:
         build_crystals(mats)
+    if "jungle" in extras:
+        build_jungle(mats, rocks, rock_mat)
+    if "ocean" in extras:
+        build_ocean(mats)
     if "mine" in extras:
         build_mine(mats, rocks, rock_mat)
     if "snow" in extras:
@@ -1166,6 +1198,79 @@ def build_ark(mats):
             continue
         sz = random.uniform(150, 600)
         block("ArkDebris_%02d" % i, (x, y, ground(x, y) + sz * 0.3), (sz * 1.6, sz, sz * 0.6), random.choice([hull, scorch, mats["gunmetal"]]), random.uniform(0, 360), folder="Ark")
+
+def build_jungle(mats, rocks, rock_mat):
+    """Jungle: giant trees closing over the arena, hanging vines, and the drowned temple city the fight goes through."""
+    tree = lib.load_asset("/Game/ArchVis/SampleScene/Tree/HillTree_02")
+    moss = tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_TempleMoss", (0.16, 0.2, 0.12), roughness=0.95)
+    stone = tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_TempleStone", (0.28, 0.27, 0.22), roughness=0.9)
+    vine = tinted("/Game/Building/Materials/MI_StdOpaque_Concrete", "MI_Vine", (0.05, 0.1, 0.03), roughness=0.9)
+    cyl = lib.load_asset("/Game/LevelPrototyping/Meshes/SM_Cylinder")
+    n = 0
+    for i in range(2000):
+        x, y = random.uniform(-9000, 9000), random.uniform(-7000, 7000)
+        if not clear_of_gameplay(x, y):
+            continue
+        s = random.uniform(1.6, 2.8)
+        place(tree, "Giant_%03d" % n, (x, y, ground(x, y) - 30), rot(yaw=random.uniform(0, 360)), (s, s, s * random.uniform(1.0, 1.3)), None, "Canopy")
+        if n % 3 == 0:
+            for k in range(random.randint(2, 4)):
+                vx, vy = x + random.uniform(-250, 250), y + random.uniform(-250, 250)
+                vl = random.uniform(300, 900)
+                place(cyl, "Vine_%03d_%d" % (n, k), (vx, vy, ground(vx, vy) + 1500 * s / 2.2 - vl), rot(), (0.03, 0.03, vl / 100.0), vine, "Canopy")
+        n += 1
+        if n >= 320:
+            break
+    # The temple city: a stepped pyramid north of the line of advance, broken colonnades, fallen idol heads.
+    px, py = 400, 2600
+    gz = ground(px, py)
+    for k in range(5):
+        w = 2200 - k * 380
+        block("Pyramid_Step%d" % k, (px, py, gz + 120 + k * 240), (w, w, 240), stone if k % 2 else moss, folder="Temple")
+    block("Pyramid_Shrine", (px, py, gz + 1420), (420, 420, 320), stone, folder="Temple")
+    block("Pyramid_Stair", (px, py - 1000, gz + 500), (360, 600, 900), moss, 0, folder="Temple")
+    town_light("Pyramid_Fire", (px, py, gz + 1700), (255, 170, 80), 1500.0, 2400.0)
+    for i in range(16):
+        cx, cy = -2600 + i * 360, -2300 + math.sin(i * 0.7) * 200
+        if not clear_of_gameplay(cx, cy):
+            continue
+        h = random.choice([600, 600, 420, 250])
+        place(cyl, "Column_%02d" % i, (cx, cy, ground(cx, cy)), rot(pitch=random.uniform(-6, 6), roll=random.uniform(-6, 6)), (0.9, 0.9, h / 100.0), stone, "Temple")
+    for i in range(4):
+        hx, hy = random.uniform(-3000, 2000), random.uniform(-3500, -2600)
+        if clear_of_gameplay(hx, hy):
+            block("IdolHead_%d" % i, (hx, hy, ground(hx, hy) + 160), (380, 340, 360), moss, random.uniform(0, 360), folder="Temple")
+    log("jungle trees %d" % n)
+
+
+def build_ocean(mats):
+    """Ocean world: sea to every horizon, piers off the islands, buoys, and a broken tanker on the reef."""
+    water = place(lib.load_asset("/Engine/BasicShapes/Plane"), "Ocean", (0, 0, WATER_Z), rot(), (6000.0, 6000.0, 1.0), make_water_material(), "Ocean")
+    wc = water.static_mesh_component
+    wc.set_collision_enabled(unreal.CollisionEnabled.QUERY_ONLY)
+    wc.set_collision_response_to_all_channels(unreal.CollisionResponseType.ECR_IGNORE)
+    wc.set_collision_response_to_channel(unreal.CollisionChannel.ECC_VISIBILITY, unreal.CollisionResponseType.ECR_BLOCK)
+    water.tags = [unreal.Name("DV_Water")]
+    for i, (x, y, yaw) in enumerate(((-3300, -1700, 90), (2300, 2200, 80), (-600, 1500, 100))):
+        gz = max(ground(x, y), WATER_Z)
+        block("Pier_%d" % i, (x, y, WATER_Z + 150), (1200, 260, 40), mats["wood"], yaw, folder="Ocean")
+        for k in range(5):
+            c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+            block("PierPost_%d_%d" % (i, k), (x + c * (-500 + k * 250), y + s * (-500 + k * 250), WATER_Z - 100), (30, 30, 520), mats["wood"], folder="Ocean")
+    for i in range(10):
+        a = 2 * math.pi * i / 10
+        x, y = math.cos(a) * 8500, math.sin(a) * 6500
+        block("Buoy_%d" % i, (x, y, WATER_Z + 40), (80, 80, 120), mats["hazard"], folder="Ocean")
+        town_light("BuoyLight_%d" % i, (x, y, WATER_Z + 160), (255, 60, 40), 500.0, 900.0)
+    # The tanker that went onto the reef when CINDER took the shipping lanes: two halves, listing, rust streaked.
+    for k, (ox, pitch, roll) in enumerate(((0, -4, 12), (5200, 6, -18))):
+        place(CHAMFER, "Tanker_%d" % k, (-2000 + ox, 9000, WATER_Z + 300), rot(pitch=pitch, yaw=8, roll=roll),
+              (4800 / CHAMFER_SIZE.x, 1100 / CHAMFER_SIZE.y, 1300 / CHAMFER_SIZE.z), mats["rust"], "Ocean")
+    block("Tanker_Bridge", (-3800, 9100, WATER_Z + 1350), (700, 900, 900), mats["concrete"], 8, folder="Ocean")
+    town_light("Tanker_Fire", (600, 9000, WATER_Z + 1000), (255, 120, 40), 4000.0, 3000.0)
+    boat = unreal.load_class(None, "/Script/DeltaVDominion.DVBoat")
+    spawn(boat, "Marlin", (-3300, -2400, WATER_Z + 60), rot(yaw=60), "Vehicles")
+
 
 def build_crystals(mats):
     """Crystal fields: clusters of glowing prisms growing out of the rock, a few giant spires, pools of coloured light."""
@@ -2115,7 +2220,7 @@ def build():
 
     # --- Terrain and rocks --------------------------------------------------------------
     place(terrain, "MoonTerrain", (0, 0, 0), material=terrain_mat, folder="Terrain")
-    if "harbour" not in B["extras"] and not verge:
+    if "harbour" not in B["extras"] and not verge and "ocean" not in B["extras"]:
         # Plains out to the horizon around the 600 m terrain tile, so the land doesn't end when a Raven climbs.
         edge, far, top = 29500.0, 1500000.0, 400.0
         for name, cx, cy, sx, sy in (("N", 0, (edge + far) / 2, 2 * far, far - edge), ("S", 0, -(edge + far) / 2, 2 * far, far - edge),

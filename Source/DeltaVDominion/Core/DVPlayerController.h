@@ -125,6 +125,9 @@ public:
 	/** Capture: "DVViewTag Tag [Distance] [Height]" frames the actors tagged Tag (e.g. a story scene). */
 	UFUNCTION(Exec)
 	void DVViewTag(const FString& Tag, float Distance = 1400.f, float Height = 500.f);
+	/** Tests: "DVGrenadeTest [Delay]" throws a frag along the current view, like pressing the grenade key. */
+	UFUNCTION(Exec)
+	void DVGrenadeTest(float Delay = 0.f);
 
 	/** Console (dev): "DVDebugPawns" logs every pawn's class, location and visibility. */
 	UFUNCTION(Exec)

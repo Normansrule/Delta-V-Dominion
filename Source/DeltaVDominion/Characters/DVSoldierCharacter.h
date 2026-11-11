@@ -44,6 +44,12 @@ class DELTAVDOMINION_API ADVSoldierCharacter : public ACharacter, public IAbilit
 	GENERATED_BODY()
 
 public:
+	/** Frag grenades carried (refilled by supply caches and drops). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Soldier") int32 Grenades = 3;
+	static constexpr int32 MaxGrenades = 3;
+	UFUNCTION(Server, Reliable) void ServerThrowGrenade(FVector_NetQuantizeNormal Direction);
+	double LastGrenadeTime = -100.0;
+
 	/** Re-reads DVControls into the mapping context (after a rebind on the controls screen). */
 	void ApplyControlBindings();
 
@@ -188,6 +194,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> OrderSuppressAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> OrderFlankAction;
 	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> MeleeAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Input") TObjectPtr<UInputAction> GrenadeAction;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components") TObjectPtr<UCameraComponent> FirstPersonCamera;
@@ -271,6 +278,7 @@ private:
 	void Input_LeanLeft() { SetLean(LeanAmount < -0.5f ? 0.f : -1.f); }
 	void Input_LeanRight() { if (bIsAiming || LeanAmount > 0.5f) { SetLean(LeanAmount > 0.5f ? 0.f : 1.f); } }	// shares E with "use": leans only while aiming
 	void Input_Melee();
+	void Input_Grenade();
 	void Input_OrderMove();
 	void Input_OrderHold();
 	void Input_OrderRegroup();

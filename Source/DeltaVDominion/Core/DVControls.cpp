@@ -27,6 +27,7 @@ namespace DVControlsData	// named: unity builds merge anonymous namespaces
 			{ TEXT("Reload"), TEXT("Reload"), TEXT("Combat"), EKeys::R },
 			{ TEXT("Interact"), TEXT("Use / board / pick up"), TEXT("Combat"), EKeys::E },
 			{ TEXT("Melee"), TEXT("Melee / silent takedown"), TEXT("Combat"), EKeys::F },
+			{ TEXT("Grenade"), TEXT("Throw grenade"), TEXT("Combat"), EKeys::G },
 			{ TEXT("LeanLeft"), TEXT("Lean left"), TEXT("Combat"), EKeys::Q },
 			{ TEXT("LeanRight"), TEXT("Lean right (while aiming)"), TEXT("Combat"), EKeys::E },
 			{ TEXT("OrderMove"), TEXT("Squad: move / attack there"), TEXT("Squad"), EKeys::MiddleMouseButton },

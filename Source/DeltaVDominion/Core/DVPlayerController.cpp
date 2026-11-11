@@ -577,6 +577,19 @@ void ADVPlayerController::DVViewBulwark(float Distance)
 	}
 }
 
+void ADVPlayerController::DVGrenadeTest(float Delay)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		if (ADVSoldierCharacter* Soldier = Cast<ADVSoldierCharacter>(GetPawn()))
+		{
+			Soldier->LastGrenadeTime = -100.0;
+			Soldier->ServerThrowGrenade(GetControlRotation().Vector());
+		}
+	}), FMath::Max(Delay, 0.001f), false);
+}
+
 void ADVPlayerController::DVViewTag(const FString& Tag, float Distance, float Height)
 {
 	FBox Box(ForceInit);

@@ -1,6 +1,7 @@
 #include "Characters/DVSoldierCharacter.h"
 #include "Core/DVControls.h"
 #include "Characters/DVArmourKit.h"
+#include "Combat/DVGrenade.h"
 #include "Characters/DVCharacterMovementComponent.h"
 #include "Characters/DVCommandComponent.h"
 #include "Characters/DVSquadAIController.h"
@@ -132,6 +133,7 @@ void ADVSoldierCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ADVSoldierCharacter, CurrentWeapon);
+	DOREPLIFETIME(ADVSoldierCharacter, Grenades);
 	DOREPLIFETIME(ADVSoldierCharacter, RosterId);
 	DOREPLIFETIME(ADVSoldierCharacter, SoldierName);
 	DOREPLIFETIME(ADVSoldierCharacter, TeamId);
@@ -1103,6 +1105,7 @@ void ADVSoldierCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	Input->BindAction(OrderSuppressAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_OrderSuppress);
 	Input->BindAction(OrderFlankAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_OrderFlank);
 	Input->BindAction(MeleeAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_Melee);
+	Input->BindAction(GrenadeAction, ETriggerEvent::Started, this, &ADVSoldierCharacter::Input_Grenade);
 }
 
 void ADVSoldierCharacter::Input_Move(const FInputActionValue& Value)
@@ -1244,6 +1247,7 @@ void ADVSoldierCharacter::CreateFallbackInput()
 	OrderSuppressAction = MakeAction(TEXT("IA_OrderSuppress"), EInputActionValueType::Boolean);
 	OrderFlankAction = MakeAction(TEXT("IA_OrderFlank"), EInputActionValueType::Boolean);
 	MeleeAction = MakeAction(TEXT("IA_Melee"), EInputActionValueType::Boolean);
+	GrenadeAction = MakeAction(TEXT("IA_Grenade"), EInputActionValueType::Boolean);
 
 	DefaultMappingContext = Ctx;
 	ApplyControlBindings();
@@ -1283,6 +1287,10 @@ void ADVSoldierCharacter::ApplyControlBindings()
 	Ctx->MapKey(LeanLeftAction, DVControls::Key(EDVInput::LeanLeft));
 	Ctx->MapKey(LeanRightAction, DVControls::Key(EDVInput::LeanRight));
 	Ctx->MapKey(MeleeAction, DVControls::Key(EDVInput::Melee));
+	if (GrenadeAction)
+	{
+		Ctx->MapKey(GrenadeAction, DVControls::Key(EDVInput::Grenade));
+	}
 	Ctx->MapKey(OrderMoveAction, DVControls::Key(EDVInput::OrderMove));
 	Ctx->MapKey(OrderHoldAction, DVControls::Key(EDVInput::OrderHold));
 	Ctx->MapKey(OrderRegroupAction, DVControls::Key(EDVInput::OrderRegroup));
@@ -1308,4 +1316,34 @@ void ADVSoldierCharacter::Input_Melee()
 		}
 		ServerTakedown(Victim);
 	}
+}
+
+void ADVSoldierCharacter::Input_Grenade()
+{
+	if (bIsDead || Grenades <= 0 || GetWorld()->GetTimeSeconds() - LastGrenadeTime < 0.9)
+	{
+		return;
+	}
+	LastGrenadeTime = GetWorld()->GetTimeSeconds();
+	ServerThrowGrenade(GetControlRotation().Vector());
+}
+
+void ADVSoldierCharacter::ServerThrowGrenade_Implementation(FVector_NetQuantizeNormal Direction)
+{
+	if (bIsDead || Grenades <= 0)
+	{
+		return;
+	}
+	--Grenades;
+	// Over-arm throw: out of the right shoulder, along the view with a little loft so it carries over cover.
+	const FVector Dir = FVector(Direction).GetSafeNormal();
+	const FVector Start = GetActorLocation() + FVector(0.f, 0.f, 60.f) + Dir * 50.f + GetActorRightVector() * 15.f;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	Params.Instigator = this;
+	if (ADVGrenade* Frag = GetWorld()->SpawnActor<ADVGrenade>(ADVGrenade::StaticClass(), Start, Dir.Rotation(), Params))
+	{
+		Frag->Launch(this, Dir * 1500.f + FVector(0.f, 0.f, 380.f) + GetVelocity() * 0.5f);
+	}
+	DVSound::At(GetWorld(), TEXT("SW_Slide"), GetActorLocation(), 0.4f);
 }

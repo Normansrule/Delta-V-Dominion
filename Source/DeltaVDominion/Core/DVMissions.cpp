@@ -28,6 +28,8 @@ namespace DVMissionsData	// named: unity builds merge anonymous namespaces
 		{ TEXT("Trappist"), TEXT("The Architect"), false },
 		{ TEXT("Kepler"), TEXT("Ark Fall"), false },
 		{ TEXT("Crystal"), TEXT("Prism Fall"), false },
+		{ TEXT("Jungle"), TEXT("Emerald Wake"), false },
+		{ TEXT("Ocean"), TEXT("Tidefall"), false },
 		{ TEXT("Brasshaven"), TEXT("Steamheart"), true },
 		{ TEXT("NeonVerge"), TEXT("Clean Signal"), true },
 		{ TEXT("Hollyhock"), TEXT("Lantern Night"), true },

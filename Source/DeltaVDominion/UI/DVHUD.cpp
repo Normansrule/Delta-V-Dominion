@@ -380,6 +380,8 @@ void ADVHUD::DrawAmmo(const ADVSoldierCharacter* Soldier)
 		return;
 	}
 
+	Text(FString::Printf(TEXT("%s  FRAG x%d"), *DVControls::Cap(EDVInput::Grenade), Soldier->Grenades), Right - S(300.f) + S(14.f), Y + S(44.f),
+		Soldier->Grenades > 0 ? DVHudColors::Text : DVHudColors::Faded, GEngine->GetSmallFont(), DVType::Body);
 	const int32 Mag = Weapon->GetAmmoInMag();
 	const bool bLow = Mag <= Data->MagazineSize / 4;
 	const FString Reserve = FString::Printf(TEXT(" / %d"), Weapon->GetReserveAmmo());

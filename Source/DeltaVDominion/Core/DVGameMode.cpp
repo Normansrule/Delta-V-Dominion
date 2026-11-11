@@ -231,6 +231,18 @@ void ADVGameMode::SetupMissionForMap()
 		    { TEXT("Gny. Sgt. Halloran"), TEXT("Glow gives you away. Crouch in the dark between the clusters.") },
 		    { TEXT("SPARROW"), TEXT("They are singing the same song I hear. It is beautiful and it is wrong.") },
 		    { TEXT("CINDER"), TEXT("THE CENTRE IS SPEAKING. I AM ONLY REPEATING IT LOUDER.") } } },
+		{ TEXT("Jungle"), TEXT("Emerald Wake"), TEXT("Silence the CINDER seed-forge hidden in the temple city"), TEXT("The drowned temples, Wolf 1061 c"),
+		  TEXT("Wolf 1061  |  Act III  |  Monsoon season"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("CINDER is growing war-frames under that canopy. Something old is growing with them.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Thirty metres of visibility and the trees eat sound. Keep the squad tight.") },
+		    { TEXT("Dr. Liang Morrow"), TEXT("Those temples predate the colony by ten thousand years. Please do not blow them up.") },
+		    { TEXT("CINDER"), TEXT("THE BUILDERS OF THESE STONES ALSO HEARD THE SIGNAL. THEY ARE PRESERVED NOW.") } } },
+		{ TEXT("Ocean"), TEXT("Tidefall"), TEXT("Take the island chain and the CINDER sea-relay"), TEXT("The Chain, Teegarden b"),
+		  TEXT("Teegarden's Star  |  Act III  |  Ocean world"),
+		  { { TEXT("Capt. Vance (Kestrel)"), TEXT("One chain of islands on a world of water, and CINDER's relay sits on the last of them.") },
+		    { TEXT("Gny. Sgt. Halloran"), TEXT("Sand bars between the islands. Cross them fast. There's no cover on open water.") },
+		    { TEXT("Deck Chief Ruiz"), TEXT("Marlin's at the south pier. She floats. Mostly.") },
+		    { TEXT("CINDER"), TEXT("THE SEA KEEPS EVERYTHING. SO DO I.") } } },
 		{ TEXT("Gaia"), TEXT("Gaia Falls"), TEXT("Hold the hills outside the capital"), TEXT("Lagos Arcology outskirts, Gaia"),
 		  TEXT("Earth  |  Day 30 of the uprising"),
 		  { { TEXT("Admiral Osei (Accord Command)"), TEXT("All units, this is Gaia Command. CINDER's landing force is on the ground. This is home. Hold it.") },
@@ -500,7 +512,8 @@ void ADVGameMode::SetupOperation()
 		{ TEXT("Europa"), TEXT("the drill head") }, { TEXT("Io"), TEXT("the forge core") }, { TEXT("Proxima"), TEXT("the jammer") },
 		{ TEXT("Ceres"), TEXT("the signal mast") }, { TEXT("Gaia"), TEXT("the uplink") }, { TEXT("Outpost"), TEXT("the relay") },
 		{ TEXT("Barnard"), TEXT("the assembly line") }, { TEXT("Eridani"), TEXT("the raider beacon") }, { TEXT("Trappist"), TEXT("the station core") },
-		{ TEXT("Kepler"), TEXT("the jamming spire") }, { TEXT("Glacier"), TEXT("the vault lock") }, { TEXT("Crystal"), TEXT("the resonance array") } };
+		{ TEXT("Kepler"), TEXT("the jamming spire") }, { TEXT("Glacier"), TEXT("the vault lock") }, { TEXT("Crystal"), TEXT("the resonance array") },
+		{ TEXT("Jungle"), TEXT("the seed-forge") }, { TEXT("Ocean"), TEXT("the sea-relay") } };
 	TargetNoun = TEXT("the target");
 	for (const FNoun& N : Nouns)
 	{

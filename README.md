@@ -6,8 +6,16 @@
 
 <p align="center">
   <a href="../../releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/download-Windows%2064--bit-2ea44f?style=for-the-badge"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.36-blue?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.37-blue?style=for-the-badge">
   <img alt="Engine" src="https://img.shields.io/badge/Unreal%20Engine-5.8-black?style=for-the-badge">
+</p>
+
+<p align="center">
+  <a href="../../releases/latest"><b>Download</b></a> ·
+  <a href="https://normansrule.github.io/delta-v-dominion/"><b>Website</b></a> ·
+  <a href="#controls"><b>Controls</b></a> ·
+  <a href="#build-from-source"><b>Build from source</b></a> ·
+  <a href="#roadmap"><b>Roadmap</b></a>
 </p>
 
 <p align="center">
@@ -21,6 +29,28 @@ you see, and remember the names of everyone you lose, because death is permanent
 squad shooters with consequences (think Halo or Helldivers, with a memorial wall), and for anyone who wants to read a
 working UE5 C++ game that's built in the open, one playable slice at a time. It runs single player today, and co-op
 is designed in but not yet tested over two machines.
+
+<p align="center">
+  <img src="docs/media/worlds_grid.jpg" width="720" alt="Four of the twenty worlds: a jungle, a glacier, a crystal field and an ocean of islands">
+  <br><sup>Four of the twenty worlds, all captured in the engine.</sup>
+</p>
+
+### What's new in 0.37
+
+- **Frag grenades** on G: an over-arm throw that carries over cover, bounces, blinks faster as the fuse burns, and
+  blows with real radial damage. Three per life, refilled by supply caches and drops.
+- **Emerald Wake** (Wolf 1061 c): a steaming jungle, giant trees and hanging vines, and a stepped temple city.
+- **Tidefall** (Teegarden b): an ocean world, a chain of islands to fight along, piers, buoys and a tanker on the reef.
+- 20 worlds and **190 missions** in campaign order.
+
+<p align="center"><img src="docs/media/frag_grenade.jpg" width="720" alt="A frag grenade thrown toward the Red Tide compound: in flight, then the blast"></p>
+
+### Contents
+
+[Play](#play) · [Key features](#key-features) · [Progress](#progress-tracker) · [Roadmap](#roadmap) ·
+[Gallery](#gallery) · [Setup and usage](#setup-and-usage) · [Controls](#controls) · [Project structure](#project-structure) ·
+[Design](#design) · [Under the hood](#under-the-hood) · [Known limitations](#known-limitations) ·
+[Contributing](#contributing) · [Credits](#credits-and-originality)
 
 ### Play
 
@@ -47,6 +77,8 @@ Every operation is playable. Download the game, open the war table on the Kestre
 | Ark Fall | The ark valley, Kepler-452b | Lethal | [![Play](https://img.shields.io/badge/Ark%20Fall-Play-f2b01e?style=flat-square)](../../releases/latest) |
 | Prism Fall | The Singing Fields, Gliese 667 Cc | Lethal | [![Play](https://img.shields.io/badge/Prism%20Fall-Play-f2b01e?style=flat-square)](../../releases/latest) |
 | White Silence | Vault Field, Kapteyn b | Lethal | [![Play](https://img.shields.io/badge/White%20Silence-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Emerald Wake | The drowned temples, Wolf 1061 c | Lethal | [![Play](https://img.shields.io/badge/Emerald%20Wake-Play-f2b01e?style=flat-square)](../../releases/latest) |
+| Tidefall | The Chain, Teegarden b | Lethal | [![Play](https://img.shields.io/badge/Tidefall-Play-f2b01e?style=flat-square)](../../releases/latest) |
 
 **Website:** [normansrule.github.io/delta-v-dominion](https://normansrule.github.io/delta-v-dominion/). You can plan an op there and
 watch who comes home.
@@ -450,7 +482,7 @@ relay mast cut down with its beacon still blinking.
 
 <img src="docs/media/story_scenes.jpg" width="720" alt="A refugee camp, a field memorial, a felled relay mast and a crashed Raven">
 
-### The campaign: 170 missions, in order
+### The campaign: 190 missions, in order
 
 Every operation world now carries a run of ten missions: its story operation, then nine generated from templates and
 twists, the same for everyone who plays that world. Templates: **Assault** (clear the garrison), **Sabotage** (clear,
@@ -858,9 +890,33 @@ flowchart TD
 
 ---
 
+## Known limitations
+
+- **Art is kit-bashed.** Characters, vehicles and buildings are assembled from engine primitives with generated
+  materials; there are no sculpted models or scanned textures yet. Photoreal ground needs scanned assets (for example
+  the free Quixel packs) added from the Epic launcher.
+- **Co-op is designed in but untested** over two machines.
+- **Sound is generated placeholder audio**; only some events have sounds.
+- **Generated missions** reuse each world's layout; their objectives, twists and points of interest change, the
+  terrain does not.
+- **Windows only** for now.
+
+## Contributing
+
+Issues and pull requests are welcome. Keep changes small and playable: build with `dv build`, regenerate any map you
+touch with `dv map`, and attach an in-engine capture (`dv capture`) for anything visible. Every screenshot in this
+README comes from the game itself, and new ones should too. Match the surrounding code: C++ in `Source/`, map builders
+in `Scripts/`, design notes in `docs/`.
+
 ## Credits and originality
 
 All the characters, places, factions, story, maps, sounds and code are original to this project. The worlds and
 vehicles are built in code and Python from engine primitives. Characters use the UE5 template mannequins that ship
 with the engine. The design references (Halo, Helldivers, Star Wars Outlaws, Red Dead Redemption 2 and others) are
 studied for principles only; nothing is copied from them.
+
+Open-source projects studied for technique, with no code taken: Red Blob Games' mapgen4 and Azgaar's Fantasy Map
+Generator (Poisson-disk placement and the settings-to-renderer pipeline behind the points of interest), mxgmn's
+WaveFunctionCollapse (placement as constraint solving), Claude Code Game Studios (the HUD and level-design guides behind
+the health feedback and encounter pacing), worldcodex (worlds whose weather changes how you fight), and
+tiny-world-builder (seeded, chunk-stable generation).

@@ -13,7 +13,7 @@ enum class EDVInput : uint8
 {
 	MoveForward, MoveBack, MoveLeft, MoveRight,
 	Jump, Sprint, Crouch, Dash,
-	Fire, Aim, Reload, Interact, Melee,
+	Fire, Aim, Reload, Interact, Melee, Grenade,
 	LeanLeft, LeanRight,
 	OrderMove, OrderHold, OrderRegroup, OrderSuppress, OrderFlank,
 	Orbital, Supply, Strafe, FlyHome, Map, Buy,

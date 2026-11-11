@@ -21,7 +21,7 @@ if (Test-Path $Archive) { Remove-Item -Recurse -Force $Archive }
 
 & $Uat BuildCookRun "-project=$Project" -noP4 -platform=Win64 "-clientconfig=$Config" `
     -build -cook -stage -pak -iostore -compressed -prereqs -nodebuginfo `
-    -archive "-archivedirectory=$Archive" -map=/Game/Maps/Galaxy+/Game/Maps/Kestrel+/Game/Maps/Outpost+/Game/Maps/Europa+/Game/Maps/Io+/Game/Maps/Proxima+/Game/Maps/Ceres+/Game/Maps/Gaia+/Game/Maps/Breakwater+/Game/Maps/RooksRest+/Game/Maps/Ironstride+/Game/Maps/Brasshaven+/Game/Maps/Hollyhock+/Game/Maps/NeonVerge+/Game/Maps/Barnard+/Game/Maps/Eridani+/Game/Maps/Trappist+/Game/Maps/Kepler+/Game/Maps/Glacier+/Game/Maps/Crystal+/Game/Maps/BootCamp -unattended -utf8output
+    -archive "-archivedirectory=$Archive" -map=/Game/Maps/Galaxy+/Game/Maps/Kestrel+/Game/Maps/Outpost+/Game/Maps/Europa+/Game/Maps/Io+/Game/Maps/Proxima+/Game/Maps/Ceres+/Game/Maps/Gaia+/Game/Maps/Breakwater+/Game/Maps/RooksRest+/Game/Maps/Ironstride+/Game/Maps/Brasshaven+/Game/Maps/Hollyhock+/Game/Maps/NeonVerge+/Game/Maps/Barnard+/Game/Maps/Eridani+/Game/Maps/Trappist+/Game/Maps/Kepler+/Game/Maps/Glacier+/Game/Maps/Crystal+/Game/Maps/Jungle+/Game/Maps/Ocean+/Game/Maps/BootCamp -unattended -utf8output
 if ($LASTEXITCODE -ne 0) { throw "Packaging failed (exit $LASTEXITCODE). See the log above." }
 
 $Game = Join-Path $Archive "Windows"
